@@ -231,9 +231,9 @@ function getItinerary($conn) {
     $stmt_days->close();
 
     // Fetch all resources
-    $data['guides'] = $conn->query("SELECT id, name FROM guides ORDER BY name")->fetch_all(MYSQLI_ASSOC);
-    $data['vehicles'] = $conn->query("SELECT id, name FROM vehicles ORDER BY name")->fetch_all(MYSQLI_ASSOC);
-    $data['hotels'] = $conn->query("SELECT id, name, location FROM hotels ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+    $data['guides'] = $conn->query("SELECT id, name, language FROM guides ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+    $data['vehicles'] = $conn->query("SELECT id, name, seats FROM vehicles ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+    $data['hotels'] = $conn->query("SELECT id, name, location, roomtype FROM hotels ORDER BY name")->fetch_all(MYSQLI_ASSOC);
 
     echo json_encode(['status' => 'success', 'data' => $data]);
 }
@@ -272,7 +272,8 @@ function updateItinerary($conn) {
 // ============= HOTEL MANAGEMENT =============
 
 function getHotels($conn) {
-    $result = $conn->query("SELECT id, name, location FROM hotels ORDER BY name");
+    // The original SELECT was correct, but keeping it for consistency.
+    $result = $conn->query("SELECT id, name, location, roomtype, availability_status FROM hotels ORDER BY name");
     $hotels = [];
     while ($row = $result->fetch_assoc()) {
         $hotels[] = $row;
@@ -283,14 +284,19 @@ function getHotels($conn) {
 function addHotel($conn) {
     $name = $_POST['name'];
     $location = $_POST['location'];
+    $roomtype = $_POST['roomtype'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status']; 
 
     if (empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Hotel name is required.']);
         return;
     }
 
-    $stmt = $conn->prepare("INSERT INTO hotels (name, location) VALUES (?, ?)");
-    $stmt->bind_param("ss", $name, $location);
+    // **FIX**: Include availability_status in the INSERT statement
+    $stmt = $conn->prepare("INSERT INTO hotels (name, location, roomtype, availability_status) VALUES (?, ?, ?, ?)");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("ssss", $name, $location, $roomtype, $availability_status);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Hotel added successfully.']);
@@ -304,14 +310,19 @@ function updateHotel($conn) {
     $id = $_POST['id'];
     $name = $_POST['name'];
     $location = $_POST['location'];
+    $roomtype = $_POST['roomtype'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status'];
 
     if (empty($id) || empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Hotel ID and name are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE hotels SET name = ?, location = ? WHERE id = ?");
-    $stmt->bind_param("ssi", $name, $location, $id);
+    // **FIX**: Include availability_status in the UPDATE statement
+    $stmt = $conn->prepare("UPDATE hotels SET name = ?, location = ?, roomtype = ?, availability_status = ? WHERE id = ?");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("ssssi", $name, $location, $roomtype, $availability_status, $id);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Hotel updated successfully.']);
@@ -343,7 +354,8 @@ function deleteHotel($conn) {
 // ============= VEHICLE MANAGEMENT =============
 
 function getVehicles($conn) {
-    $result = $conn->query("SELECT id, name FROM vehicles ORDER BY name");
+    // **FIX**: Added availability_status to the SELECT query
+    $result = $conn->query("SELECT id, name, seats, availability_status FROM vehicles ORDER BY name");
     $vehicles = [];
     while ($row = $result->fetch_assoc()) {
         $vehicles[] = $row;
@@ -353,14 +365,19 @@ function getVehicles($conn) {
 
 function addVehicle($conn) {
     $name = $_POST['name'];
+    $seats = $_POST['seats'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status'];
 
     if (empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Vehicle name is required.']);
         return;
     }
 
-    $stmt = $conn->prepare("INSERT INTO vehicles (name) VALUES (?)");
-    $stmt->bind_param("s", $name);
+    // **FIX**: Include availability_status in the INSERT statement
+    $stmt = $conn->prepare("INSERT INTO vehicles (name, seats, availability_status) VALUES (?, ?, ?)");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("sis", $name, $seats, $availability_status);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Vehicle added successfully.']);
@@ -373,14 +390,19 @@ function addVehicle($conn) {
 function updateVehicle($conn) {
     $id = $_POST['id'];
     $name = $_POST['name'];
+    $seats = $_POST['seats'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status'];
 
     if (empty($id) || empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Vehicle ID and name are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE vehicles SET name = ? WHERE id = ?");
-    $stmt->bind_param("si", $name, $id);
+    // **FIX**: Include availability_status in the UPDATE statement
+    $stmt = $conn->prepare("UPDATE vehicles SET name = ?, seats = ?, availability_status = ? WHERE id = ?");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("sisi", $name, $seats, $availability_status, $id);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Vehicle updated successfully.']);
@@ -412,7 +434,8 @@ function deleteVehicle($conn) {
 // ============= GUIDE MANAGEMENT =============
 
 function getGuides($conn) {
-    $result = $conn->query("SELECT id, name FROM guides ORDER BY name");
+    // **FIX**: Added availability_status to the SELECT query
+    $result = $conn->query("SELECT id, name, language, availability_status FROM guides ORDER BY name");
     $guides = [];
     while ($row = $result->fetch_assoc()) {
         $guides[] = $row;
@@ -422,14 +445,19 @@ function getGuides($conn) {
 
 function addGuide($conn) {
     $name = $_POST['name'];
+    $language = $_POST['language'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status'];
 
     if (empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Guide name is required.']);
         return;
     }
-
-    $stmt = $conn->prepare("INSERT INTO guides (name) VALUES (?)");
-    $stmt->bind_param("s", $name);
+    
+    // **FIX**: Include availability_status in the INSERT statement
+    $stmt = $conn->prepare("INSERT INTO guides (name, language, availability_status) VALUES (?, ?, ?)");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("sss", $name, $language, $availability_status);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Guide added successfully.']);
@@ -442,14 +470,19 @@ function addGuide($conn) {
 function updateGuide($conn) {
     $id = $_POST['id'];
     $name = $_POST['name'];
+    $language = $_POST['language'];
+    // **FIX**: Get availability_status from the form submission
+    $availability_status = $_POST['availability_status'];
 
     if (empty($id) || empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Guide ID and name are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE guides SET name = ? WHERE id = ?");
-    $stmt->bind_param("si", $name, $id);
+    // **FIX**: Include availability_status in the UPDATE statement
+    $stmt = $conn->prepare("UPDATE guides SET name = ?, language = ?, availability_status = ? WHERE id = ?");
+    // **FIX**: Update the bind_param to include the new string 's'
+    $stmt->bind_param("sssi", $name, $language, $availability_status, $id);
     
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Guide updated successfully.']);
