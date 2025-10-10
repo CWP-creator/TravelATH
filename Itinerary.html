@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itinerary Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --background: #fafafa;
+            --surface: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --border: #e5e7eb;
+            --border-light: #f3f4f6;
+            --success: #10b981;
+            --error: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .page-header {
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .trip-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .trip-info h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
+        }
+        
+        .trip-meta {
+            display: flex;
+            gap: 24px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .trip-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .trip-meta-item i {
+            color: var(--text-light);
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--surface);
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        
+        .btn-back:hover {
+            background: var(--border-light);
+            border-color: var(--text-light);
+        }
+
+        /* Itinerary Grid */
+        .itinerary-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .day-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        
+        .day-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .day-header {
+            padding: 20px 24px;
+            background: var(--border-light);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .day-number {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .day-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+        
+        .day-date {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .day-content {
+            padding: 24px;
+        }
+
+        .assignments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* Custom Select */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .form-group label i {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .custom-select {
+            position: relative;
+        }
+        
+        .custom-select select {
+            width: 100%;
+            padding: 10px 36px 10px 12px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            font-family: inherit;
+        }
+        
+        .custom-select select:hover {
+            border-color: var(--text-light);
+        }
+        
+        .custom-select select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .custom-select::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            pointer-events: none;
+            font-size: 0.75rem;
+        }
+
+        /* Textarea */
+        .notes-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            line-height: 1.5;
+            transition: all 0.2s;
+        }
+        
+        .form-group textarea:hover {
+            border-color: var(--text-light);
+        }
+        
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-group textarea::placeholder {
+            color: var(--text-light);
+        }
+
+        /* Save Button */
+        .form-actions {
+            position: sticky;
+            bottom: 20px;
+            margin-top: 32px;
+            padding: 20px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .save-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .save-info i {
+            color: var(--text-light);
+        }
+
+        .btn-save {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-save:hover {
+            background: var(--primary-dark);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+        
+        .btn-save:active {
+            transform: translateY(0);
+        }
+        
+        /* Loading State */
+        .loading { 
+            text-align: center; 
+            padding: 80px 20px; 
+            color: var(--text-secondary);
+        }
+        
+        .loading i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading p {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast { 
+            visibility: hidden; 
+            min-width: 300px; 
+            margin-left: -150px; 
+            background: var(--text-primary); 
+            color: white; 
+            text-align: center; 
+            border-radius: 8px; 
+            padding: 16px 20px; 
+            position: fixed; 
+            z-index: 1001; 
+            left: 50%; 
+            bottom: 30px; 
+            font-size: 0.875rem; 
+            font-weight: 500;
+            opacity: 0; 
+            transition: all 0.3s;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .toast.show { 
+            visibility: visible; 
+            opacity: 1; 
+            bottom: 40px;
+        }
+        
+        .toast.success { 
+            background: var(--success); 
+        }
+        
+        .toast.error { 
+            background: var(--error); 
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px 16px;
+            }
+            
+            .page-header {
+                margin-bottom: 24px;
+            }
+            
+            .header-top {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .trip-info h1 {
+                font-size: 1.5rem;
+            }
+            
+            .trip-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .assignments-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .day-content {
+                padding: 20px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-save {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app">
+        <header class="page-header">
+            <div class="header-top">
+                <div class="trip-info">
+                    <div class="trip-badge"><i class="fas fa-route"></i> Itinerary</div>
+                    <h1 id="tripTitle">Loading Trip...</h1>
+                    <div class="trip-meta" id="tripMeta">
+                        <div class="trip-meta-item">
+                            <i class="far fa-calendar"></i>
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <a href="index.html" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> 
+                    <span>Back</span>
+                </a>
+            </div>
+        </header>
+
+        <main>
+            <form id="itineraryForm">
+                <div class="itinerary-grid" id="itineraryGrid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading itinerary...</p>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <div class="save-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Changes will be saved to database</span>
+                    </div>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-check"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const API_URL = 'api.php';
+            const itineraryGrid = document.getElementById('itineraryGrid');
+            const itineraryForm = document.getElementById('itineraryForm');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const tripId = urlParams.get('trip_id');
+
+            const apiFetch = async (url, options = {}) => {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    console.error("API Fetch Error: ", error);
+                    showToast('An API error occurred.', 'error');
+                    throw error;
+                }
+            };
+            
+            const createSelectOptions = (items, selectedId, textKey = 'name', subtextKey = null) => {
+                let html = '<option value="">Not assigned</option>';
+                items.forEach(item => {
+                    const isSelected = item.id == selectedId ? 'selected' : '';
+                    const subtext = subtextKey && item[subtextKey] ? ` • ${item[subtextKey]}` : '';
+                    html += `<option value="${item.id}" ${isSelected}>${item[textKey]}${subtext}</option>`;
+                });
+                return html;
+            };
+
+            const loadItinerary = async () => {
+                if (!tripId) {
+                    document.getElementById('app').innerHTML = '<div class="loading"><h1>Error: No Trip ID provided.</h1><a href="index.html" class="btn-back">Go Back</a></div>';
+                    return;
+                }
+
+                const result = await apiFetch(`${API_URL}?action=getItinerary&trip_id=${tripId}`);
+                if (result.status !== 'success') {
+                    showToast(result.message, 'error');
+                    itineraryGrid.innerHTML = `<div class="loading error">${result.message}</div>`;
+                    return;
+                }
+
+                const { trip, itinerary_days, guides, vehicles, hotels } = result.data;
+                
+                // Update header
+                document.getElementById('tripTitle').textContent = `${trip.customer_name}'s ${trip.package_name}`;
+                document.getElementById('tripMeta').innerHTML = `
+                    <div class="trip-meta-item">
+                        <i class="far fa-calendar"></i>
+                        <span>${trip.start_date}</span>
+                    </div>
+                    <div class="trip-meta-item">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>${trip.end_date}</span>
+                    </div>
+                    <div class="trip-meta-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>${itinerary_days.length} Days</span>
+                    </div>
+                `;
+
+                // Render itinerary days
+                itineraryGrid.innerHTML = '';
+                let dayCounter = 1;
+                itinerary_days.forEach(day => {
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'day-card';
+                    dayCard.dataset.dayId = day.id;
+                    
+                    const dayDate = new Date(day.day_date + 'T00:00:00');
+                    const dateString = dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+                    dayCard.innerHTML = `
+                        <div class="day-header">
+                            <div class="day-number">
+                                <div class="day-badge">${dayCounter}</div>
+                                <span>Day ${dayCounter++}</span>
+                            </div>
+                            <div class="day-date">${dateString}</div>
+                        </div>
+                        <div class="day-content">
+                            <div class="assignments-grid">
+                                <div class="form-group">
+                                    <label><i class="fas fa-user-tie"></i> Guide</label>
+                                    <div class="custom-select">
+                                        <select name="guide_id">${createSelectOptions(guides, day.guide_id)}</select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-car"></i> Vehicle</label>
+                                    <div class="custom-select">
+                                        <select name="vehicle_id">${createSelectOptions(vehicles, day.vehicle_id)}</select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-bed"></i> Hotel</label>
+                                    <div class="custom-select">
+                                        <select name="hotel_id">${createSelectOptions(hotels, day.hotel_id, 'name', 'location')}</select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="notes-section">
+                                <div class="form-group">
+                                    <label><i class="fas fa-list-ul"></i> Activities & Notes</label>
+                                    <textarea name="notes" placeholder="Add activities, destinations, or special instructions for this day...">${day.notes || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    itineraryGrid.appendChild(dayCard);
+                });
+            };
+
+            itineraryForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const dayCards = document.querySelectorAll('.day-card');
+                const itinerary_days_data = Array.from(dayCards).map(card => ({
+                    id: card.dataset.dayId,
+                    guide_id: card.querySelector('[name="guide_id"]').value || null,
+                    vehicle_id: card.querySelector('[name="vehicle_id"]').value || null,
+                    hotel_id: card.querySelector('[name="hotel_id"]').value || null,
+                    notes: card.querySelector('[name="notes"]').value,
+                }));
+
+                const result = await apiFetch(`${API_URL}?action=updateItinerary`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ itinerary_days: itinerary_days_data })
+                });
+
+                showToast(result.message, result.status);
+            });
+            
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = `toast show ${type}`;
+                setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+            }
+
+            loadItinerary();
+        });
+    </script>
+
+</body>
+</html>
