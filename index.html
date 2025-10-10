@@ -26,7 +26,6 @@
             --error-color: #F44336;
             --warning-color: #f5a623;
 
-            /* **NEW**: Added row status colors */
             --row-available-bg: #f0fff0; /* Honeydew */
             --row-not-available-bg: #fff5f5; /* Seashell */
             --row-on-trip-bg: #f5f5ff; /* LavenderBlush alternative */
@@ -230,7 +229,6 @@
             color: var(--text-light);
         }
 
-        /* **NEW**: Added transition for smooth color changes */
         tr {
             transition: background-color 0.3s ease;
         }
@@ -248,7 +246,6 @@
         .status-Completed { background-color: #e9ecef; color: #6c757d; }
         .status-Pending { background-color: #fff3e0; color: #ff9800; }
 
-        /* **NEW**: CSS classes for row background colors */
         .row-status-Available { background-color: var(--row-available-bg); }
         .row-status-Not-Available { background-color: var(--row-not-available-bg); }
         .row-status-On-Trip { background-color: var(--row-on-trip-bg); }
@@ -297,6 +294,24 @@
         }
         .btn-save { background-color: var(--success-color); }
         .btn-cancel { background-color: #aaa; }
+
+        /* NEW CSS for Trip Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        #package_description {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 0.9em;
+            color: var(--text-light);
+            min-height: 40px;
+            transition: all 0.3s ease;
+        }
 
         /* Toast Notification */
         .toast {
@@ -350,6 +365,13 @@
             .header-stats { gap: 15px; }
             .main-content { padding: 15px; }
             .stats-cards { gap: 15px; }
+        }
+
+        /* Responsive adjustment for the form grid */
+        @media screen and (max-width: 576px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -542,24 +564,37 @@
             <h2 id="modalTitle">Add Trip</h2>
             <form id="tripForm">
                 <input type="hidden" id="tripId" name="id">
-                <div class="form-group">
-                    <label for="customer_name">Customer Name</label>
-                    <input type="text" id="customer_name" name="customer_name" required>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="customer_name">Customer Name</label>
+                        <input type="text" id="customer_name" name="customer_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="trip_package_id">Trip Package</label>
+                        <select id="trip_package_id" name="trip_package_id" required>
+                            <option value="">Select Package</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="trip_package_id">Trip Package</label>
-                    <select id="trip_package_id" name="trip_package_id" required>
-                        <option value="">Select Package</option>
-                    </select>
+
+                <div id="package_description_container" class="form-group" style="display: none;">
+                    <label>Package Details</label>
+                    <div id="package_description"></div>
                 </div>
-                <div class="form-group">
-                    <label for="start_date">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" required>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date </label>
+                        <input type="date" id="end_date" name="end_date" required>
+                        <small id="end_date_suggestion" style="display: block; margin-top: 5px; color: var(--primary-color); font-weight: 500;"></small>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="end_date">End Date</label>
-                    <input type="date" id="end_date" name="end_date" required>
-                </div>
+
                 <div class="form-group">
                     <label for="status">Status</label>
                     <select id="status" name="status" required>
@@ -576,7 +611,7 @@
         </div>
     </div>
 
-<div id="hotelModal" class="modal">
+    <div id="hotelModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" data-modal="hotelModal">&times;</span>
             <h2 id="hotelModalTitle">Add Hotel</h2>
@@ -608,7 +643,7 @@
         </div>
     </div>
 
-<div id="vehicleModal" class="modal">
+    <div id="vehicleModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" data-modal="vehicleModal">&times;</span>
             <h2 id="vehicleModalTitle">Add Vehicle</h2>
@@ -637,7 +672,7 @@
         </div>
     </div>
 
-<div id="guideModal" class="modal">
+    <div id="guideModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" data-modal="guideModal">&times;</span>
             <h2 id="guideModalTitle">Add Guide</h2>
@@ -744,15 +779,15 @@
                         packagesData = result.data;
                         const select = document.getElementById('trip_package_id');
                         select.innerHTML = '<option value="">Select Package</option>';
+                        // **MODIFIED**: Ensure pkg.No_of_Days is correctly stored as data-days
                         result.data.forEach(pkg => {
-                            select.innerHTML += `<option value="${pkg.id}">${pkg.name}</option>`;
+                            select.innerHTML += `<option value="${pkg.id}" data-description="${pkg.description || ''}" data-days="${pkg.No_of_Days || ''}">${pkg.name}</option>`;
                         });
                     }
                 } catch (error) {
                     showToast('Error fetching packages.', 'error');
                 }
             };
-
             const fetchHotels = async () => {
                 try {
                     const response = await fetch(`${API_URL}?action=getHotels`);
@@ -829,7 +864,6 @@
                 }
                 hotels.forEach(hotel => {
                     const row = document.createElement('tr');
-                    // **MODIFIED**: Add class to row based on availability status
                     if (hotel.availability_status) {
                         const statusClass = `row-status-${hotel.availability_status.replace(/\s+/g, '-')}`;
                         row.classList.add(statusClass);
@@ -858,7 +892,6 @@
                 }
                 vehicles.forEach(vehicle => {
                     const row = document.createElement('tr');
-                    // **MODIFIED**: Add class to row based on availability status
                     if (vehicle.availability_status) {
                         const statusClass = `row-status-${vehicle.availability_status.replace(/\s+/g, '-')}`;
                         row.classList.add(statusClass);
@@ -886,7 +919,6 @@
                 }
                 guides.forEach(guide => {
                     const row = document.createElement('tr');
-                    // **MODIFIED**: Add class to row based on availability status
                     if (guide.availability_status) {
                         const statusClass = `row-status-${guide.availability_status.replace(/\s+/g, '-')}`;
                         row.classList.add(statusClass);
@@ -904,6 +936,64 @@
                     tbody.appendChild(row);
                 });
             };
+            
+            // --- NEW/MODIFIED: Function to calculate end date ---
+            const calculateEndDate = () => {
+                const packageSelect = document.getElementById('trip_package_id');
+                const startDateInput = document.getElementById('start_date');
+                const endDateInput = document.getElementById('end_date');
+                const suggestionEl = document.getElementById('end_date_suggestion');
+
+                const selectedOption = packageSelect.options[packageSelect.selectedIndex];
+                const days = selectedOption.dataset.days;
+                const startDateValue = startDateInput.value;
+
+                suggestionEl.textContent = '';
+                endDateInput.value = '';
+
+                if (days && startDateValue) {
+                    const duration = parseInt(days, 10);
+                    // Note: Adding 'duration - 1' days to get the end date for an N-day trip.
+                    // E.g., a 3-day trip starting on the 1st ends on the 3rd, which is 1st + (3-1) days.
+                    const startDate = new Date(startDateValue);
+                    
+                    // Use standard methods for date calculation
+                    const endDate = new Date(startDate.getTime());
+                    endDate.setDate(endDate.getDate() + duration - 1);
+                    
+                    const year = endDate.getFullYear();
+                    const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(endDate.getDate()).padStart(2, '0');
+                    
+                    const formattedEndDate = `${year}-${month}-${day}`;
+                    
+                    // Set the suggested date into the input field
+                    endDateInput.value = formattedEndDate;
+                    
+                    // Display a confirmation/suggestion message
+                    suggestionEl.textContent = `End date auto-calculated for ${duration} days.`;
+                }
+            };
+
+            // --- NEW/MODIFIED: Event listeners for package selection and start date change ---
+            document.getElementById('trip_package_id').addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const description = selectedOption.dataset.description;
+                const descriptionContainer = document.getElementById('package_description_container');
+                const descriptionBox = document.getElementById('package_description');
+
+                if (description && description.trim() !== '') {
+                    descriptionBox.textContent = description;
+                    descriptionContainer.style.display = 'block';
+                } else {
+                    descriptionContainer.style.display = 'none';
+                }
+                
+                // Recalculate end date when package changes
+                calculateEndDate();
+            });
+
+            document.getElementById('start_date').addEventListener('change', calculateEndDate);
             
             // --- Modal Handling ---
             const openModal = (modalId) => {
@@ -930,6 +1020,11 @@
                 document.getElementById('tripForm').reset();
                 document.getElementById('tripId').value = '';
                 document.getElementById('modalTitle').textContent = 'Add Trip';
+                
+                // Reset/Hide description and suggestion
+                document.getElementById('package_description_container').style.display = 'none';
+                document.getElementById('end_date_suggestion').textContent = '';
+
                 openModal('tripModal');
             });
             document.getElementById('addTripBtn2').addEventListener('click', () => document.getElementById('addTripBtn').click());
@@ -1034,6 +1129,10 @@
                         document.getElementById('start_date').value = trip.start_date;
                         document.getElementById('end_date').value = trip.end_date;
                         document.getElementById('status').value = trip.status;
+
+                        // **NEW**: Manually trigger change to populate package description and suggestion
+                        document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
+
                         openModal('tripModal');
                     }
                 }
