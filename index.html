@@ -26,9 +26,9 @@
             --error-color: #F44336;
             --warning-color: #f5a623;
 
-            --row-available-bg: #f0fff0; /* Honeydew */
-            --row-not-available-bg: #fff5f5; /* Seashell */
-            --row-on-trip-bg: #f5f5ff; /* LavenderBlush alternative */
+            --row-available-bg: #f0fff0;
+            --row-not-available-bg: #fff5f5;
+            --row-on-trip-bg: #f5f5ff;
         }
 
         body {
@@ -262,7 +262,6 @@
         .actions .fa-pencil { color: var(--warning-color); }
         .actions .fa-trash { color: var(--error-color); }
         
-        /* Modal Styles */
         .modal {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); animation: fadeIn 0.3s;
         }
@@ -295,25 +294,43 @@
         .btn-save { background-color: var(--success-color); }
         .btn-cancel { background-color: #aaa; }
 
-        /* NEW CSS for Trip Form */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
 
-        #package_description {
-            background-color: #f8f9fa;
-            border: 1px solid var(--border-color);
+        .services-block {
+            border: 1px solid #ddd;
+            padding: 15px;
             border-radius: 5px;
-            padding: 10px;
-            font-size: 0.9em;
-            color: var(--text-light);
-            min-height: 40px;
-            transition: all 0.3s ease;
+            background: #f9f9f9;
         }
 
-        /* Toast Notification */
+        .services-block label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin: 8px 0;
+            font-weight: normal;
+        }
+
+        .services-block input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .services-display {
+            display: inline-block;
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #1976d2;
+        }
+
         .toast {
             visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 16px; position: fixed; z-index: 1001; left: 50%; bottom: 30px; font-size: 17px; opacity: 0; transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
         }
@@ -367,7 +384,6 @@
             .stats-cards { gap: 15px; }
         }
 
-        /* Responsive adjustment for the form grid */
         @media screen and (max-width: 576px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -436,7 +452,7 @@
                 <div class="trips-container">
                     <div class="trips-header">
                         <h2>Recent Trip Files</h2>
-                        <button id="addTripBtn" class="btn-add"><i class="fas fa-plus"></i> New Trip</button>
+                        <button id="addTripBtn" class="btn-add"><i class="fas fa-plus"></i> New File</button>
                     </div>
                     <div class="table-container">
                         <table id="tripsTable">
@@ -444,6 +460,7 @@
                                 <tr>
                                     <th>FILE ID</th>
                                     <th>CUSTOMER</th>
+                                    <th>TOUR CODE</th>
                                     <th>PACKAGE</th>
                                     <th>START DATE</th>
                                     <th>END DATE</th>
@@ -451,8 +468,7 @@
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -470,6 +486,7 @@
                                 <tr>
                                     <th>File ID</th>
                                     <th>CUSTOMER</th>
+                                    <th>TOUR CODE</th>
                                     <th>PACKAGE</th>
                                     <th>START DATE</th>
                                     <th>END DATE</th>
@@ -477,8 +494,7 @@
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -496,14 +512,13 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>HOTEL NAME</th>
-                                    <th>LOCATION</th>
                                     <th>ROOM TYPES</th>
+                                    <th>SERVICES PROVIDED</th>
                                     <th>AVAILABILITY</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -521,17 +536,17 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>VEHICLE NAME</th>
-                                    <th>SEATS</th>
+                                    <th>CAPACITY</th>
                                     <th>AVAILABILITY</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
             </section>
+
             <section id="guidesSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
@@ -549,8 +564,7 @@
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -563,19 +577,29 @@
             <span class="close-btn" data-modal="tripModal">&times;</span>
             <h2 id="modalTitle">Add Trip</h2>
             <form id="tripForm">
-                <input type="hidden" id="tripId" name="id">
-                
+                <input type="hidden" id="tripIdHidden" name="id">
+
+                <div id="fileIdGroup" class="form-group" style="display: none;">
+                    <label for="tripIdDisplay">File ID</label>
+                    <input type="text" id="tripIdDisplay" readonly style="font-weight: bold; background-color: #f8f9fa;">
+                </div>
+
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="customer_name">Customer Name</label>
                         <input type="text" id="customer_name" name="customer_name" required>
                     </div>
                     <div class="form-group">
-                        <label for="trip_package_id">Trip Package</label>
-                        <select id="trip_package_id" name="trip_package_id" required>
-                            <option value="">Select Package</option>
-                        </select>
+                        <label for="tour_code">Tour Code</label>
+                        <input type="text" id="tour_code" name="tour_code">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="trip_package_id">Trip Package</label>
+                    <select id="trip_package_id" name="trip_package_id" required>
+                        <option value="">Select Package</option>
+                    </select>
                 </div>
 
                 <div id="package_description_container" class="form-group" style="display: none;">
@@ -589,7 +613,7 @@
                         <input type="date" id="start_date" name="start_date" required>
                     </div>
                     <div class="form-group">
-                        <label for="end_date">End Date </label>
+                        <label for="end_date">End Date</label>
                         <input type="date" id="end_date" name="end_date" required>
                         <small id="end_date_suggestion" style="display: block; margin-top: 5px; color: var(--primary-color); font-weight: 500;"></small>
                     </div>
@@ -617,26 +641,47 @@
             <h2 id="hotelModalTitle">Add Hotel</h2>
             <form id="hotelForm">
                 <input type="hidden" id="hotelId" name="id">
+                
                 <div class="form-group">
                     <label for="hotel_name">Hotel Name</label>
                     <input type="text" id="hotel_name" name="name" required>
                 </div>
+                
                 <div class="form-group">
-                    <label for="hotel_location">Location</label>
-                    <input type="text" id="hotel_location" name="location" required>
+                    <label for="hotel_room_types">Room Types</label>
+                    <input type="text" id="hotel_room_types" name="room_types" placeholder="e.g., Suite, Double, Single">
                 </div>
+
                 <div class="form-group">
-                    <label for="hotel_roomtype">Room Types</label>
-                    <input type="text" id="hotel_roomtype" name="roomtype">
+                    <label>Services Provided</label>
+                    <div class="services-block">
+                        <label>
+                            <input type="checkbox" name="service_breakfast" value="B"> 
+                            <span>Breakfast (B)</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" name="service_lunch" value="L"> 
+                            <span>Lunch (L)</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" name="service_dinner" value="D"> 
+                            <span>Dinner (D)</span>
+                        </label>
+                        <small style="color: #666; display: block; margin-top: 8px;">Select meals provided by this hotel</small>
+                        <input type="hidden" id="hotel_services_provided" name="services_provided">
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label for="hotel_availability">Availability Status</label>
-                    <select id="hotel_availability" name="availability_status" required>
+                    <select id="hotel_availability" name="availability" required>
                         <option value="Available">Available</option>
                         <option value="Not Available">Not Available</option>
                     </select>
                 </div>
-                <div class="form-buttons"> <button type="button" class="btn-cancel btn" data-modal="hotelModal">Cancel</button>
+                
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="hotelModal">Cancel</button>
                     <button type="submit" class="btn-save btn">Save Hotel</button>
                 </div>
             </form>
@@ -650,22 +695,23 @@
             <form id="vehicleForm">
                 <input type="hidden" id="vehicleId" name="id">
                 <div class="form-group">
-                    <label for="vehicle_name">Vehicle Name/Model</label>
-                    <input type="text" id="vehicle_name" name="name" required>
+                    <label for="vehicle_name">Vehicle Name</label>
+                    <input type="text" id="vehicle_name" name="vehicle_name" required>
                 </div>
                 <div class="form-group">
-                    <label for="vehicle_seats">Seats</label>
-                    <input type="number" id="vehicle_seats" name="seats" min="1" required>
+                    <label for="vehicle_capacity">Capacity</label>
+                    <input type="number" id="vehicle_capacity" name="capacity" min="1" required>
                 </div>
                 <div class="form-group">
                     <label for="vehicle_availability">Availability Status</label>
-                    <select id="vehicle_availability" name="availability_status" required>
+                    <select id="vehicle_availability" name="availability" required>
                         <option value="Available">Available</option>
                         <option value="Not Available">Not Available</option>
                         <option value="On Trip">On Trip</option>
                     </select>
                 </div>
-                <div class="form-buttons"> <button type="button" class="btn-cancel btn" data-modal="vehicleModal">Cancel</button>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="vehicleModal">Cancel</button>
                     <button type="submit" class="btn-save btn">Save Vehicle</button>
                 </div>
             </form>
@@ -694,7 +740,8 @@
                         <option value="On Trip">On Trip</option>
                     </select>
                 </div>
-                <div class="form-buttons"> <button type="button" class="btn-cancel btn" data-modal="guideModal">Cancel</button>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="guideModal">Cancel</button>
                     <button type="submit" class="btn-save btn">Save Guide</button>
                 </div>
             </form>
@@ -779,15 +826,16 @@
                         packagesData = result.data;
                         const select = document.getElementById('trip_package_id');
                         select.innerHTML = '<option value="">Select Package</option>';
-                        // **MODIFIED**: Ensure pkg.No_of_Days is correctly stored as data-days
                         result.data.forEach(pkg => {
-                            select.innerHTML += `<option value="${pkg.id}" data-description="${pkg.description || ''}" data-days="${pkg.No_of_Days || ''}">${pkg.name}</option>`;
+                            const days = pkg.No_of_Days ? ` (${pkg.No_of_Days} Days)` : '';
+                            select.innerHTML += `<option value="${pkg.id}" data-description="${pkg.description || ''}" data-days="${pkg.No_of_Days || ''}">${pkg.name}${days}</option>`;
                         });
                     }
                 } catch (error) {
                     showToast('Error fetching packages.', 'error');
                 }
             };
+
             const fetchHotels = async () => {
                 try {
                     const response = await fetch(`${API_URL}?action=getHotels`);
@@ -833,7 +881,7 @@
             const renderTrips = (trips, tbody) => {
                 tbody.innerHTML = '';
                 if (!trips || trips.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No trips found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
                     return;
                 }
                 trips.forEach(trip => {
@@ -841,12 +889,13 @@
                     row.innerHTML = `
                         <td>#${String(trip.id).padStart(3, '0')}</td>
                         <td>${trip.customer_name}</td>
+                        <td>${trip.tour_code || 'N/A'}</td>
                         <td>${trip.package_name}</td>
                         <td>${trip.start_date}</td>
                         <td>${trip.end_date}</td>
                         <td><span class="status status-${trip.status}">${trip.status}</span></td>
                         <td class="actions">
-                            <a href="itinerary.html?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
+                            <a href="Itinerary.html?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
                             <a href="#" class="btn-edit-trip" data-id="${trip.id}"><i class="fas fa-pencil"></i></a>
                             <a href="#" class="btn-delete-trip" data-id="${trip.id}"><i class="fas fa-trash"></i></a>
                         </td>
@@ -864,16 +913,20 @@
                 }
                 hotels.forEach(hotel => {
                     const row = document.createElement('tr');
-                    if (hotel.availability_status) {
-                        const statusClass = `row-status-${hotel.availability_status.replace(/\s+/g, '-')}`;
+                    if (hotel.availability) {
+                        const statusClass = `row-status-${hotel.availability.replace(/\s+/g, '-')}`;
                         row.classList.add(statusClass);
                     }
                     row.innerHTML = `
                         <td>${hotel.id}</td>
                         <td>${hotel.name}</td>
-                        <td>${hotel.location || 'N/A'}</td>
-                        <td>${hotel.roomtype || 'N/A'}</td>
-                        <td>${hotel.availability_status || 'N/A'}</td>
+                        <td>${hotel.room_types || 'N/A'}</td>
+                        <td>
+                            <span class="services-display">
+                                ${hotel.services_provided || 'N/A'}
+                            </span>
+                        </td>
+                        <td>${hotel.availability || 'N/A'}</td>
                         <td class="actions">
                             <a href="#" class="btn-edit-hotel" data-id="${hotel.id}"><i class="fas fa-pencil"></i></a>
                             <a href="#" class="btn-delete-hotel" data-id="${hotel.id}"><i class="fas fa-trash"></i></a>
@@ -892,15 +945,15 @@
                 }
                 vehicles.forEach(vehicle => {
                     const row = document.createElement('tr');
-                    if (vehicle.availability_status) {
-                        const statusClass = `row-status-${vehicle.availability_status.replace(/\s+/g, '-')}`;
+                    if (vehicle.availability) {
+                        const statusClass = `row-status-${vehicle.availability.replace(/\s+/g, '-')}`;
                         row.classList.add(statusClass);
                     }
                     row.innerHTML = `
                         <td>${vehicle.id}</td>
-                        <td>${vehicle.name}</td>
-                        <td>${vehicle.seats || 'N/A'}</td>
-                        <td>${vehicle.availability_status || 'N/A'}</td>
+                        <td>${vehicle.vehicle_name}</td>
+                        <td>${vehicle.capacity || 'N/A'}</td>
+                        <td>${vehicle.availability || 'N/A'}</td>
                         <td class="actions">
                             <a href="#" class="btn-edit-vehicle" data-id="${vehicle.id}"><i class="fas fa-pencil"></i></a>
                             <a href="#" class="btn-delete-vehicle" data-id="${vehicle.id}"><i class="fas fa-trash"></i></a>
@@ -909,7 +962,7 @@
                     tbody.appendChild(row);
                 });
             };
-
+            
             const renderGuides = (guides) => {
                 const tbody = document.querySelector('#guidesTable tbody');
                 tbody.innerHTML = '';
@@ -937,7 +990,6 @@
                 });
             };
             
-            // --- NEW/MODIFIED: Function to calculate end date ---
             const calculateEndDate = () => {
                 const packageSelect = document.getElementById('trip_package_id');
                 const startDateInput = document.getElementById('start_date');
@@ -953,11 +1005,8 @@
 
                 if (days && startDateValue) {
                     const duration = parseInt(days, 10);
-                    // Note: Adding 'duration - 1' days to get the end date for an N-day trip.
-                    // E.g., a 3-day trip starting on the 1st ends on the 3rd, which is 1st + (3-1) days.
                     const startDate = new Date(startDateValue);
                     
-                    // Use standard methods for date calculation
                     const endDate = new Date(startDate.getTime());
                     endDate.setDate(endDate.getDate() + duration - 1);
                     
@@ -967,15 +1016,11 @@
                     
                     const formattedEndDate = `${year}-${month}-${day}`;
                     
-                    // Set the suggested date into the input field
                     endDateInput.value = formattedEndDate;
-                    
-                    // Display a confirmation/suggestion message
                     suggestionEl.textContent = `End date auto-calculated for ${duration} days.`;
                 }
             };
 
-            // --- NEW/MODIFIED: Event listeners for package selection and start date change ---
             document.getElementById('trip_package_id').addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const description = selectedOption.dataset.description;
@@ -989,7 +1034,6 @@
                     descriptionContainer.style.display = 'none';
                 }
                 
-                // Recalculate end date when package changes
                 calculateEndDate();
             });
 
@@ -1018,10 +1062,11 @@
 
             document.getElementById('addTripBtn').addEventListener('click', () => {
                 document.getElementById('tripForm').reset();
-                document.getElementById('tripId').value = '';
+                document.getElementById('tripIdHidden').value = '';
+                document.getElementById('tripIdDisplay').value = '';
+                document.getElementById('fileIdGroup').style.display = 'none';
                 document.getElementById('modalTitle').textContent = 'Add Trip';
                 
-                // Reset/Hide description and suggestion
                 document.getElementById('package_description_container').style.display = 'none';
                 document.getElementById('end_date_suggestion').textContent = '';
 
@@ -1033,6 +1078,7 @@
                 document.getElementById('hotelForm').reset();
                 document.getElementById('hotelId').value = '';
                 document.getElementById('hotelModalTitle').textContent = 'Add Hotel';
+                document.getElementById('hotel_services_provided').value = '';
                 openModal('hotelModal');
             });
 
@@ -1050,15 +1096,37 @@
                 openModal('guideModal');
             });
 
+            // --- Handle Services Checkboxes ---
+            document.getElementById('hotelForm').addEventListener('change', function(e) {
+                if (e.target.name.startsWith('service_')) {
+                    const services = [];
+                    if (document.querySelector('input[name="service_breakfast"]').checked) services.push('B');
+                    if (document.querySelector('input[name="service_lunch"]').checked) services.push('L');
+                    if (document.querySelector('input[name="service_dinner"]').checked) services.push('D');
+                    
+                    document.getElementById('hotel_services_provided').value = services.join(', ');
+                }
+            });
+
             // --- Form Submissions ---
             const handleFormSubmit = async (form, action, callback) => {
                 const formData = new FormData(form);
+                
+                console.log('Submitting form with action:', action);
+                for (let pair of formData.entries()) {
+                    console.log(pair[0] + ': ' + pair[1]);
+                }
+                
                 try {
                     const response = await fetch(`${API_URL}?action=${action}`, {
                         method: 'POST',
                         body: formData
                     });
+                    
+                    console.log('Response status:', response.status);
                     const result = await response.json();
+                    console.log('Response data:', result);
+                    
                     if (result.status === 'success') {
                         showToast(result.message, 'success');
                         callback();
@@ -1066,13 +1134,14 @@
                         showToast(result.message, 'error');
                     }
                 } catch (error) {
-                    showToast('An error occurred while saving.', 'error');
+                    console.error('Error details:', error);
+                    showToast('An error occurred while saving: ' + error.message, 'error');
                 }
             };
 
             document.getElementById('tripForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const tripId = document.getElementById('tripId').value;
+                const tripId = document.getElementById('tripIdHidden').value;
                 const action = tripId ? 'updateTrip' : 'addTrip';
                 handleFormSubmit(this, action, () => {
                     closeModal('tripModal');
@@ -1123,19 +1192,20 @@
                     const trip = tripsData.find(t => t.id == id);
                     if (trip) {
                         document.getElementById('modalTitle').textContent = 'Edit Trip';
-                        document.getElementById('tripId').value = trip.id;
+                        document.getElementById('tripIdHidden').value = trip.id;
+                        document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
+                        document.getElementById('fileIdGroup').style.display = 'block';
                         document.getElementById('customer_name').value = trip.customer_name;
+                        document.getElementById('tour_code').value = trip.tour_code || '';
                         document.getElementById('trip_package_id').value = trip.trip_package_id;
                         document.getElementById('start_date').value = trip.start_date;
                         document.getElementById('end_date').value = trip.end_date;
                         document.getElementById('status').value = trip.status;
-
-                        // **NEW**: Manually trigger change to populate package description and suggestion
                         document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
-
                         openModal('tripModal');
                     }
                 }
+                
                 if (target.classList.contains('btn-edit-hotel')) {
                     e.preventDefault();
                     const hotel = hotelsData.find(h => h.id == id);
@@ -1143,24 +1213,32 @@
                         document.getElementById('hotelModalTitle').textContent = 'Edit Hotel';
                         document.getElementById('hotelId').value = hotel.id;
                         document.getElementById('hotel_name').value = hotel.name;
-                        document.getElementById('hotel_location').value = hotel.location || '';
-                        document.getElementById('hotel_roomtype').value = hotel.roomtype || '';
-                        document.getElementById('hotel_availability').value = hotel.availability_status || 'Available';
+                        document.getElementById('hotel_room_types').value = hotel.room_types || '';
+                        document.getElementById('hotel_availability').value = hotel.availability || 'Available';
+                        
+                        // Parse and check services
+                        document.querySelector('input[name="service_breakfast"]').checked = hotel.services_provided && hotel.services_provided.includes('B');
+                        document.querySelector('input[name="service_lunch"]').checked = hotel.services_provided && hotel.services_provided.includes('L');
+                        document.querySelector('input[name="service_dinner"]').checked = hotel.services_provided && hotel.services_provided.includes('D');
+                        document.getElementById('hotel_services_provided').value = hotel.services_provided || '';
+                        
                         openModal('hotelModal');
                     }
                 }
+                
                 if (target.classList.contains('btn-edit-vehicle')) {
                     e.preventDefault();
                     const vehicle = vehiclesData.find(v => v.id == id);
                     if (vehicle) {
                         document.getElementById('vehicleModalTitle').textContent = 'Edit Vehicle';
                         document.getElementById('vehicleId').value = vehicle.id;
-                        document.getElementById('vehicle_name').value = vehicle.name;
-                        document.getElementById('vehicle_seats').value = vehicle.seats || '';
-                        document.getElementById('vehicle_availability').value = vehicle.availability_status || 'Available';
+                        document.getElementById('vehicle_name').value = vehicle.vehicle_name;
+                        document.getElementById('vehicle_capacity').value = vehicle.capacity || '';
+                        document.getElementById('vehicle_availability').value = vehicle.availability || 'Available';
                         openModal('vehicleModal');
                     }
                 }
+                
                 if (target.classList.contains('btn-edit-guide')) {
                     e.preventDefault();
                     const guide = guidesData.find(g => g.id == id);
@@ -1176,7 +1254,7 @@
 
                 // Delete Actions
                 const handleDelete = async (action, callback) => {
-                     try {
+                    try {
                         const response = await fetch(`${API_URL}?action=${action}`, {
                             method: 'DELETE',
                             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1222,11 +1300,11 @@
                 }, 3000);
             }
 
-            // --- Initial fetch ---
             fetchTrips();
             fetchPackages();
             fetchVehicles();
             fetchGuides();
+            fetchHotels(); 
         });
     </script>
 </body>

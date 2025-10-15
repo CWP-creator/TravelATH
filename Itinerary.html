@@ -5,11 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Itinerary Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function(){
+            emailjs.init({
+                publicKey: "CMisGPoi-0dZTEWaj",
+            });
+        })();
+    </script>
     <style>
         :root {
             --primary-color: #6366f1;
             --primary-light: #818cf8;
             --primary-dark: #4f46e5;
+            --secondary-color: #64748b;
+            --secondary-light: #94a3b8;
+            --secondary-dark: #475569;
+            --export-color: #10b981;
+            --export-dark: #059669;
             --background: #fafafa;
             --surface: #ffffff;
             --text-primary: #1f2937;
@@ -22,7 +35,6 @@
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         * { 
@@ -37,18 +49,22 @@
             color: var(--text-primary);
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            font-size: 15px; 
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px; 
             margin: 0 auto;
-            padding: 20px 20px;
+            padding: 25px 20px; 
         }
 
-        /* Header - Minimalist */
+        main {
+            padding-bottom: 90px;
+        }
+
         .page-header {
-            margin-bottom: 15px;
-            padding-bottom: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
             border-bottom: 1px solid var(--border);
         }
         
@@ -59,67 +75,153 @@
         }
 
         .trip-info h1 {
-            font-size: 1.25rem;
+            font-size: 1.4rem; 
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 5px; 
         }
         
         .trip-meta {
-            display: flex;
-            gap: 10px;
-            color: var(--text-secondary);
-            font-size: 0.75rem;
+            font-size: 0.8rem; 
         }
         
         .btn-back {
-            padding: 6px 12px;
-            font-size: 0.8rem;
+            padding: 7px 14px; 
+            font-size: 0.9rem; 
+            border: 1px solid var(--border); 
+            border-radius: 7px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .btn-back:hover {
+            background: var(--border-light);
         }
 
-        /* --- Day Tabs Navigation --- */
+        .tabs-and-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .day-tabs-wrapper {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            margin-right: 15px;
+            position: relative;
+            overflow: hidden; 
+        }
+
         .day-tabs-nav {
             overflow-x: auto;
             white-space: nowrap;
-            margin-bottom: 15px;
             padding: 5px 0;
-            border-bottom: 2px solid var(--border-light);
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            flex-grow: 1;
+            margin-right: 0;
+            padding-left: 25px; 
+            padding-right: 25px;
         }
 
         .day-tabs-nav::-webkit-scrollbar {
             display: none;
         }
 
+        .tab-scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+            opacity: 0.9;
+        }
+
+        .tab-scroll-btn:hover {
+            background: var(--border-light);
+            opacity: 1;
+        }
+
+        .tab-scroll-btn.left {
+            left: 0;
+        }
+
+        .tab-scroll-btn.right {
+            right: 0;
+        }
+
+        .summary-toggle-btn {
+            background: var(--surface);
+            color: var(--secondary-color); 
+            border: 1px solid var(--secondary-light); 
+            padding: 8px 15px;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .summary-toggle-btn:hover {
+            background: var(--border-light);
+        }
+        .summary-toggle-btn.active {
+            background: var(--secondary-dark); 
+            color: white;
+            border-color: var(--secondary-dark);
+            box-shadow: var(--shadow-sm);
+        }
+        
         .tab-button {
             display: inline-block;
-            padding: 8px 14px;
-            margin-right: 8px;
+            padding: 11px 18px; 
+            margin-right: 10px;
             background: var(--surface);
             color: var(--text-secondary);
             border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.825rem;
+            font-size: 0.98rem; 
             font-weight: 500;
             transition: all 0.2s;
+            appearance: none; 
+            -webkit-appearance: none;
         }
 
         .tab-button.active {
+            padding: 12px 18px; 
             background: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
             box-shadow: var(--shadow-sm);
         }
 
-        /* --- Day Content Area (Increased Size) --- */
-        .itinerary-grid {
-            padding: 25px; /* Increased padding */
+        .itinerary-grid, .summary-view-wrapper {
+            padding: 35px; 
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 14px;
             background: var(--surface);
             box-shadow: var(--shadow);
-            min-height: 500px; /* Increased min-height for bigger block */
+            min-height: 650px; 
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .summary-view-wrapper {
+            display: none;
         }
 
         .day-content-wrapper {
@@ -130,105 +232,260 @@
         .day-content-wrapper.active {
             display: block;
         }
-
-        /* Assignment and Form Group */
-        .assignments-grid {
-            /* 3-column layout for guide/vehicle and hotel group */
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px 15px; /* Gap between Guide/Vehicle/Hotel sections */
-            margin-bottom: 10px;
-        }
         
-        /* General Assignment fields (Guide, Vehicle) */
-        .assignment-field {
+        .day-content-wrapper > div:first-child {
+            font-size: 1.1rem; 
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .summary-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--border-light);
+            box-shadow: var(--shadow-sm);
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
+            min-width: 250px;
+        }
+        
+        .summary-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+            color: var(--secondary-dark);
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            padding: 2px 0;
+        }
+        
+        .summary-item i {
+            margin-right: 6px;
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+        
+        .summary-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
         }
 
-        /* Hotel Group spans 3 columns for better alignment of hotel/room type and subsequent notes */
-        .hotel-and-notes-group {
-            grid-column: 1 / -1; /* Full width */
+        .summary-value {
+            font-weight: 700;
+            text-align: right;
+            color: var(--text-primary);
+            max-width: 50%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.8rem;
+        }
+
+        .summary-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+        
+        .status-informed {
+            background: var(--success);
+            color: white;
+        }
+        
+        .status-uninformed {
+            background: var(--error);
+            color: white;
+        }
+        
+        .status-unassigned {
+            background: var(--text-light);
+            color: var(--text-primary);
+        }
+
+        .assignments-grid {
             display: grid;
-            /* FIX: Reduced the gap to 5px and adjusted proportions for closer fit */
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 18px 12px;
+            margin-bottom: 15px;
+        }
+        
+        .hotel-group {
+            grid-column: span 3; 
+            display: grid;
             grid-template-columns: 2fr 1fr; 
-            gap: 5px; 
+            gap: 12px;
+        }
+        
+        .hotel-fields {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 4px;
         }
 
+        .form-group-controls {
+            border: 1px solid var(--border);
+            padding: 10px; 
+            border-radius: 9px;
+            display: flex;
+            flex-direction: column;
+        }
+        
         .form-group label {
-            font-size: 0.7rem;
+            font-size: 0.85rem; 
             letter-spacing: 0.05em;
             font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        select, textarea {
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            background: var(--border-light);
+            width: 100%;
+            outline: none;
+        }
+        
+        select:disabled {
+            background: #f0f0f0;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .custom-select {
+            position: relative;
+            flex-grow: 1;
         }
         
         .custom-select select {
-            padding: 8px 30px 8px 8px;
-            font-size: 0.85rem;
-            border-radius: 6px;
+            padding: 7px 9px; 
+            font-size: 0.85rem; 
+            border-radius: 7px;
+            appearance: none; 
+            -webkit-appearance: none;
+        }
+        
+        .informed-switch-container {
+            margin-top: 10px; 
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 25px; 
         }
 
-        /* --- Informed Switch Redesign (Button Toggle) --- */
-        .informed-switch-container {
-            display: flex;
-            align-items: center;
-            margin-top: 5px; 
+        .informed-status-label {
+            font-size: 0.8rem; 
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .informed-toggle {
+            width: 80px; 
             height: 25px;
         }
-
-        .informed-toggle button {
-            padding: 4px 10px; 
+        
+        .informed-toggle .toggle-label {
+            display: block;
+            line-height: 23px; 
+            text-align: center;
+            font-size: 0.75rem; 
+            font-weight: 700;
             border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            line-height: 1.5;
-            width: 85px; 
+            transition: background 0.2s, border-color 0.2s;
         }
-
-        /* Checked: Informed (Green) */
-        .informed-toggle button[data-informed="true"] {
-            background-color: var(--success);
+        
+        .informed-input:checked + .toggle-label {
+            background: var(--success);
             color: white;
             border: 1px solid var(--success);
         }
         
-        /* Unchecked: Uninformed (Red) */
-        .informed-toggle button[data-informed="false"] {
-            background-color: var(--error);
+        .informed-input:not(:checked) + .toggle-label {
+            background: var(--error);
             color: white;
             border: 1px solid var(--error);
         }
-
-        /* --- Activities & Notes Section (Full Width, Below Hotel Group) --- */
-        .notes-section {
-            grid-column: 1 / -1; /* Full width within the inner grid */
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border-light);
+        .informed-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
 
-        .form-group textarea {
+        .services-block {
+            border: 1px solid var(--border);
             padding: 10px;
-            min-height: 120px; 
+            border-radius: 7px;
+            background: var(--border-light);
+            margin-top: 8px;
+        }
+
+        .services-block label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin: 6px 0;
+            font-weight: normal;
             font-size: 0.85rem;
-            border-radius: 6px;
+        }
+
+        .services-block input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .notes-section {
+            grid-column: 1 / -1;
+        }
+        .form-group textarea {
+            padding: 12px;
+            min-height: 140px; 
+            font-size: 0.9rem; 
+            border-radius: 7px; 
+            resize: vertical; 
         }
         
-        /* --- Form Actions (Save Button) --- */
         .form-actions {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 15px 20px;
+            padding: 18px 25px;
             border-top: 1px solid var(--border);
             background: var(--surface);
             box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
@@ -237,61 +494,124 @@
             justify-content: space-between;
             align-items: center;
         }
+        .form-actions-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .save-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
 
         .btn-save {
             background: var(--primary-color);
             color: white;
-            padding: 12px 25px;
-            border-radius: 10px;
+            padding: 13px 28px; 
+            border-radius: 11px;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             transition: all 0.2s;
             box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+            border: none; 
+            cursor: pointer; 
         }
-        
-        /* --- Toast Fix --- */
-        .toast { 
-            visibility: hidden; 
-            min-width: 300px; 
-            background: var(--text-primary); 
-            color: white; 
-            text-align: center; 
-            border-radius: 8px; 
-            padding: 16px 20px; 
-            position: fixed; 
-            z-index: 1001; 
-            bottom: 30px; 
-            /* Centering fix */
-            left: 50%;
-            transform: translateX(-50%); 
-            font-size: 0.875rem; 
-            font-weight: 500;
-            opacity: 0; 
-            transition: all 0.3s;
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .toast.show { 
-            visibility: visible; 
-            opacity: 1; 
-            bottom: 40px;
+        .btn-save:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
-        /* Responsive */
+        .btn-export {
+            background: var(--export-color);
+            color: white;
+            padding: 13px 20px; 
+            border-radius: 11px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+            border: none; 
+            cursor: pointer;
+        }
+        .btn-export:hover:not(:disabled) {
+            background: var(--export-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-save:disabled, .btn-export:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            padding: 20px;
+            background: #fee2e2;
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            color: var(--error);
+            text-align: center;
+        }
+
+        .package-hotel-badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .service-tag {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+
         @media (max-width: 768px) {
-            main {
-                padding-bottom: 90px;
+            .tabs-and-toggle {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .day-tabs-wrapper {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            .day-tabs-nav {
+                padding-left: 0;
+                padding-right: 0;
+            }
+            .tab-scroll-btn {
+                display: none;
             }
             .assignments-grid {
                 grid-template-columns: 1fr;
             }
-            .hotel-and-notes-group {
+            .hotel-group, .hotel-fields {
+                grid-column: span 1;
                 grid-template-columns: 1fr;
-                gap: 10px;
             }
-            .itinerary-grid {
+            .itinerary-grid, .summary-view-wrapper {
+                padding: 20px;
+                min-height: 550px; 
+            }
+            .form-actions {
+                flex-direction: column;
+                gap: 10px;
                 padding: 15px;
-                min-height: 450px;
+            }
+            .form-actions-buttons {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .btn-save, .btn-export {
+                flex: 1;
+                padding: 12px 15px;
             }
         }
     </style>
@@ -303,12 +623,7 @@
             <div class="header-top">
                 <div class="trip-info">
                     <h1 id="tripTitle">Loading Trip...</h1>
-                    <div class="trip-meta" id="tripMeta">
-                        <div class="trip-meta-item">
-                            <i class="far fa-calendar"></i>
-                            <span>Loading...</span>
-                        </div>
-                    </div>
+                    <div class="trip-meta" id="tripMeta"></div>
                 </div>
                 <a href="index.html" class="btn-back">
                     <i class="fas fa-arrow-left"></i> 
@@ -318,7 +633,17 @@
         </header>
 
         <main>
-            <nav class="day-tabs-nav" id="dayTabs"></nav>
+            <div class="tabs-and-toggle">
+                <div class="day-tabs-wrapper">
+                    <button id="scrollLeftBtn" class="tab-scroll-btn left"><i class="fas fa-chevron-left"></i></button>
+                    <nav class="day-tabs-nav" id="dayTabs"></nav>
+                    <button id="scrollRightBtn" class="tab-scroll-btn right"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <button id="summaryToggleBtn" class="summary-toggle-btn" data-view-mode="details">
+                    <i class="fas fa-list-check"></i> 
+                    <span>View Summary</span>
+                </button>
+            </div>
             
             <form id="itineraryForm">
                 <div class="itinerary-grid" id="itineraryGrid">
@@ -328,52 +653,349 @@
                     </div>
                 </div>
                 
+                <div class="summary-view-wrapper" id="summaryView"></div>
+
                 <div class="form-actions">
                     <div class="save-info">
                         <i class="fas fa-info-circle"></i>
                         <span>Changes will be saved to database</span>
                     </div>
-                    <button type="submit" class="btn-save">
-                        <i class="fas fa-check"></i>
-                        <span>Save Changes</span>
-                    </button>
+                    <div class="form-actions-buttons">
+                        <button type="button" id="emailHotelsBtn" class="btn-export">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email Hotels</span>
+                        </button>
+                        <button type="button" id="exportCsvBtn" class="btn-export">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Export to CSV</span>
+                        </button>
+                        <button type="submit" class="btn-save">
+                            <i class="fas fa-check"></i>
+                            <span>Save Changes</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </main>
     </div>
-    
-    <div id="toast" class="toast"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const API_URL = 'api.php';
-            const itineraryGrid = document.getElementById('itineraryGrid');
             const itineraryForm = document.getElementById('itineraryForm');
+            const itineraryGrid = document.getElementById('itineraryGrid');
+            const summaryView = document.getElementById('summaryView');
             const dayTabsContainer = document.getElementById('dayTabs');
+            const summaryToggleBtn = document.getElementById('summaryToggleBtn');
+            const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+            const scrollRightBtn = document.getElementById('scrollRightBtn');
+            const saveBtn = document.querySelector('.btn-save');
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+            const emailHotelsBtn = document.getElementById('emailHotelsBtn');
             
             const urlParams = new URLSearchParams(window.location.search);
             const tripId = urlParams.get('trip_id');
 
-            // Sample Room Types and Dummy Data
-            const roomTypes = [
-                { id: '1', name: 'Standard Double' },
-                { id: '2', name: 'Deluxe Suite' },
-                { id: '3', name: 'Twin Room' },
-                { id: '4', name: 'Family Room' }
-            ];
+            let allGuides = [];
+            let allVehicles = [];
+            let allHotels = [];
+            let currentItineraryDays = [];
+            let packageHotels = [];
+            let roomTypes = [];
 
-            const apiFetch = async (url, options = {}) => {
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast') || createToastElement();
+                toast.textContent = message;
+                toast.className = `toast show ${type}`;
+                setTimeout(() => { toast.classList.remove('show'); }, 3000); 
+            }
+
+            function createToastElement() {
+                const toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.style.cssText = `
+                    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+                    padding: 12px 24px; border-radius: 8px; color: white; font-weight: 600;
+                    opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                `;
+                toast.classList.add('toast');
+                document.body.appendChild(toast);
+                
+                // Add CSS for toast types
+                const style = document.createElement('style');
+                style.textContent = `
+                    .toast.show { opacity: 1 !important; visibility: visible !important; }
+                    .toast.success { background: #10b981; }
+                    .toast.error { background: #ef4444; }
+                    .toast.info { background: #3b82f6; }
+                `;
+                document.head.appendChild(style);
+                
+                return toast;
+            }
+
+            const fetchItinerary = async () => {
                 try {
-                    const response = await fetch(url, options);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return await response.json();
+                    if (!tripId) {
+                        itineraryGrid.innerHTML = '<div class="error-message">No trip ID provided. Please go back and select a trip.</div>';
+                        return;
+                    }
+
+                    const cacheBuster = new Date().getTime();
+                    const response = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`);
+                    const result = await response.json();
+                    
+                    if (result.status !== 'success') {
+                        itineraryGrid.innerHTML = `<div class="error-message">${result.message}</div>`;
+                        return;
+                    }
+
+                    const { trip, itinerary_days, guides, vehicles, hotels } = result.data;
+                    
+                    allGuides = guides;
+                    allVehicles = vehicles;
+                    allHotels = hotels;
+                    currentItineraryDays = itinerary_days;
+                    
+                    // Fetch package hotels and room types
+                    if (trip.trip_package_id) {
+                        try {
+                            const pkgResponse = await fetch(`${API_URL}?action=getPackageHotels&trip_package_id=${trip.trip_package_id}`);
+                            const pkgResult = await pkgResponse.json();
+                            if (pkgResult.status === 'success') {
+                                packageHotels = pkgResult.data;
+                            }
+
+                            const rtResponse = await fetch(`${API_URL}?action=getRoomTypes`);
+                            const rtResult = await rtResponse.json();
+                            if (rtResult.status === 'success') {
+                                roomTypes = rtResult.data;
+                            }
+                        } catch (e) {
+                            console.log('Package hotels/room types not available, using fallback');
+                        }
+                    }
+                    
+                    // Update header
+                    document.getElementById('tripTitle').textContent = `${trip.customer_name}'s ${trip.package_name}`;
+                    document.getElementById('tripMeta').innerHTML = `
+                        <div class="trip-meta-item">
+                            <i class="far fa-calendar"></i>
+                            <span>From ${trip.start_date} to ${itinerary_days.length > 0 ? itinerary_days[itinerary_days.length - 1].day_date : trip.end_date}</span>
+                        </div>
+                        <div class="trip-meta-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>${itinerary_days.length} Days</span>
+                        </div>
+                    `;
+
+                    renderItinerary(itinerary_days);
+                    renderTabsAndSwitch(itinerary_days);
+                    renderSummaryCards(itinerary_days);
+                    
+                    summaryToggleBtn.addEventListener('click', () => {
+                        const nextMode = summaryToggleBtn.dataset.viewMode === 'details' ? 'summary' : 'details';
+                        toggleView(nextMode);
+                    });
+                    
+                    exportCsvBtn.addEventListener('click', exportToCSV);
+                    emailHotelsBtn.addEventListener('click', sendHotelEmails);
+                    
+                    scrollLeftBtn.addEventListener('click', () => scrollTabs('left'));
+                    scrollRightBtn.addEventListener('click', () => scrollTabs('right'));
+                    
+                    toggleView('details');
+                    
                 } catch (error) {
-                    console.error("API Fetch Error: ", error);
-                    showToast('An API error occurred.', 'error');
-                    throw error;
+                    showToast('Error loading itinerary: ' + error.message, 'error');
+                    itineraryGrid.innerHTML = `<div class="error-message">Error loading itinerary. Please try again.</div>`;
                 }
             };
-            
+
+            const renderItinerary = (itinerary_days) => {
+                itineraryGrid.innerHTML = '';
+                let dayCounter = 1;
+                itinerary_days.forEach(day => {
+                    const dayContentWrapper = document.createElement('div');
+                    dayContentWrapper.className = 'day-content-wrapper';
+                    dayContentWrapper.dataset.dayId = day.id;
+                    dayContentWrapper.dataset.dayNumber = dayCounter;
+                    
+                    const dayDate = new Date(day.day_date + 'T00:00:00');
+                    const dateString = dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+                    const guideOptions = createSelectOptions(allGuides, day.guide_id, 'guide');
+                    const vehicleOptions = createSelectOptions(allVehicles, day.vehicle_id, 'vehicle');
+                    
+                    // Get hotel for this day from package assignments
+                    let hotelOptions = createSelectOptions(allHotels, day.hotel_id, 'hotel');
+                    let roomTypeOptions = '<option value="">Select Room Type</option>';
+                    let assignedHotel = null;
+                    let hotelDisabled = '';
+                    let hotelBadge = '';
+                    let showServices = false;
+                    
+                    // Get services_provided for this day
+                    let servicesProvided = day.services_provided || '';
+                    let hasBreakfast = servicesProvided.includes('B');
+                    let hasLunch = servicesProvided.includes('L');
+                    let hasDinner = servicesProvided.includes('D');
+                    
+                    if (packageHotels.length > 0) {
+                        const packageHotel = packageHotels.find(ph => ph.day_number === dayCounter);
+                        if (packageHotel) {
+                            assignedHotel = packageHotel;
+                            hotelOptions = `<option value="${packageHotel.hotel_id}" selected>${packageHotel.name}</option>`;
+                            hotelDisabled = 'disabled';
+                            hotelBadge = '<span class="package-hotel-badge">From Package</span>';
+                            showServices = true;
+                            
+                            // Auto-select services from package if not already set
+                            if (!servicesProvided && packageHotel.services_provided) {
+                                servicesProvided = packageHotel.services_provided;
+                                hasBreakfast = servicesProvided.includes('B');
+                                hasLunch = servicesProvided.includes('L');
+                                hasDinner = servicesProvided.includes('D');
+                            }
+                            
+                            if (packageHotel.room_types && roomTypes.length > 0) {
+                                const hotelRoomTypeNames = packageHotel.room_types.split(',').map(rt => rt.trim());
+                                roomTypeOptions = '<option value="">Select Room Type</option>';
+                                
+                                roomTypes.forEach(rt => {
+                                    if (hotelRoomTypeNames.some(hrt => hrt.toLowerCase() === rt.name.toLowerCase())) {
+                                        roomTypeOptions += `<option value="${rt.id}">${rt.name}</option>`;
+                                    }
+                                });
+                            }
+                        }
+                    } else if (day.hotel_id) {
+                        showServices = true;
+                    }
+
+                    const servicesHTML = showServices ? `
+                        <div class="form-group">
+                            <div class="form-group-controls">
+                                <label><i class="fas fa-utensils"></i> Services Provided</label>
+                                <div class="services-block">
+                                    <label>
+                                        <input type="checkbox" name="day_${day.id}_service_breakfast" value="B" ${hasBreakfast ? 'checked' : ''}> 
+                                        <span>Breakfast (B)</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" name="day_${day.id}_service_lunch" value="L" ${hasLunch ? 'checked' : ''}> 
+                                        <span>Lunch (L)</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" name="day_${day.id}_service_dinner" value="D" ${hasDinner ? 'checked' : ''}> 
+                                        <span>Dinner (D)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    ` : '';
+
+                    dayContentWrapper.innerHTML = `
+                        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;">
+                            Day ${dayCounter} — ${dateString}
+                        </div>
+                        <div class="assignments-grid">
+                            <div class="form-group">
+                                <div class="form-group-controls">
+                                    <label for="day_${day.id}_guide_id"><i class="fas fa-user-tie"></i> Guide</label>
+                                    <div class="custom-select">
+                                        <select id="day_${day.id}_guide_id" name="day_${day.id}_guide_id">${guideOptions}</select>
+                                    </div>
+                                    ${createInformedSwitch(day.id, 'guide', day.guide_informed)}
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-group-controls">
+                                    <label for="day_${day.id}_vehicle_id"><i class="fas fa-car"></i> Vehicle</label>
+                                    <div class="custom-select">
+                                        <select id="day_${day.id}_vehicle_id" name="day_${day.id}_vehicle_id">${vehicleOptions}</select>
+                                    </div>
+                                    ${createInformedSwitch(day.id, 'vehicle', day.vehicle_informed)}
+                                </div>
+                            </div>
+                            <div class="hotel-group">
+                                <div class="hotel-fields">
+                                    <div class="form-group">
+                                        <div class="form-group-controls">
+                                            <label for="day_${day.id}_hotel_id"><i class="fas fa-hotel"></i> Hotel ${hotelBadge}</label>
+                                            <div class="custom-select">
+                                                <select id="day_${day.id}_hotel_id" name="day_${day.id}_hotel_id" ${hotelDisabled}>${hotelOptions}</select>
+                                            </div>
+                                            ${createInformedSwitch(day.id, 'hotel', day.hotel_informed)}
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="form-group-controls">
+                                            <label for="day_${day.id}_room_type_id"><i class="fas fa-door-open"></i> Room Type</label>
+                                            <div class="custom-select">
+                                                <select id="day_${day.id}_room_type_id" name="day_${day.id}_room_type_id">${roomTypeOptions}</select>
+                                            </div>
+                                            <div style="height: 25px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${servicesHTML}
+                            </div>
+                            <div class="form-group notes-section">
+                                <label for="day_${day.id}_notes"><i class="fas fa-list-ul"></i> Activities & Notes</label>
+                                <textarea id="day_${day.id}_notes" name="day_${day.id}_notes" placeholder="Add activities, destinations, or special instructions...">${day.notes || ''}</textarea>
+                            </div>
+                        </div>
+                    `;
+                    itineraryGrid.appendChild(dayContentWrapper);
+                    
+                    if (!hotelDisabled) {
+                        const hotelSelect = document.getElementById(`day_${day.id}_hotel_id`);
+                        if (hotelSelect) {
+                            hotelSelect.addEventListener('change', function() {
+                                const dayElement = this.closest('.day-content-wrapper');
+                                const hotelGroup = dayElement.querySelector('.hotel-group');
+                                const existingServicesDiv = hotelGroup.querySelector('.form-group:last-child');
+                                
+                                if (this.value && this.value !== '') {
+                                    if (!existingServicesDiv || !existingServicesDiv.querySelector('.services-block')) {
+                                        const servicesHTML = `
+                                            <div class="form-group">
+                                                <div class="form-group-controls">
+                                                    <label><i class="fas fa-utensils"></i> Services Provided</label>
+                                                    <div class="services-block">
+                                                        <label>
+                                                            <input type="checkbox" name="day_${day.id}_service_breakfast" value="B"> 
+                                                            <span>Breakfast (B)</span>
+                                                        </label>
+                                                        <label>
+                                                            <input type="checkbox" name="day_${day.id}_service_lunch" value="L"> 
+                                                            <span>Lunch (L)</span>
+                                                        </label>
+                                                        <label>
+                                                            <input type="checkbox" name="day_${day.id}_service_dinner" value="D"> 
+                                                            <span>Dinner (D)</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                        hotelGroup.insertAdjacentHTML('beforeend', servicesHTML);
+                                    }
+                                } else {
+                                    if (existingServicesDiv && existingServicesDiv.querySelector('.services-block')) {
+                                        existingServicesDiv.remove();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    
+                    dayCounter++;
+                });
+            };
+
             const createSelectOptions = (items, selectedId, type) => {
                 let html = '<option value="">Not assigned</option>';
                 items.forEach(item => {
@@ -381,21 +1003,44 @@
                     let subtext = '';
                     
                     if (type === 'guide') {
-                        // Assuming Guide items have a 'language' property
-                        subtext = item.language ? ` (${item.language} speaker)` : '';
+                        subtext = item.language ? ` (${item.language})` : '';
                     } else if (type === 'vehicle') {
-                        // Assuming Vehicle items have a 'seats' property
-                        subtext = item.seats ? ` (Seats: ${item.seats})` : '';
+                        subtext = item.capacity ? ` (Seats: ${item.capacity})` : '';
                     } else if (type === 'hotel') {
-                        // Assuming Hotel items have a 'location' property
-                        subtext = item.location ? ` • ${item.location}` : '';
+                        subtext = '';
                     }
 
-                    const nameKey = item.name || item.title || item.id;
-
+                    const nameKey = item.name || item.vehicle_name || item.id;
                     html += `<option value="${item.id}" ${isSelected}>${nameKey}${subtext}</option>`;
                 });
                 return html;
+            };
+
+            const createInformedSwitch = (dayId, fieldName, isChecked) => {
+                const checked = isChecked ? 'checked' : '';
+                const toggleText = isChecked ? 'Informed' : 'Uninformed';
+                const labelStatus = isChecked 
+                    ? 'Status:' 
+                    : 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
+                const inputId = `day_${dayId}_${fieldName}_informed`;
+
+                return `
+                    <div class="informed-switch-container">
+                        <label class="informed-status-label" for="${inputId}_toggle">${labelStatus}</label>
+                        <div class="informed-toggle">
+                            <input type="checkbox" id="${inputId}_toggle" name="${inputId}" class="informed-input" ${checked} />
+                            <label class="toggle-label" for="${inputId}_toggle">${toggleText}</label>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const scrollTabs = (direction) => {
+                const scrollAmount = 200;
+                dayTabsContainer.scrollBy({ 
+                    left: direction === 'left' ? -scrollAmount : scrollAmount, 
+                    behavior: 'smooth' 
+                });
             };
 
             const renderTabsAndSwitch = (itinerary_days) => {
@@ -425,6 +1070,8 @@
             };
 
             const switchDay = (dayNumber) => {
+                if (summaryToggleBtn.dataset.viewMode === 'summary') return;
+
                 const dayButtons = document.querySelectorAll('.tab-button');
                 const dayContents = document.querySelectorAll('.day-content-wrapper');
 
@@ -445,190 +1092,265 @@
                     }
                 });
             };
-            
-            const createInformedSwitch = (name, isChecked) => {
-                const checkedState = isChecked ? 'true' : 'false';
-                const buttonText = isChecked ? 'Informed' : 'Uninformed';
 
-                return `
-                    <div class="informed-switch-container">
-                        <div class="informed-toggle">
-                            <button type="button" 
-                                    data-informed="${checkedState}" 
-                                    data-name="${name}_informed"
-                                    onclick="toggleInformed(this)">
-                                ${buttonText}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            };
+            const renderSummaryCards = (daysData) => {
+                let html = '<div class="summary-card-grid">';
+                const currentData = getCurrentFormData(daysData);
 
-            // Global function to handle button clicks
-            window.toggleInformed = function(button) {
-                const currentState = button.dataset.informed === 'true';
-                const newState = !currentState;
-                
-                button.dataset.informed = newState ? 'true' : 'false';
-                button.textContent = newState ? 'Informed' : 'Uninformed';
-            };
-
-            const loadItinerary = async () => {
-                if (!tripId) {
-                    document.getElementById('app').innerHTML = '<div class="loading"><h1>Error: No Trip ID provided.</h1><a href="index.html" class="btn-back">Go Back</a></div>';
-                    return;
-                }
-
-                const result = await apiFetch(`${API_URL}?action=getItinerary&trip_id=${tripId}`);
-                if (result.status !== 'success') {
-                    showToast(result.message, 'error');
-                    itineraryGrid.innerHTML = `<div class="loading error">${result.message}</div>`;
-                    return;
-                }
-
-                const { trip, itinerary_days, guides, vehicles, hotels } = result.data;
-                
-                // DUMMY DATA INJECTION (FOR DEMO ONLY)
-                guides.forEach(g => { g.language = g.language || (g.id % 2 === 0 ? 'English' : 'Spanish'); });
-                vehicles.forEach(v => { v.seats = v.seats || (4 + (v.id % 4)); });
-                itinerary_days.forEach(d => {
-                    d.guide_informed = d.guide_informed || (d.id % 3 === 0);
-                    d.vehicle_informed = d.vehicle_informed || (d.id % 4 === 0);
-                    d.hotel_informed = d.hotel_informed || (d.id % 5 === 0);
-                    d.room_type_id = d.room_type_id || (d.id % 4 === 0 ? '4' : '1');
-                });
-                // END DUMMY DATA INJECTION
-
-                // Update header
-                document.getElementById('tripTitle').textContent = `${trip.customer_name}'s ${trip.package_name}`;
-                document.getElementById('tripMeta').innerHTML = `
-                    <div class="trip-meta-item">
-                        <i class="far fa-calendar"></i>
-                        <span>${trip.start_date}</span>
-                    </div>
-                    <div class="trip-meta-item">
-                        <i class="fas fa-arrow-right"></i>
-                        <span>${trip.end_date}</span>
-                    </div>
-                    <div class="trip-meta-item">
-                        <i class="fas fa-info-circle"></i>
-                        <span>${itinerary_days.length} Days</span>
-                    </div>
-                `;
-
-                // Render itinerary days
-                itineraryGrid.innerHTML = '';
-                let dayCounter = 1;
-                itinerary_days.forEach(day => {
-                    const dayContentWrapper = document.createElement('div');
-                    dayContentWrapper.className = 'day-content-wrapper';
-                    dayContentWrapper.dataset.dayId = day.id;
-                    dayContentWrapper.dataset.dayNumber = dayCounter;
-                    
+                currentData.forEach((day, index) => {
                     const dayDate = new Date(day.day_date + 'T00:00:00');
-                    const dateString = dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-                    dayContentWrapper.innerHTML = `
-                        <div style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;">
-                            Day ${dayCounter} &mdash; ${dateString}
-                        </div>
-
-                        <div class="assignments-grid">
-                            <div class="assignment-field">
-                                <div class="form-group">
-                                    <label><i class="fas fa-user-tie"></i> Guide</label>
-                                    <div class="custom-select">
-                                        <select name="guide_id">${createSelectOptions(guides, day.guide_id, 'guide')}</select>
-                                    </div>
-                                    ${createInformedSwitch('guide', day.guide_informed)}
-                                </div>
+                    const dateString = dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    
+                    const assignments = [
+                        { icon: 'fas fa-user-tie', label: 'Guide', value: day.guide_name, informed: day.guide_informed },
+                        { icon: 'fas fa-car', label: 'Vehicle', value: day.vehicle_name, informed: day.vehicle_informed },
+                        { icon: 'fas fa-hotel', label: 'Hotel', value: day.hotel_name, informed: day.hotel_informed },
+                    ];
+                    
+                    let itemsHtml = '';
+                    assignments.forEach(item => {
+                        const assigned = item.value && item.value !== 'Not assigned';
+                        const statusClass = assigned ? (item.informed ? 'status-informed' : 'status-uninformed') : 'status-unassigned';
+                        const statusText = assigned ? (item.informed ? 'Informed' : 'Uninformed') : 'Unassigned';
+                        
+                        itemsHtml += `
+                            <div class="summary-item">
+                                <span class="summary-label">
+                                    <i class="${item.icon}"></i> ${item.label}
+                                </span>
+                                <span class="summary-value">${item.value || 'N/A'}</span>
+                                <span class="summary-status ${statusClass}">${statusText}</span>
                             </div>
-                            
-                            <div class="assignment-field">
-                                <div class="form-group">
-                                    <label><i class="fas fa-car"></i> Vehicle</label>
-                                    <div class="custom-select">
-                                        <select name="vehicle_id">${createSelectOptions(vehicles, day.vehicle_id, 'vehicle')}</select>
-                                    </div>
-                                    ${createInformedSwitch('vehicle', day.vehicle_informed)}
-                                </div>
-                            </div>
-                            
-                            <div class="hotel-and-notes-group">
-                                <div class="form-group">
-                                    <label><i class="fas fa-hotel"></i> Hotel</label>
-                                    <div class="custom-select">
-                                        <select name="hotel_id">${createSelectOptions(hotels, day.hotel_id, 'hotel')}</select>
-                                    </div>
-                                    ${createInformedSwitch('hotel', day.hotel_informed)}
-                                </div>
-                                <div class="form-group">
-                                    <label><i class="fas fa-door-open"></i> Room Type</label>
-                                    <div class="custom-select">
-                                        <select name="room_type_id">${createSelectOptions(roomTypes, day.room_type_id, 'room')}</select>
-                                    </div>
-                                    <div style="height: 25px;"></div> 
-                                </div>
-                                
-                                <div class="form-group notes-section">
-                                    <label><i class="fas fa-list-ul"></i> Activities & Notes</label>
-                                    <textarea name="notes" placeholder="Add activities, destinations, or special instructions for this day...">${day.notes || ''}</textarea>
-                                </div>
-                            </div>
+                        `;
+                    });
+                    
+                    const servicesDisplay = day.services_provided 
+                        ? day.services_provided.split(',').map(s => `<span class="service-tag">${s.trim()}</span>`).join('')
+                        : '<span style="color: var(--text-light);">No services</span>';
+                    
+                    itemsHtml += `
+                        <div class="summary-item">
+                            <span class="summary-label">
+                                <i class="fas fa-utensils"></i> Services
+                            </span>
+                            <span class="summary-value">${servicesDisplay}</span>
                         </div>
                     `;
-                    itineraryGrid.appendChild(dayContentWrapper);
-                    dayCounter++;
+
+                    html += `
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                Day ${index + 1} (${dateString})
+                            </div>
+                            ${itemsHtml}
+                        </div>
+                    `;
                 });
 
-                renderTabsAndSwitch(itinerary_days);
+                html += '</div>';
+                summaryView.innerHTML = html;
+            };
+
+            const toggleView = (mode) => {
+                const isSummaryMode = mode === 'summary';
+                
+                if (isSummaryMode) {
+                    itineraryGrid.style.display = 'none';
+                    summaryView.style.display = 'block';
+                    summaryToggleBtn.classList.add('active');
+                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> <span>View Details</span>';
+                    summaryToggleBtn.dataset.viewMode = 'summary';
+                    dayTabsContainer.parentNode.style.display = 'none';
+                    renderSummaryCards(currentItineraryDays);
+                } else {
+                    itineraryGrid.style.display = 'block';
+                    summaryView.style.display = 'none';
+                    summaryToggleBtn.classList.remove('active');
+                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-check"></i> <span>View Summary</span>';
+                    summaryToggleBtn.dataset.viewMode = 'details';
+                    dayTabsContainer.parentNode.style.display = 'flex';
+                    
+                    const activeDayBtn = document.querySelector('.tab-button.active');
+                    if (activeDayBtn) {
+                        switchDay(activeDayBtn.dataset.dayNumber);
+                    } else if (currentItineraryDays.length > 0) {
+                        switchDay(1);
+                    }
+                }
+            };
+
+            const getCurrentFormData = (daysData) => {
+                const currentData = [];
+                daysData.forEach(day => {
+                    const dayId = day.id;
+                    
+                    const guideSelect = document.querySelector(`[name="day_${dayId}_guide_id"]`);
+                    const vehicleSelect = document.querySelector(`[name="day_${dayId}_vehicle_id"]`);
+                    const hotelSelect = document.querySelector(`[name="day_${dayId}_hotel_id"]`);
+                    const guideInformedCheck = document.querySelector(`[name="day_${dayId}_guide_informed"]`);
+                    const vehicleInformedCheck = document.querySelector(`[name="day_${dayId}_vehicle_informed"]`);
+                    const hotelInformedCheck = document.querySelector(`[name="day_${dayId}_hotel_informed"]`);
+                    const notesTextarea = document.querySelector(`[name="day_${dayId}_notes"]`);
+                    
+                    const serviceBreakfast = document.querySelector(`[name="day_${dayId}_service_breakfast"]`);
+                    const serviceLunch = document.querySelector(`[name="day_${dayId}_service_lunch"]`);
+                    const serviceDinner = document.querySelector(`[name="day_${dayId}_service_dinner"]`);
+                    
+                    const services = [];
+                    if (serviceBreakfast && serviceBreakfast.checked) services.push('B');
+                    if (serviceLunch && serviceLunch.checked) services.push('L');
+                    if (serviceDinner && serviceDinner.checked) services.push('D');
+                    const servicesProvided = services.join(', ');
+
+                    const guideId = guideSelect ? guideSelect.value : '';
+                    const vehicleId = vehicleSelect ? vehicleSelect.value : '';
+                    const hotelId = hotelSelect ? hotelSelect.value : '';
+                    
+                    const guideObj = allGuides.find(g => g.id == guideId);
+                    const vehicleObj = allVehicles.find(v => v.id == vehicleId);
+                    const hotelObj = allHotels.find(h => h.id == hotelId);
+                    
+                    currentData.push({
+                        id: day.id,
+                        day_date: day.day_date,
+                        guide_id: guideId,
+                        vehicle_id: vehicleId,
+                        hotel_id: hotelId,
+                        notes: notesTextarea ? notesTextarea.value : '',
+                        services_provided: servicesProvided,
+                        guide_name: guideObj ? guideObj.name : 'Not assigned',
+                        guide_informed: guideInformedCheck ? guideInformedCheck.checked : false,
+                        vehicle_name: vehicleObj ? vehicleObj.vehicle_name : 'Not assigned',
+                        vehicle_informed: vehicleInformedCheck ? vehicleInformedCheck.checked : false,
+                        hotel_name: hotelObj ? hotelObj.name : 'Not assigned',
+                        hotel_informed: hotelInformedCheck ? hotelInformedCheck.checked : false,
+                    });
+                });
+
+                return currentData;
+            };
+            
+            const exportToCSV = () => {
+                const data = getCurrentFormData(currentItineraryDays);
+                if (data.length === 0) {
+                    showToast('No itinerary data to export.', 'error');
+                    return;
+                }
+
+                const headers = ['Day', 'Date', 'Guide', 'Guide Informed', 'Vehicle', 'Vehicle Informed', 'Hotel', 'Hotel Informed', 'Services'];
+                const csvRows = data.map((d, index) => [
+                    `Day ${index + 1}`,
+                    d.day_date,
+                    d.guide_name,
+                    d.guide_informed ? 'Yes' : 'No',
+                    d.vehicle_name,
+                    d.vehicle_informed ? 'Yes' : 'No',
+                    d.hotel_name,
+                    d.hotel_informed ? 'Yes' : 'No',
+                    d.services_provided || 'None',
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...csvRows.map(row => row.join(','))
+                ].join('\n');
+
+                const tripTitle = document.getElementById('tripTitle').textContent.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const filename = `${tripTitle}_itinerary.csv`;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                
+                if (link.download !== undefined) { 
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('Data exported successfully!', 'success');
+                }
+            };
+            
+            const sendHotelEmails = async () => {
+                emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                emailHotelsBtn.disabled = true;
+
+                try {
+                    // Simple test email
+                    const templateParams = {
+                        to_email: 'pratyushcollege68@gmail.com',
+                        message: 'Hi! This is a test email from your Itinerary Management System. If you received this, EmailJS is working correctly! 🎉'
+                    };
+
+                    console.log('Sending email with params:', templateParams);
+
+                    const response = await emailjs.send(
+                        'service_rbyl5zt',
+                        'template_md854zr',
+                        templateParams
+                    );
+
+                    console.log('✅ Email sent successfully:', response);
+                    showToast('Test email sent successfully! Check pratyushcollege68@gmail.com', 'success');
+                    
+                } catch (error) {
+                    console.error('❌ Email sending failed:', error);
+                    console.error('Error details:', {
+                        text: error.text,
+                        status: error.status,
+                        message: error.message
+                    });
+                    showToast('Failed to send email: ' + (error.text || error.message), 'error');
+                } finally {
+                    emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
+                    emailHotelsBtn.disabled = false;
+                }
             };
 
             itineraryForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                const saveBtn = document.querySelector('.btn-save');
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 saveBtn.disabled = true;
 
-                const dayContentWrappers = document.querySelectorAll('.day-content-wrapper');
-                const itinerary_days_data = Array.from(dayContentWrappers).map(wrapper => {
-                    // Get informed status from the button's data-informed attribute
-                    const getInformedStatus = (name) => wrapper.querySelector(`.informed-toggle button[data-name="${name}_informed"]`)?.dataset.informed === 'true';
+                const currentData = getCurrentFormData(currentItineraryDays);
 
-                    return {
-                        id: wrapper.dataset.dayId,
-                        guide_id: wrapper.querySelector('[name="guide_id"]').value || null,
-                        guide_informed: getInformedStatus('guide'), 
-                        vehicle_id: wrapper.querySelector('[name="vehicle_id"]').value || null,
-                        vehicle_informed: getInformedStatus('vehicle'), 
-                        hotel_id: wrapper.querySelector('[name="hotel_id"]').value || null,
-                        hotel_informed: getInformedStatus('hotel'), 
-                        room_type_id: wrapper.querySelector('[name="room_type_id"]').value || null, 
-                        notes: wrapper.querySelector('[name="notes"]').value,
-                    };
-                });
+                const itinerary_days_data = currentData.map(d => ({
+                    id: d.id,
+                    guide_id: d.guide_id || null,
+                    vehicle_id: d.vehicle_id || null,
+                    hotel_id: d.hotel_id || null,
+                    notes: d.notes || '',
+                    services_provided: d.services_provided || '',
+                }));
 
-                const result = await apiFetch(`${API_URL}?action=updateItinerary`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ itinerary_days: itinerary_days_data })
-                });
+                try {
+                    const response = await fetch(`${API_URL}?action=updateItinerary`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itinerary_days: itinerary_days_data })
+                    });
 
-                saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
-                saveBtn.disabled = false;
+                    const result = await response.json();
 
-                showToast(result.message, result.status);
+                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
+                    saveBtn.disabled = false;
+
+                    showToast(result.message, result.status);
+                    
+                    if (result.status === 'success') {
+                        renderSummaryCards(currentItineraryDays);
+                    }
+                } catch (error) {
+                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
+                    saveBtn.disabled = false;
+                    showToast('Error saving itinerary: ' + error.message, 'error');
+                }
             });
             
-            function showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
-                toast.textContent = message;
-                toast.className = `toast show ${type}`;
-                setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
-            }
-
-            loadItinerary();
+            fetchItinerary();
         });
     </script>
 
