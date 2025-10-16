@@ -119,7 +119,6 @@ function getTripPackages($conn) {
     }
     echo json_encode(['status' => 'success', 'data' => $packages]);
 }
-
 function addTrip($conn) {
     $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
     $tour_code = isset($_POST['tour_code']) ? trim($_POST['tour_code']) : '';
@@ -138,70 +137,133 @@ function addTrip($conn) {
         return;
     }
 
-    // --- 1. FETCH total_price from trip_packages table ---
-    $stmt_price = $conn->prepare("SELECT total_price FROM trip_packages WHERE id = ?");
-    if (!$stmt_price) {
+    // --- 1. FETCH package details from trip_packages table ---
+    $stmt_package = $conn->prepare("SELECT name, total_price FROM trip_packages WHERE id = ?");
+    if (!$stmt_package) {
         echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
         return;
     }
+    $stmt_package->bind_param("i", $trip_package_id);
+    $stmt_package->execute();
+    $result_package = $stmt_package->get_result();
 
-    $stmt_price->bind_param("i", $trip_package_id);
-    $stmt_price->execute();
-    $result_price = $stmt_price->get_result();
-
-    // Check if package exists and get price
-    if ($result_price->num_rows === 0) {
+    if ($result_package->num_rows === 0) {
         echo json_encode(['status' => 'error', 'message' => 'Invalid trip package selected.']);
-        $stmt_price->close();
+        $stmt_package->close();
         return;
     }
 
-    $row = $result_price->fetch_assoc();
-    $total_price = $row['total_price'] ? floatval($row['total_price']) : 0;
-    $stmt_price->close();
+    $package_row = $result_package->fetch_assoc();
+    $package_name = $package_row['name'];
+    $total_price = $package_row['total_price'] ? floatval($package_row['total_price']) : 0;
+    $stmt_package->close();
 
     $conn->begin_transaction();
     try {
         // --- 2. INSERT trip with correct bind_param ---
         $stmt = $conn->prepare("INSERT INTO trips (customer_name, tour_code, trip_package_id, start_date, end_date, status, total_price) VALUES (?, ?, ?, ?, ?, ?, ?)");
-
         if (!$stmt) {
             throw new Exception('Prepare failed: ' . $conn->error);
         }
-
-        // ssisssd corresponds to (string, string, integer, string, string, string, double)
         $stmt->bind_param("ssisssd", $customer_name, $tour_code, $trip_package_id, $start_date, $end_date, $status, $total_price);
-
         if (!$stmt->execute()) {
             throw new Exception('Execute failed: ' . $stmt->error);
         }
-
         $trip_id = $conn->insert_id;
         $stmt->close();
 
-        // --- Create itinerary entries for each day ---
-        $current_date = new DateTime($start_date);
-        $end = new DateTime($end_date);
-        $end->modify('+1 day'); 
+        // --- 3. Create Itinerary Entries ---
         
-        // --- CORRECTED LINE ---
-        $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes) VALUES (?, ?, NULL, NULL, NULL, '')");
+        // --- SPECIAL LOGIC FOR ANNAPURNA TREK ---
+        if ($package_name === 'Annapurna Base Camp Trek') {
+            
+$annapurna_itinerary = [
+    1 => ['notes' => "Arrival in Kathmandu. Various arrival times. Depending on flight, pick-up and transfer to the hotel.", 'hotel' => "Sweethome Bhaktapur", 'meals' => ""],
+    2 => ['notes' => "Sightseeing in Bhaktapur and the surrounding area.", 'hotel' => "Sweethome Bhaktapur", 'meals' => "B"],
+    3 => ['notes' => "Flight to Pokhara. In the afternoon: drive to Ulleri – trekking to Ghorepani (2,750 m).", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    4 => ['notes' => "Sunrise at Poon Hill (3,150 m), trekking to Tadapani (2,760 m).", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    5 => ['notes' => "Trekking to Chhomrong (2,170 m).", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    6 => ['notes' => "Trekking via Bamboo (2,370 m) to Dobhan (2,560 m).", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    7 => ['notes' => "Trekking to Deurali (3,210 m) and on to MBC (Machapuchare Base Camp, 3,700 m).", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    8 => ['notes' => "Trekking to ABC (Annapurna Base Camp, 4,130 m) and return to MBC.", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    9 => ['notes' => "Return trek to Bamboo.", 'hotel' => "Trekking Lodges", 'meals' => "B, L, D"],
+    10 => ['notes' => "Trekking via Chhomrong to Jhinu Danda; if possible, drive back to Pokhara.", 'hotel' => "Pokhara Lake View Resort", 'meals' => "B, L"],
+    11 => ['notes' => "Pokhara at leisure – relax day.", 'hotel' => "Pokhara Lake View Resort", 'meals' => "B"],
+    12 => ['notes' => "Flight to Kathmandu. Afternoon free.", 'hotel' => "Shambala Hotel", 'meals' => "B"],
+    13 => ['notes' => "Sightseeing in Kathmandu.", 'hotel' => "Shambala Hotel", 'meals' => "B, D"],
+    14 => ['notes' => "Departure for home.", 'hotel' => null, 'meals' => "B"],
+];
 
-        if (!$stmt_itinerary) {
-            throw new Exception('Prepare itinerary failed: ' . $conn->error);
-        }
-        
-        while ($current_date < $end) {
-            $date_str = $current_date->format('Y-m-d');
-            $stmt_itinerary->bind_param("is", $trip_id, $date_str);
+            // --- Robust hotel lookup ---
+            $hotel_names_from_plan = array_unique(array_filter(array_column($annapurna_itinerary, 'hotel')));
+            $hotel_ids = [];
+            if (!empty($hotel_names_from_plan)) {
+                $all_hotels_result = $conn->query("SELECT id, name FROM hotels");
+                $db_hotels = [];
+                while ($row = $all_hotels_result->fetch_assoc()) {
+                    $db_hotels[strtolower(trim($row['name']))] = $row['id'];
+                }
 
-            if (!$stmt_itinerary->execute()) {
-                throw new Exception('Itinerary insert failed: ' . $stmt_itinerary->error);
+                foreach ($hotel_names_from_plan as $plan_hotel_name) {
+                    $lookup_key = strtolower(trim($plan_hotel_name));
+                    if (isset($db_hotels[$lookup_key])) {
+                        $hotel_ids[$plan_hotel_name] = $db_hotels[$lookup_key];
+                    }
+                }
             }
 
-            $current_date->modify('+1 day');
+            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, hotel_id, notes, services_provided, guide_id, vehicle_id) VALUES (?, ?, ?, ?, ?, NULL, NULL)");
+            if (!$stmt_itinerary) {
+                throw new Exception('Prepare itinerary failed: ' . $conn->error);
+            }
+
+            $current_date = new DateTime($start_date);
+            $day_counter = 1;
+            $trip_duration = (new DateTime($end_date))->diff(new DateTime($start_date))->days + 1;
+
+            while ($day_counter <= $trip_duration) {
+                $date_str = $current_date->format('Y-m-d');
+                $day_details = $annapurna_itinerary[$day_counter] ?? ['notes' => 'Day off or unspecified activities.', 'hotel' => null, 'meals' => ''];
+                
+                $hotel_id = null;
+                if ($day_details['hotel'] && isset($hotel_ids[$day_details['hotel']])) {
+                    $hotel_id = $hotel_ids[$day_details['hotel']];
+                }
+                
+                $notes = $day_details['notes'];
+                $services_provided = $day_details['meals'];
+                
+                $stmt_itinerary->bind_param("isiss", $trip_id, $date_str, $hotel_id, $notes, $services_provided);
+                if (!$stmt_itinerary->execute()) {
+                    throw new Exception('Annapurna itinerary insert failed: ' . $stmt_itinerary->error);
+                }
+                
+                $current_date->modify('+1 day');
+                $day_counter++;
+            }
+            $stmt_itinerary->close();
+
+        } else {
+            // --- DEFAULT LOGIC for any other trip package ---
+            $current_date = new DateTime($start_date);
+            $end = new DateTime($end_date);
+            $end->modify('+1 day'); 
+            
+            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided) VALUES (?, ?, NULL, NULL, NULL, '', '')");
+            if (!$stmt_itinerary) {
+                throw new Exception('Prepare itinerary failed: ' . $conn->error);
+            }
+            
+            while ($current_date < $end) {
+                $date_str = $current_date->format('Y-m-d');
+                $stmt_itinerary->bind_param("is", $trip_id, $date_str);
+                if (!$stmt_itinerary->execute()) {
+                    throw new Exception('Itinerary insert failed: ' . $stmt_itinerary->error);
+                }
+                $current_date->modify('+1 day');
+            }
+            $stmt_itinerary->close();
         }
-        $stmt_itinerary->close();
 
         $conn->commit();
         echo json_encode(['status' => 'success', 'message' => 'Trip created successfully.']);
@@ -210,6 +272,7 @@ function addTrip($conn) {
         echo json_encode(['status' => 'error', 'message' => 'Failed to add trip: ' . $e->getMessage()]);
     }
 }
+
 
 function updateTrip($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -379,25 +442,71 @@ function updateItinerary($conn) {
 
     $conn->begin_transaction();
     try {
-        $stmt = $conn->prepare("UPDATE itinerary_days SET guide_id = ?, vehicle_id = ?, hotel_id = ?, notes = ?, services_provided = ? WHERE id = ?");
-        if (!$stmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        // Discover available columns to avoid errors on older schemas
+        $cols = [];
+        $resCols = $conn->query("SHOW COLUMNS FROM itinerary_days");
+        if ($resCols) {
+            while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; }
         }
 
         foreach($itinerary_days as $day) {
-            $guide_id = !empty($day['guide_id']) ? intval($day['guide_id']) : null;
-            $vehicle_id = !empty($day['vehicle_id']) ? intval($day['vehicle_id']) : null;
-            $hotel_id = !empty($day['hotel_id']) ? intval($day['hotel_id']) : null;
-            $notes = isset($day['notes']) ? trim($day['notes']) : '';
-            $services_provided = isset($day['services_provided']) ? trim($day['services_provided']) : '';
             $id = intval($day['id']);
 
-            $stmt->bind_param("iiissi", $guide_id, $vehicle_id, $hotel_id, $notes, $services_provided, $id);
+            // Base fields always safe
+            $fields = [
+                'guide_id' => (isset($day['guide_id']) && $day['guide_id'] !== '') ? intval($day['guide_id']) : null,
+                'vehicle_id' => (isset($day['vehicle_id']) && $day['vehicle_id'] !== '') ? intval($day['vehicle_id']) : null,
+                'hotel_id' => (isset($day['hotel_id']) && $day['hotel_id'] !== '') ? intval($day['hotel_id']) : null,
+                'notes' => isset($day['notes']) ? trim($day['notes']) : '',
+                'services_provided' => isset($day['services_provided']) ? trim($day['services_provided']) : ''
+            ];
+
+            // Optional fields
+            if (isset($cols['room_type_id'])) {
+                $fields['room_type_id'] = (isset($day['room_type_id']) && $day['room_type_id'] !== '') ? intval($day['room_type_id']) : null;
+            }
+            if (isset($cols['guide_informed']) && array_key_exists('guide_informed', $day)) {
+                $fields['guide_informed'] = intval($day['guide_informed']) ? 1 : 0;
+            }
+            if (isset($cols['vehicle_informed']) && array_key_exists('vehicle_informed', $day)) {
+                $fields['vehicle_informed'] = intval($day['vehicle_informed']) ? 1 : 0;
+            }
+            if (isset($cols['hotel_informed'])) {
+                // Read current informed to prevent reverting once set
+                $cur = $conn->query("SELECT hotel_informed FROM itinerary_days WHERE id = " . $id);
+                $curVal = null;
+                if ($cur && $cur->num_rows > 0) {
+                    $curVal = (int)($cur->fetch_assoc()['hotel_informed']);
+                }
+                $requested = array_key_exists('hotel_informed', $day) ? (intval($day['hotel_informed']) ? 1 : 0) : $curVal;
+                // Lock to 1 if already informed
+                $fields['hotel_informed'] = ($curVal === 1) ? 1 : ($requested ?? 0);
+            }
+
+            // Build SQL dynamically
+            $setParts = [];
+            $types = '';
+            $values = [];
+            foreach ($fields as $key => $val) {
+                $setParts[] = "$key = ?";
+                $types .= in_array($key, ['notes','services_provided']) ? 's' : 'i';
+                $values[] = $val;
+            }
+            $types .= 'i';
+            $values[] = $id;
+
+            $sql = "UPDATE itinerary_days SET " . implode(', ', $setParts) . " WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception('Prepare failed: ' . $conn->error);
+            }
+            $stmt->bind_param($types, ...$values);
             if (!$stmt->execute()) {
                 throw new Exception('Execute failed: ' . $stmt->error);
             }
+            $stmt->close();
         }
-        $stmt->close();
+
         $conn->commit();
         echo json_encode(['status' => 'success', 'message' => 'Itinerary updated successfully!']);
     } catch (Exception $e) {
@@ -408,7 +517,7 @@ function updateItinerary($conn) {
 
 // ============= HOTEL MANAGEMENT =============
 function getHotels($conn) {
-    $result = $conn->query("SELECT id, name, room_types, availability FROM hotels ORDER BY name");
+    $result = $conn->query("SELECT id, name, email, room_types, availability, services_provided FROM hotels ORDER BY name");
     if (!$result) {
         echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
         return;
@@ -423,21 +532,23 @@ function getHotels($conn) {
 
 function addHotel($conn) {
     $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : null;
     $room_types = isset($_POST['room_types']) ? trim($_POST['room_types']) : '';
     $availability = isset($_POST['availability']) ? trim($_POST['availability']) : 'Available';
+    $services_provided = isset($_POST['services_provided']) ? trim($_POST['services_provided']) : '';
 
     if (empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Hotel name is required.']);
         return;
     }
 
-    $stmt = $conn->prepare("INSERT INTO hotels (name, room_types, availability) VALUES (?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO hotels (name, email, room_types, availability, services_provided) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) {
         echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
         return;
     }
 
-    $stmt->bind_param("sss", $name, $room_types, $availability);
+    $stmt->bind_param("sssss", $name, $email, $room_types, $availability, $services_provided);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Hotel added successfully.']);
@@ -450,21 +561,23 @@ function addHotel($conn) {
 function updateHotel($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : null;
     $room_types = isset($_POST['room_types']) ? trim($_POST['room_types']) : '';
     $availability = isset($_POST['availability']) ? trim($_POST['availability']) : 'Available';
+    $services_provided = isset($_POST['services_provided']) ? trim($_POST['services_provided']) : '';
 
     if (empty($id) || empty($name)) {
         echo json_encode(['status' => 'error', 'message' => 'Hotel ID and name are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE hotels SET name = ?, room_types = ?, availability = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE hotels SET name = ?, email = ?, room_types = ?, availability = ?, services_provided = ? WHERE id = ?");
     if (!$stmt) {
         echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
         return;
     }
 
-    $stmt->bind_param("sssi", $name, $room_types, $availability, $id);
+    $stmt->bind_param("sssssi", $name, $email, $room_types, $availability, $services_provided, $id);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Hotel updated successfully.']);
@@ -683,4 +796,4 @@ function deleteGuide($conn) {
 }
 
 $conn->close();
-?>
+?>  

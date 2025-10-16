@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Itinerary Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function(){
-            emailjs.init({
-                publicKey: "CMisGPoi-0dZTEWaj",
-            });
-        })();
-    </script>
     <style>
         :root {
             --primary-color: #6366f1;
@@ -427,6 +419,14 @@
             transition: background 0.2s, border-color 0.2s;
         }
         
+        /* Style for the disabled label when informed */
+        .informed-input[disabled] + .toggle-label {
+            background: #a7f3d0 !important; /* Lighter success color */
+            color: var(--success) !important;
+            border: 1px solid #a7f3d0 !important;
+            cursor: not-allowed;
+        }
+
         .informed-input:checked + .toggle-label {
             background: var(--success);
             color: white;
@@ -541,6 +541,60 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        /* Email Status Panel */
+        .email-status-panel {
+            position: fixed;
+            right: 20px;
+            bottom: 95px;
+            width: 360px;
+            max-height: 60vh;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            z-index: 1100;
+        }
+        .email-status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--border-light);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .email-status-body {
+            padding: 8px 12px;
+            max-height: 50vh;
+            overflow: auto;
+        }
+        .email-status-list { list-style: none; margin: 0; padding: 0; }
+        .email-status-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 4px;
+            border-bottom: 1px dashed var(--border-light);
+            font-size: 0.9rem;
+        }
+        .email-status-item:last-child { border-bottom: none; }
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .pill-sent { background: #dcfce7; color: #166534; }
+        .pill-queued { background: #e0f2fe; color: #075985; }
+        .pill-error { background: #fee2e2; color: #991b1b; }
+        .email-status-close { cursor: pointer; color: var(--text-secondary); }
+        .email-status-minmax { cursor: pointer; color: var(--text-secondary); margin-right: 10px; }
+        .email-status-body.minimized { display: none; }
 
         .error-message {
             padding: 20px;
@@ -679,6 +733,20 @@
         </main>
     </div>
 
+    <!-- Email Status Panel -->
+    <div id="emailStatusPanel" class="email-status-panel">
+        <div class="email-status-header">
+            <span><i class="fas fa-envelope-open-text"></i> Email Status</span>
+            <div>
+                <span id="emailStatusMinMax" class="email-status-minmax" title="Minimize/Maximize"><i class="fas fa-minus"></i></span>
+                <span id="emailStatusClose" class="email-status-close"><i class="fas fa-times"></i></span>
+            </div>
+        </div>
+        <div class="email-status-body">
+            <ul id="emailStatusList" class="email-status-list"></ul>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const API_URL = 'api.php';
@@ -692,6 +760,10 @@
             const saveBtn = document.querySelector('.btn-save');
             const exportCsvBtn = document.getElementById('exportCsvBtn');
             const emailHotelsBtn = document.getElementById('emailHotelsBtn');
+            const emailStatusPanel = document.getElementById('emailStatusPanel');
+            const emailStatusList = document.getElementById('emailStatusList');
+            const emailStatusClose = document.getElementById('emailStatusClose');
+            const emailStatusMinMax = document.getElementById('emailStatusMinMax');
             
             const urlParams = new URLSearchParams(window.location.search);
             const tripId = urlParams.get('trip_id');
@@ -722,7 +794,6 @@
                 toast.classList.add('toast');
                 document.body.appendChild(toast);
                 
-                // Add CSS for toast types
                 const style = document.createElement('style');
                 style.textContent = `
                     .toast.show { opacity: 1 !important; visibility: visible !important; }
@@ -734,6 +805,36 @@
                 
                 return toast;
             }
+
+            // Email Status Panel helpers
+            const openEmailStatusPanel = () => { emailStatusPanel.style.display = 'block'; };
+            const closeEmailStatusPanel = () => { emailStatusPanel.style.display = 'none'; };
+            emailStatusClose.addEventListener('click', closeEmailStatusPanel);
+            emailStatusMinMax.addEventListener('click', () => {
+                const body = emailStatusPanel.querySelector('.email-status-body');
+                const icon = emailStatusMinMax.querySelector('i');
+                if (body.classList.contains('minimized')) {
+                    body.classList.remove('minimized');
+                    icon.classList.remove('fa-plus');
+                    icon.classList.add('fa-minus');
+                } else {
+                    body.classList.add('minimized');
+                    icon.classList.remove('fa-minus');
+                    icon.classList.add('fa-plus');
+                }
+            });
+            const clearEmailStatus = () => { emailStatusList.innerHTML = ''; };
+            const addEmailStatusItem = (status, text) => {
+                const li = document.createElement('li');
+                li.className = 'email-status-item';
+                let pillClass = 'pill-queued';
+                let pillText = 'QUEUED';
+                if (status === 'success' || status === 'sent') { pillClass = 'pill-sent'; pillText = 'SENT'; }
+                if (status === 'error' || status === 'failed') { pillClass = 'pill-error'; pillText = 'ERROR'; }
+                if (status === 'info' || status === 'queued') { pillClass = 'pill-queued'; pillText = 'QUEUED'; }
+                li.innerHTML = `<span class="status-pill ${pillClass}">${pillText}</span><span>${text}</span>`;
+                emailStatusList.appendChild(li);
+            };
 
             const fetchItinerary = async () => {
                 try {
@@ -758,7 +859,6 @@
                     allHotels = hotels;
                     currentItineraryDays = itinerary_days;
                     
-                    // Fetch package hotels and room types
                     if (trip.trip_package_id) {
                         try {
                             const pkgResponse = await fetch(`${API_URL}?action=getPackageHotels&trip_package_id=${trip.trip_package_id}`);
@@ -777,7 +877,6 @@
                         }
                     }
                     
-                    // Update header
                     document.getElementById('tripTitle').textContent = `${trip.customer_name}'s ${trip.package_name}`;
                     document.getElementById('tripMeta').innerHTML = `
                         <div class="trip-meta-item">
@@ -800,7 +899,7 @@
                     });
                     
                     exportCsvBtn.addEventListener('click', exportToCSV);
-                    emailHotelsBtn.addEventListener('click', sendHotelEmails);
+                    emailHotelsBtn.addEventListener('click', sendHotelEmail);
                     
                     scrollLeftBtn.addEventListener('click', () => scrollTabs('left'));
                     scrollRightBtn.addEventListener('click', () => scrollTabs('right'));
@@ -828,15 +927,13 @@
                     const guideOptions = createSelectOptions(allGuides, day.guide_id, 'guide');
                     const vehicleOptions = createSelectOptions(allVehicles, day.vehicle_id, 'vehicle');
                     
-                    // Get hotel for this day from package assignments
                     let hotelOptions = createSelectOptions(allHotels, day.hotel_id, 'hotel');
-                    let roomTypeOptions = '<option value="">Select Room Type</option>';
-                    let assignedHotel = null;
+                    let roomTypeOptions = createSelectOptions(roomTypes, day.room_type_id, 'room_type');
+
                     let hotelDisabled = '';
                     let hotelBadge = '';
                     let showServices = false;
                     
-                    // Get services_provided for this day
                     let servicesProvided = day.services_provided || '';
                     let hasBreakfast = servicesProvided.includes('B');
                     let hasLunch = servicesProvided.includes('L');
@@ -845,13 +942,11 @@
                     if (packageHotels.length > 0) {
                         const packageHotel = packageHotels.find(ph => ph.day_number === dayCounter);
                         if (packageHotel) {
-                            assignedHotel = packageHotel;
                             hotelOptions = `<option value="${packageHotel.hotel_id}" selected>${packageHotel.name}</option>`;
                             hotelDisabled = 'disabled';
                             hotelBadge = '<span class="package-hotel-badge">From Package</span>';
                             showServices = true;
                             
-                            // Auto-select services from package if not already set
                             if (!servicesProvided && packageHotel.services_provided) {
                                 servicesProvided = packageHotel.services_provided;
                                 hasBreakfast = servicesProvided.includes('B');
@@ -859,20 +954,25 @@
                                 hasDinner = servicesProvided.includes('D');
                             }
                             
-                            if (packageHotel.room_types && roomTypes.length > 0) {
-                                const hotelRoomTypeNames = packageHotel.room_types.split(',').map(rt => rt.trim());
-                                roomTypeOptions = '<option value="">Select Room Type</option>';
+                             if (packageHotel.room_types && roomTypes.length > 0) {
+                                const hotelRoomTypeNames = packageHotel.room_types.split(',').map(rt => rt.trim().toLowerCase());
+                                let tempRoomTypeOptions = '<option value="">Select Room Type</option>';
                                 
                                 roomTypes.forEach(rt => {
-                                    if (hotelRoomTypeNames.some(hrt => hrt.toLowerCase() === rt.name.toLowerCase())) {
-                                        roomTypeOptions += `<option value="${rt.id}">${rt.name}</option>`;
+                                    if (hotelRoomTypeNames.includes(rt.name.toLowerCase())) {
+                                        const isSelected = rt.id == day.room_type_id ? 'selected' : '';
+                                        tempRoomTypeOptions += `<option value="${rt.id}" ${isSelected}>${rt.name}</option>`;
                                     }
                                 });
+                                roomTypeOptions = tempRoomTypeOptions;
                             }
                         }
-                    } else if (day.hotel_id) {
-                        showServices = true;
                     }
+                    
+                    if (day.hotel_id) {
+                         showServices = true;
+                    }
+
 
                     const servicesHTML = showServices ? `
                         <div class="form-group">
@@ -898,7 +998,7 @@
 
                     dayContentWrapper.innerHTML = `
                         <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;">
-                            Day ${dayCounter} — ${dateString}
+                            Day ${dayCounter} – ${dateString}
                         </div>
                         <div class="assignments-grid">
                             <div class="form-group">
@@ -992,12 +1092,18 @@
                         }
                     }
                     
+                    if (dayCounter === itinerary_days.length) {
+                        setTimeout(setupInformedToggles, 0); 
+                        // Attach room-type propagation after all day sections exist
+                        setTimeout(setupRoomTypePropagation, 0);
+                    }
+                    
                     dayCounter++;
                 });
             };
 
             const createSelectOptions = (items, selectedId, type) => {
-                let html = '<option value="">Not assigned</option>';
+                let html = (type === 'room_type') ? '<option value="">Select Room Type</option>' : '<option value="">Not assigned</option>';
                 items.forEach(item => {
                     const isSelected = item.id == selectedId ? 'selected' : '';
                     let subtext = '';
@@ -1006,11 +1112,9 @@
                         subtext = item.language ? ` (${item.language})` : '';
                     } else if (type === 'vehicle') {
                         subtext = item.capacity ? ` (Seats: ${item.capacity})` : '';
-                    } else if (type === 'hotel') {
-                        subtext = '';
                     }
 
-                    const nameKey = item.name || item.vehicle_name || item.id;
+                    const nameKey = item.name || item.vehicle_name || 'N/A';
                     html += `<option value="${item.id}" ${isSelected}>${nameKey}${subtext}</option>`;
                 });
                 return html;
@@ -1019,20 +1123,87 @@
             const createInformedSwitch = (dayId, fieldName, isChecked) => {
                 const checked = isChecked ? 'checked' : '';
                 const toggleText = isChecked ? 'Informed' : 'Uninformed';
-                const labelStatus = isChecked 
-                    ? 'Status:' 
-                    : 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
-                const inputId = `day_${dayId}_${fieldName}_informed`;
+                const isDisabled = (fieldName === 'hotel' && isChecked) ? 'disabled' : ''; 
+                
+                let labelStatusText = 'Status:';
+                if (!isChecked && fieldName === 'hotel') {
+                    labelStatusText = 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
+                }
+
+                const inputId = `day_${dayId}_${fieldName}_informed_toggle`; 
 
                 return `
                     <div class="informed-switch-container">
-                        <label class="informed-status-label" for="${inputId}_toggle">${labelStatus}</label>
+                        <label class="informed-status-label">${labelStatusText}</label>
                         <div class="informed-toggle">
-                            <input type="checkbox" id="${inputId}_toggle" name="${inputId}" class="informed-input" ${checked} />
-                            <label class="toggle-label" for="${inputId}_toggle">${toggleText}</label>
+                            <input type="checkbox" id="${inputId}" name="day_${dayId}_${fieldName}_informed" class="informed-input" ${checked} ${isDisabled} />
+                            <label class="toggle-label" for="${inputId}">${toggleText}</label>
                         </div>
                     </div>
                 `;
+            };
+            
+            const updateStatusLabel = (inputId, isChecked) => {
+                const container = document.getElementById(inputId).closest('.informed-switch-container');
+                const statusLabel = container ? container.querySelector('.informed-status-label') : null;
+                
+                if (statusLabel) {
+                    const fieldName = inputId.split('_')[2]; 
+                    
+                    if (isChecked) {
+                        statusLabel.innerHTML = 'Status:';
+                    } else if (fieldName === 'hotel') {
+                         statusLabel.innerHTML = 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
+                    } else {
+                        statusLabel.innerHTML = 'Status:';
+                    }
+                }
+            };
+            
+            const setupInformedToggles = () => {
+                const informedInputs = document.querySelectorAll('.informed-input');
+                
+                informedInputs.forEach(input => {
+                    const label = document.querySelector(`label[for="${input.id}"]`);
+                    
+                    if (input.disabled) {
+                        if (label) {
+                            label.textContent = 'Informed';
+                        }
+                        return; 
+                    }
+
+                    // Prevent toggling hotel informed once it's set
+                    if (input.name.endsWith('_hotel_informed') && input.checked) {
+                        input.disabled = true;
+                        if (label) { label.textContent = 'Informed'; }
+                        return;
+                    }
+
+                    if (label) {
+                        label.textContent = input.checked ? 'Informed' : 'Uninformed';
+                        updateStatusLabel(input.id, input.checked);
+                    }
+
+                    const newLabel = label.cloneNode(true);
+                    label.parentNode.replaceChild(newLabel, label);
+
+                    newLabel.addEventListener('click', (e) => {
+                        if (input.name.endsWith('_hotel_informed') && input.checked) {
+                            e.preventDefault();
+                            return;
+                        }
+                        setTimeout(() => {
+                            const isChecked = input.checked;
+                            newLabel.textContent = isChecked ? 'Informed' : 'Uninformed';
+                            updateStatusLabel(input.id, isChecked);
+                            
+                            if (summaryToggleBtn.dataset.viewMode === 'summary') {
+                                renderSummaryCards(currentItineraryDays);
+                            }
+                        }, 50); 
+                    });
+                });
             };
 
             const scrollTabs = (direction) => {
@@ -1041,6 +1212,35 @@
                     left: direction === 'left' ? -scrollAmount : scrollAmount, 
                     behavior: 'smooth' 
                 });
+            };
+
+            // Propagate Day 1 room type selection to all other days automatically
+            const setupRoomTypePropagation = () => {
+                const firstDayWrapper = document.querySelector('.day-content-wrapper[data-day-number="1"]');
+                if (!firstDayWrapper) return;
+                const firstSelect = firstDayWrapper.querySelector('select[name$="_room_type_id"]');
+                if (!firstSelect) return;
+
+                const propagate = () => {
+                    const value = firstSelect.value;
+                    if (!value) return; // nothing to propagate
+                    const allSelects = document.querySelectorAll('select[name$="_room_type_id"]');
+                    allSelects.forEach(sel => {
+                        if (sel === firstSelect) return;
+                        const hasOption = sel.querySelector(`option[value="${value}"]`);
+                        if (hasOption) {
+                            sel.value = value;
+                        }
+                    });
+                };
+
+                // On change of day 1, propagate to all
+                firstSelect.addEventListener('change', propagate);
+
+                // If already selected on load, propagate once
+                if (firstSelect.value && firstSelect.value !== '') {
+                    propagate();
+                }
             };
 
             const renderTabsAndSwitch = (itinerary_days) => {
@@ -1070,7 +1270,7 @@
             };
 
             const switchDay = (dayNumber) => {
-                if (summaryToggleBtn.dataset.viewMode === 'summary') return;
+                if (!dayNumber || summaryToggleBtn.dataset.viewMode === 'summary') return;
 
                 const dayButtons = document.querySelectorAll('.tab-button');
                 const dayContents = document.querySelectorAll('.day-content-wrapper');
@@ -1187,9 +1387,12 @@
                     const guideSelect = document.querySelector(`[name="day_${dayId}_guide_id"]`);
                     const vehicleSelect = document.querySelector(`[name="day_${dayId}_vehicle_id"]`);
                     const hotelSelect = document.querySelector(`[name="day_${dayId}_hotel_id"]`);
+                    const roomTypeSelect = document.querySelector(`[name="day_${dayId}_room_type_id"]`); // Get room type
+                    
                     const guideInformedCheck = document.querySelector(`[name="day_${dayId}_guide_informed"]`);
                     const vehicleInformedCheck = document.querySelector(`[name="day_${dayId}_vehicle_informed"]`);
                     const hotelInformedCheck = document.querySelector(`[name="day_${dayId}_hotel_informed"]`);
+
                     const notesTextarea = document.querySelector(`[name="day_${dayId}_notes"]`);
                     
                     const serviceBreakfast = document.querySelector(`[name="day_${dayId}_service_breakfast"]`);
@@ -1202,28 +1405,34 @@
                     if (serviceDinner && serviceDinner.checked) services.push('D');
                     const servicesProvided = services.join(', ');
 
-                    const guideId = guideSelect ? guideSelect.value : '';
-                    const vehicleId = vehicleSelect ? vehicleSelect.value : '';
-                    const hotelId = hotelSelect ? hotelSelect.value : '';
+                    const guideId = guideSelect ? guideSelect.value : day.guide_id;
+                    const vehicleId = vehicleSelect ? vehicleSelect.value : day.vehicle_id;
+                    const hotelId = hotelSelect ? hotelSelect.value : day.hotel_id;
+                    const roomTypeId = roomTypeSelect ? roomTypeSelect.value : day.room_type_id;
                     
                     const guideObj = allGuides.find(g => g.id == guideId);
                     const vehicleObj = allVehicles.find(v => v.id == vehicleId);
                     const hotelObj = allHotels.find(h => h.id == hotelId);
                     
+                    const guideInformed = guideInformedCheck ? guideInformedCheck.checked : day.guide_informed;
+                    const vehicleInformed = vehicleInformedCheck ? vehicleInformedCheck.checked : day.vehicle_informed;
+                    const hotelInformed = hotelInformedCheck ? hotelInformedCheck.checked : day.hotel_informed;
+
                     currentData.push({
                         id: day.id,
                         day_date: day.day_date,
                         guide_id: guideId,
                         vehicle_id: vehicleId,
                         hotel_id: hotelId,
-                        notes: notesTextarea ? notesTextarea.value : '',
-                        services_provided: servicesProvided,
+                        room_type_id: roomTypeId,
+                        notes: notesTextarea ? notesTextarea.value : day.notes,
+                        services_provided: servicesProvided || day.services_provided,
                         guide_name: guideObj ? guideObj.name : 'Not assigned',
-                        guide_informed: guideInformedCheck ? guideInformedCheck.checked : false,
+                        guide_informed: guideInformed,
                         vehicle_name: vehicleObj ? vehicleObj.vehicle_name : 'Not assigned',
-                        vehicle_informed: vehicleInformedCheck ? vehicleInformedCheck.checked : false,
+                        vehicle_informed: vehicleInformed,
                         hotel_name: hotelObj ? hotelObj.name : 'Not assigned',
-                        hotel_informed: hotelInformedCheck ? hotelInformedCheck.checked : false,
+                        hotel_informed: hotelInformed,
                     });
                 });
 
@@ -1273,36 +1482,78 @@
                 }
             };
             
-            const sendHotelEmails = async () => {
+            // MODIFIED: Function to send email to ALL uninformed hotels for the trip
+            const sendHotelEmail = async () => {
+                const uninformedHotels = currentItineraryDays.some(day => day.hotel_id && !day.hotel_informed);
+                // Block if any assigned hotel lacks room type before sending
+                const missingRoomType = currentItineraryDays.some(day => day.hotel_id && (!day.room_type_id || day.room_type_id === ''));
+                if (missingRoomType) {
+                    openEmailStatusPanel();
+                    clearEmailStatus();
+                    addEmailStatusItem('error', 'One or more hotel days are missing a room type. Please select room types before emailing.');
+                    showToast('Select room types before emailing.', 'error');
+                    return;
+                }
+
+                if (!uninformedHotels) {
+                    showToast('All assigned hotels have already been informed.', 'info');
+                    return;
+                }
+
+                // Show panel and initial queued message
+                openEmailStatusPanel();
+                clearEmailStatus();
+                addEmailStatusItem('queued', 'Processing hotel emails...');
+
                 emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
                 emailHotelsBtn.disabled = true;
 
                 try {
-                    // Simple test email
-                    const templateParams = {
-                        to_email: 'pratyushcollege68@gmail.com',
-                        message: 'Hi! This is a test email from your Itinerary Management System. If you received this, EmailJS is working correctly! 🎉'
-                    };
-
-                    console.log('Sending email with params:', templateParams);
-
-                    const response = await emailjs.send(
-                        'service_rbyl5zt',
-                        'template_md854zr',
-                        templateParams
-                    );
-
-                    console.log('✅ Email sent successfully:', response);
-                    showToast('Test email sent successfully! Check pratyushcollege68@gmail.com', 'success');
-                    
-                } catch (error) {
-                    console.error('❌ Email sending failed:', error);
-                    console.error('Error details:', {
-                        text: error.text,
-                        status: error.status,
-                        message: error.message
+                    const response = await fetch('send_hotel_email.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            trip_id: tripId
+                        })
                     });
-                    showToast('Failed to send email: ' + (error.text || error.message), 'error');
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Server Error ${response.status}: ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Update status panel with server messages
+                    clearEmailStatus();
+                    if (result.messages && result.messages.length) {
+                        result.messages.forEach(m => addEmailStatusItem(m.type || 'info', m.text || ''));
+                    } else {
+                        addEmailStatusItem(result.status || 'info', result.message || 'No messages');
+                    }
+
+                    const activeDayBeforeFetch = document.querySelector('.tab-button.active')?.dataset.dayNumber;
+
+                    // Re-fetch itinerary to get the latest 'informed' status and re-render the UI
+                    await fetchItinerary();
+                    
+                    // After re-rendering, try to switch back to the previously active day
+                    if(activeDayBeforeFetch) {
+                        setTimeout(() => switchDay(activeDayBeforeFetch), 100);
+                    }
+
+
+                    if (result.status === 'success') {
+                        // Optional: also toast a brief summary
+                        showToast('Hotel emails processed.', 'success');
+                    } else {
+                        showToast(result.message, result.status || 'error');
+                    }
+
+                } catch (error) {
+                    clearEmailStatus();
+                    addEmailStatusItem('error', 'Request failed: ' + error.message);
+                    showToast('Request Failed: ' + error.message, 'error');
                 } finally {
                     emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
                     emailHotelsBtn.disabled = false;
@@ -1316,15 +1567,21 @@
                 saveBtn.disabled = true;
 
                 const currentData = getCurrentFormData(currentItineraryDays);
+                const activeDayBeforeSave = document.querySelector('.tab-button.active')?.dataset.dayNumber;
 
                 const itinerary_days_data = currentData.map(d => ({
                     id: d.id,
                     guide_id: d.guide_id || null,
                     vehicle_id: d.vehicle_id || null,
                     hotel_id: d.hotel_id || null,
+                    room_type_id: d.room_type_id || null, // FIX: Save room_type_id
+                    guide_informed: d.guide_informed ? 1 : 0,
+                    vehicle_informed: d.vehicle_informed ? 1 : 0,
+                    hotel_informed: d.hotel_informed ? 1 : 0, 
                     notes: d.notes || '',
                     services_provided: d.services_provided || '',
                 }));
+                
 
                 try {
                     const response = await fetch(`${API_URL}?action=updateItinerary`, {
@@ -1334,19 +1591,20 @@
                     });
 
                     const result = await response.json();
-
-                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
-                    saveBtn.disabled = false;
-
                     showToast(result.message, result.status);
                     
                     if (result.status === 'success') {
-                        renderSummaryCards(currentItineraryDays);
+                        await fetchItinerary();
+                        // After re-rendering, try to switch back to the previously active day
+                        if(activeDayBeforeSave) {
+                            setTimeout(() => switchDay(activeDayBeforeSave), 100);
+                        }
                     }
                 } catch (error) {
-                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
-                    saveBtn.disabled = false;
                     showToast('Error saving itinerary: ' + error.message, 'error');
+                } finally {
+                     saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
+                    saveBtn.disabled = false;
                 }
             });
             
