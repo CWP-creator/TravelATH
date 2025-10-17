@@ -1,3 +1,4 @@
+<?php require_once '../utils/check_session.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -331,6 +332,14 @@
             color: #1976d2;
         }
 
+        #hotel_assignments_container {
+            max-height: 250px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-color);
+            margin-top: 15px;
+            padding-top: 10px;
+        }
+
         .toast {
             visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 16px; position: fixed; z-index: 1001; left: 50%; bottom: 30px; font-size: 17px; opacity: 0; transition: opacity 0.3s, visibility 0.3s, bottom 0.3s;
         }
@@ -391,6 +400,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <aside class="sidebar">
@@ -399,10 +409,19 @@
         <ul class="sidebar-nav">
             <li class="active"><a data-section="dashboard"><i class="fas fa-tachometer-alt fa-fw"></i> <span class="link-text">Dashboard</span></a></li>
             <li><a data-section="trips"><i class="fas fa-file-alt fa-fw"></i> <span class="link-text">Trip Files</span></a></li>
+            <li><a data-section="packages"><i class="fas fa-box-open fa-fw"></i> <span class="link-text">Packages</span></a></li>
             <li><a data-section="hotels"><i class="fas fa-hotel fa-fw"></i> <span class="link-text">Hotels</span></a></li>
             <li><a data-section="vehicles"><i class="fas fa-car fa-fw"></i> <span class="link-text">Vehicles</span></a></li>
             <li><a data-section="guides"><i class="fas fa-user-friends fa-fw"></i> <span class="link-text">Guides</span></a></li>
         </ul>
+        <ul class="sidebar-nav">
+    <li style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 10px;">
+        <a href="#" onclick="logout(); return false;">
+            <i class="fas fa-sign-out-alt fa-fw"></i> 
+            <span class="link-text">Logout</span>
+        </a>
+    </li>
+</ul>
     </aside>
 
     <div class="page-wrapper">
@@ -491,6 +510,29 @@
                                     <th>START DATE</th>
                                     <th>END DATE</th>
                                     <th>STATUS</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="packagesSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <h2>Trip Packages Management</h2>
+                        <button id="addPackageBtn" class="btn-add"><i class="fas fa-plus"></i> Add Package</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="packagesTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>PACKAGE NAME</th>
+                                    <th>CODE</th>
+                                    <th>DAYS</th>
                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
@@ -618,6 +660,7 @@
                         <small id="end_date_suggestion" style="display: block; margin-top: 5px; color: var(--primary-color); font-weight: 500;"></small>
                     </div>
                 </div>
+                
 
                 <div class="form-group">
                     <label for="status">Status</label>
@@ -630,6 +673,40 @@
                 <div class="form-buttons">
                     <button type="button" class="btn-cancel btn" data-modal="tripModal">Cancel</button>
                     <button type="submit" class="btn-save btn">Save Trip</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="packageModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-btn" data-modal="packageModal">&times;</span>
+            <h2 id="packageModalTitle">Add Package</h2>
+            <form id="packageForm">
+                <input type="hidden" id="packageId" name="id">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="package_name">Package Name</label>
+                        <input type="text" id="package_name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="package_code">Package Code</label>
+                        <input type="text" id="package_code" name="code" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="package_days">Number of Days</label>
+                    <input type="number" id="package_days" name="No_of_Days" min="1" required>
+                </div>
+                
+                <div id="hotel_assignments_container" class="form-group">
+                    </div>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="packageModal">Cancel</button>
+                    <button type="submit" class="btn-save btn">Save Package</button>
                 </div>
             </form>
         </div>
@@ -752,7 +829,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = 'api.php';
+            const API_URL = '../api.php';
 
             let tripsData = [];
             let hotelsData = [];
@@ -760,11 +837,27 @@
             let guidesData = [];
             let packagesData = [];
 
+    async function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        try {
+            const response = await fetch('../utils/auth.php?action=logout');
+            const result = await response.json();
+            if (result.status === 'success') {
+                window.location.href = '../login.html';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            window.location.href = '../login.html';
+        }
+    }
+}
+
             // Navigation
             document.querySelectorAll('.sidebar-nav a').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const section = this.dataset.section;
+                    if (!section) return;
                     
                     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
                     this.parentElement.classList.add('active');
@@ -775,6 +868,9 @@
                     switch(section) {
                         case 'trips':
                             renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
+                            break;
+                        case 'packages':
+                            fetchPackages();
                             break;
                         case 'hotels':
                             fetchHotels();
@@ -824,6 +920,7 @@
                     const result = await response.json();
                     if (result.status === 'success') {
                         packagesData = result.data;
+                        renderPackages(packagesData);
                         const select = document.getElementById('trip_package_id');
                         select.innerHTML = '<option value="">Select Package</option>';
                         result.data.forEach(pkg => {
@@ -895,9 +992,32 @@
                         <td>${trip.end_date}</td>
                         <td><span class="status status-${trip.status}">${trip.status}</span></td>
                         <td class="actions">
-                            <a href="Itinerary.html?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
+                            <a href="Itinerary.php?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
                             <a href="#" class="btn-edit-trip" data-id="${trip.id}"><i class="fas fa-pencil"></i></a>
                             <a href="#" class="btn-delete-trip" data-id="${trip.id}"><i class="fas fa-trash"></i></a>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            };
+
+            const renderPackages = (packages) => {
+                const tbody = document.querySelector('#packagesTable tbody');
+                tbody.innerHTML = '';
+                if (!packages || packages.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No packages found.</td></tr>';
+                    return;
+                }
+                packages.forEach(pkg => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${pkg.id}</td>
+                        <td>${pkg.name}</td>
+                        <td>${pkg.code || 'N/A'}</td>
+                        <td>${pkg.No_of_Days || 'N/A'}</td>
+                        <td class="actions">
+                            <a href="#" class="btn-edit-package" data-id="${pkg.id}"><i class="fas fa-pencil"></i></a>
+                            <a href="#" class="btn-delete-package" data-id="${pkg.id}"><i class="fas fa-trash"></i></a>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -1001,10 +1121,10 @@
                 const startDateValue = startDateInput.value;
 
                 suggestionEl.textContent = '';
-                endDateInput.value = '';
 
                 if (days && startDateValue) {
                     const duration = parseInt(days, 10);
+                    if (isNaN(duration)) return;
                     const startDate = new Date(startDateValue);
                     
                     const endDate = new Date(startDate.getTime());
@@ -1074,6 +1194,14 @@
             });
             document.getElementById('addTripBtn2').addEventListener('click', () => document.getElementById('addTripBtn').click());
 
+            document.getElementById('addPackageBtn').addEventListener('click', () => {
+                document.getElementById('packageForm').reset();
+                document.getElementById('packageId').value = '';
+                document.getElementById('packageModalTitle').textContent = 'Add Package';
+                document.getElementById('hotel_assignments_container').innerHTML = '';
+                openModal('packageModal');
+            });
+
             document.getElementById('addHotelBtn').addEventListener('click', () => {
                 document.getElementById('hotelForm').reset();
                 document.getElementById('hotelId').value = '';
@@ -1096,6 +1224,38 @@
                 openModal('guideModal');
             });
 
+            // --- Package Modal Logic ---
+            const generateHotelSelectors = (dayCount) => {
+                const container = document.getElementById('hotel_assignments_container');
+                container.innerHTML = '<h4>Hotel Assignments by Day</h4>';
+                
+                let hotelOptions = '<option value="">-- No Hotel --</option>';
+                hotelsData.forEach(hotel => {
+                    hotelOptions += `<option value="${hotel.id}">${hotel.name}</option>`;
+                });
+
+                for (let i = 1; i <= dayCount; i++) {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'form-group';
+                    dayDiv.innerHTML = `
+                        <label for="hotel_day_${i}">Day ${i}</label>
+                        <select id="hotel_day_${i}" name="hotel_assignment_${i}" data-day="${i}">
+                            ${hotelOptions}
+                        </select>
+                    `;
+                    container.appendChild(dayDiv);
+                }
+            };
+            
+            document.getElementById('package_days').addEventListener('change', function() {
+                const days = parseInt(this.value, 10);
+                if (days > 0 && days < 100) { // Safety limit
+                    generateHotelSelectors(days);
+                } else {
+                    document.getElementById('hotel_assignments_container').innerHTML = '';
+                }
+            });
+
             // --- Handle Services Checkboxes ---
             document.getElementById('hotelForm').addEventListener('change', function(e) {
                 if (e.target.name.startsWith('service_')) {
@@ -1111,22 +1271,12 @@
             // --- Form Submissions ---
             const handleFormSubmit = async (form, action, callback) => {
                 const formData = new FormData(form);
-                
-                console.log('Submitting form with action:', action);
-                for (let pair of formData.entries()) {
-                    console.log(pair[0] + ': ' + pair[1]);
-                }
-                
                 try {
                     const response = await fetch(`${API_URL}?action=${action}`, {
                         method: 'POST',
                         body: formData
                     });
-                    
-                    console.log('Response status:', response.status);
                     const result = await response.json();
-                    console.log('Response data:', result);
-                    
                     if (result.status === 'success') {
                         showToast(result.message, 'success');
                         callback();
@@ -1134,7 +1284,6 @@
                         showToast(result.message, 'error');
                     }
                 } catch (error) {
-                    console.error('Error details:', error);
                     showToast('An error occurred while saving: ' + error.message, 'error');
                 }
             };
@@ -1146,7 +1295,48 @@
                 handleFormSubmit(this, action, () => {
                     closeModal('tripModal');
                     fetchTrips();
+                    fetchPackages(); // Refresh packages in trip form
                 });
+            });
+
+            document.getElementById('packageForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const packageId = document.getElementById('packageId').value;
+                const action = packageId ? 'updateTripPackage' : 'addTripPackage';
+                
+                const data = {
+                    id: packageId || undefined,
+                    name: document.getElementById('package_name').value,
+                    code: document.getElementById('package_code').value,
+                    No_of_Days: document.getElementById('package_days').value,
+                    hotel_assignments: {}
+                };
+                
+                document.querySelectorAll('#hotel_assignments_container select').forEach(select => {
+                    const day = select.dataset.day;
+                    const hotelId = select.value;
+                    if (hotelId) {
+                        data.hotel_assignments[day] = hotelId;
+                    }
+                });
+
+                try {
+                    const response = await fetch(`${API_URL}?action=${action}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        showToast(result.message, 'success');
+                        closeModal('packageModal');
+                        fetchPackages();
+                    } else {
+                        showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    showToast('An error occurred: ' + error.message, 'error');
+                }
             });
 
             document.getElementById('hotelForm').addEventListener('submit', function(e) {
@@ -1205,6 +1395,37 @@
                         openModal('tripModal');
                     }
                 }
+
+                if (target.classList.contains('btn-edit-package')) {
+                    e.preventDefault();
+                    const pkg = packagesData.find(p => p.id == id);
+                    if (pkg) {
+                        document.getElementById('packageModalTitle').textContent = 'Edit Package';
+                        document.getElementById('packageId').value = pkg.id;
+                        document.getElementById('package_name').value = pkg.name;
+                        document.getElementById('package_code').value = pkg.code || '';
+                        document.getElementById('package_days').value = pkg.No_of_Days;
+                        
+                        generateHotelSelectors(pkg.No_of_Days);
+                        
+                        try {
+                            const response = await fetch(`${API_URL}?action=getPackageHotels&trip_package_id=${pkg.id}`);
+                            const result = await response.json();
+                            if (result.status === 'success' && result.data) {
+                                result.data.forEach(assignment => {
+                                    const selector = document.getElementById(`hotel_day_${assignment.day_number}`);
+                                    if (selector) {
+                                        selector.value = assignment.hotel_id;
+                                    }
+                                });
+                            }
+                        } catch (error) {
+                            showToast('Could not load hotel assignments.', 'error');
+                        }
+
+                        openModal('packageModal');
+                    }
+                }
                 
                 if (target.classList.contains('btn-edit-hotel')) {
                     e.preventDefault();
@@ -1216,7 +1437,6 @@
                         document.getElementById('hotel_room_types').value = hotel.room_types || '';
                         document.getElementById('hotel_availability').value = hotel.availability || 'Available';
                         
-                        // Parse and check services
                         document.querySelector('input[name="service_breakfast"]').checked = hotel.services_provided && hotel.services_provided.includes('B');
                         document.querySelector('input[name="service_lunch"]').checked = hotel.services_provided && hotel.services_provided.includes('L');
                         document.querySelector('input[name="service_dinner"]').checked = hotel.services_provided && hotel.services_provided.includes('D');
@@ -1276,6 +1496,10 @@
                     e.preventDefault();
                     if (confirm('Are you sure you want to delete this trip?')) handleDelete('deleteTrip', fetchTrips);
                 }
+                if (target.classList.contains('btn-delete-package')) {
+                    e.preventDefault();
+                    if (confirm('Are you sure you want to delete this package?')) handleDelete('deleteTripPackage', fetchPackages);
+                }
                 if (target.classList.contains('btn-delete-hotel')) {
                     e.preventDefault();
                     if (confirm('Are you sure you want to delete this hotel?')) handleDelete('deleteHotel', fetchHotels);
@@ -1300,6 +1524,7 @@
                 }, 3000);
             }
 
+            // Initial Data Load
             fetchTrips();
             fetchPackages();
             fetchVehicles();

@@ -1,0 +1,81 @@
+# TravelATH - Travel Agency Management System
+# .gitignore file
+
+# Configuration files (should not be committed)
+config/db_connect.php
+config/mail_config.php
+
+# Vendor dependencies (PHPMailer)
+vendor/
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js (if any frontend build tools are added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PHP Composer
+vendor/
+composer.lock
+
+# Database files
+*.sql
+*.sqlite
+*.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Cache directories
+cache/
+sessions/
+
+# Upload directories (if any)
+uploads/
+files/
+
+# Documentation builds
+docs/build/
+docs/.vuepress/dist/
+
+# Test files
+tests/
+phpunit.xml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Deployment
+deploy/
+dist/

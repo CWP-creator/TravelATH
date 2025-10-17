@@ -1,6 +1,7 @@
 <?php
+require_once '../../utils/check_session.php';
 header('Content-Type: application/json');
-include 'db_connect.php';
+include '../../config/db_connect.php';
 
 $response = ['status' => 'error', 'message' => 'An unknown error occurred.'];
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
@@ -212,7 +213,7 @@ $annapurna_itinerary = [
                 }
             }
 
-            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, hotel_id, notes, services_provided, guide_id, vehicle_id) VALUES (?, ?, ?, ?, ?, NULL, NULL)");
+            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, hotel_id, notes, services_provided, guide_id, vehicle_id, day_type) VALUES (?, ?, ?, ?, ?, NULL, NULL, 'normal')");
             if (!$stmt_itinerary) {
                 throw new Exception('Prepare itinerary failed: ' . $conn->error);
             }
@@ -249,7 +250,7 @@ $annapurna_itinerary = [
             $end = new DateTime($end_date);
             $end->modify('+1 day'); 
             
-            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided) VALUES (?, ?, NULL, NULL, NULL, '', '')");
+            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided, day_type) VALUES (?, ?, NULL, NULL, NULL, '', '', 'normal')");
             if (!$stmt_itinerary) {
                 throw new Exception('Prepare itinerary failed: ' . $conn->error);
             }
@@ -465,6 +466,9 @@ function updateItinerary($conn) {
             if (isset($cols['room_type_id'])) {
                 $fields['room_type_id'] = (isset($day['room_type_id']) && $day['room_type_id'] !== '') ? intval($day['room_type_id']) : null;
             }
+            if (isset($cols['day_type'])) {
+                $fields['day_type'] = isset($day['day_type']) ? trim($day['day_type']) : 'normal';
+            }
             if (isset($cols['guide_informed']) && array_key_exists('guide_informed', $day)) {
                 $fields['guide_informed'] = intval($day['guide_informed']) ? 1 : 0;
             }
@@ -489,7 +493,7 @@ function updateItinerary($conn) {
             $values = [];
             foreach ($fields as $key => $val) {
                 $setParts[] = "$key = ?";
-                $types .= in_array($key, ['notes','services_provided']) ? 's' : 'i';
+                $types .= in_array($key, ['notes','services_provided','day_type']) ? 's' : 'i';
                 $values[] = $val;
             }
             $types .= 'i';

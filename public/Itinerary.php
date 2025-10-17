@@ -679,7 +679,7 @@
                     <h1 id="tripTitle">Loading Trip...</h1>
                     <div class="trip-meta" id="tripMeta"></div>
                 </div>
-                <a href="index.html" class="btn-back">
+                <a href="index.php" class="btn-back">
                     <i class="fas fa-arrow-left"></i> 
                     <span>Back</span>
                 </a>
@@ -749,7 +749,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = 'api.php';
+            const API_URL = '../api.php';
             const itineraryForm = document.getElementById('itineraryForm');
             const itineraryGrid = document.getElementById('itineraryGrid');
             const summaryView = document.getElementById('summaryView');
@@ -930,7 +930,6 @@
                     let hotelOptions = createSelectOptions(allHotels, day.hotel_id, 'hotel');
                     let roomTypeOptions = createSelectOptions(roomTypes, day.room_type_id, 'room_type');
 
-                    let hotelDisabled = '';
                     let hotelBadge = '';
                     let showServices = false;
                     
@@ -942,9 +941,16 @@
                     if (packageHotels.length > 0) {
                         const packageHotel = packageHotels.find(ph => ph.day_number === dayCounter);
                         if (packageHotel) {
-                            hotelOptions = `<option value="${packageHotel.hotel_id}" selected>${packageHotel.name}</option>`;
-                            hotelDisabled = 'disabled';
-                            hotelBadge = '<span class="package-hotel-badge">From Package</span>';
+                            // Auto-select the package hotel but keep it editable
+                            if (!day.hotel_id) {
+                                // Only auto-assign if no hotel is currently assigned
+                                const hotelObj = allHotels.find(h => h.id == packageHotel.hotel_id);
+                                if (hotelObj) {
+                                    day.hotel_id = packageHotel.hotel_id;
+                                    hotelOptions = createSelectOptions(allHotels, packageHotel.hotel_id, 'hotel');
+                                }
+                            }
+                            hotelBadge = '';
                             showServices = true;
                             
                             if (!servicesProvided && packageHotel.services_provided) {
@@ -1025,7 +1031,7 @@
                                         <div class="form-group-controls">
                                             <label for="day_${day.id}_hotel_id"><i class="fas fa-hotel"></i> Hotel ${hotelBadge}</label>
                                             <div class="custom-select">
-                                                <select id="day_${day.id}_hotel_id" name="day_${day.id}_hotel_id" ${hotelDisabled}>${hotelOptions}</select>
+                                                <select id="day_${day.id}_hotel_id" name="day_${day.id}_hotel_id">${hotelOptions}</select>
                                             </div>
                                             ${createInformedSwitch(day.id, 'hotel', day.hotel_informed)}
                                         </div>
@@ -1050,46 +1056,44 @@
                     `;
                     itineraryGrid.appendChild(dayContentWrapper);
                     
-                    if (!hotelDisabled) {
-                        const hotelSelect = document.getElementById(`day_${day.id}_hotel_id`);
-                        if (hotelSelect) {
-                            hotelSelect.addEventListener('change', function() {
-                                const dayElement = this.closest('.day-content-wrapper');
-                                const hotelGroup = dayElement.querySelector('.hotel-group');
-                                const existingServicesDiv = hotelGroup.querySelector('.form-group:last-child');
-                                
-                                if (this.value && this.value !== '') {
-                                    if (!existingServicesDiv || !existingServicesDiv.querySelector('.services-block')) {
-                                        const servicesHTML = `
-                                            <div class="form-group">
-                                                <div class="form-group-controls">
-                                                    <label><i class="fas fa-utensils"></i> Services Provided</label>
-                                                    <div class="services-block">
-                                                        <label>
-                                                            <input type="checkbox" name="day_${day.id}_service_breakfast" value="B"> 
-                                                            <span>Breakfast (B)</span>
-                                                        </label>
-                                                        <label>
-                                                            <input type="checkbox" name="day_${day.id}_service_lunch" value="L"> 
-                                                            <span>Lunch (L)</span>
-                                                        </label>
-                                                        <label>
-                                                            <input type="checkbox" name="day_${day.id}_service_dinner" value="D"> 
-                                                            <span>Dinner (D)</span>
-                                                        </label>
-                                                    </div>
+                    const hotelSelect = document.getElementById(`day_${day.id}_hotel_id`);
+                    if (hotelSelect) {
+                        hotelSelect.addEventListener('change', function() {
+                            const dayElement = this.closest('.day-content-wrapper');
+                            const hotelGroup = dayElement.querySelector('.hotel-group');
+                            const existingServicesDiv = hotelGroup.querySelector('.form-group:last-child');
+                            
+                            if (this.value && this.value !== '') {
+                                if (!existingServicesDiv || !existingServicesDiv.querySelector('.services-block')) {
+                                    const servicesHTML = `
+                                        <div class="form-group">
+                                            <div class="form-group-controls">
+                                                <label><i class="fas fa-utensils"></i> Services Provided</label>
+                                                <div class="services-block">
+                                                    <label>
+                                                        <input type="checkbox" name="day_${day.id}_service_breakfast" value="B">
+                                                        <span>Breakfast (B)</span>
+                                                    </label>
+                                                    <label>
+                                                        <input type="checkbox" name="day_${day.id}_service_lunch" value="L">
+                                                        <span>Lunch (L)</span>
+                                                    </label>
+                                                    <label>
+                                                        <input type="checkbox" name="day_${day.id}_service_dinner" value="D">
+                                                        <span>Dinner (D)</span>
+                                                    </label>
                                                 </div>
                                             </div>
-                                        `;
-                                        hotelGroup.insertAdjacentHTML('beforeend', servicesHTML);
-                                    }
-                                } else {
-                                    if (existingServicesDiv && existingServicesDiv.querySelector('.services-block')) {
-                                        existingServicesDiv.remove();
-                                    }
+                                        </div>
+                                    `;
+                                    hotelGroup.insertAdjacentHTML('beforeend', servicesHTML);
                                 }
-                            });
-                        }
+                            } else {
+                                if (existingServicesDiv && existingServicesDiv.querySelector('.services-block')) {
+                                    existingServicesDiv.remove();
+                                }
+                            }
+                        });
                     }
                     
                     if (dayCounter === itinerary_days.length) {
@@ -1123,7 +1127,7 @@
             const createInformedSwitch = (dayId, fieldName, isChecked) => {
                 const checked = isChecked ? 'checked' : '';
                 const toggleText = isChecked ? 'Informed' : 'Uninformed';
-                const isDisabled = (fieldName === 'hotel' && isChecked) ? 'disabled' : ''; 
+                const isDisabled = '';
                 
                 let labelStatusText = 'Status:';
                 if (!isChecked && fieldName === 'hotel') {
@@ -1173,12 +1177,6 @@
                         return; 
                     }
 
-                    // Prevent toggling hotel informed once it's set
-                    if (input.name.endsWith('_hotel_informed') && input.checked) {
-                        input.disabled = true;
-                        if (label) { label.textContent = 'Informed'; }
-                        return;
-                    }
 
                     if (label) {
                         label.textContent = input.checked ? 'Informed' : 'Uninformed';
@@ -1189,10 +1187,6 @@
                     label.parentNode.replaceChild(newLabel, label);
 
                     newLabel.addEventListener('click', (e) => {
-                        if (input.name.endsWith('_hotel_informed') && input.checked) {
-                            e.preventDefault();
-                            return;
-                        }
                         setTimeout(() => {
                             const isChecked = input.checked;
                             newLabel.textContent = isChecked ? 'Informed' : 'Uninformed';
@@ -1483,10 +1477,13 @@
             };
             
             // MODIFIED: Function to send email to ALL uninformed hotels for the trip
+// MODIFIED: Function to send email to ALL uninformed hotels for the trip
             const sendHotelEmail = async () => {
-                const uninformedHotels = currentItineraryDays.some(day => day.hotel_id && !day.hotel_informed);
+                // First, get current form data to check for unsaved changes
+                const currentData = getCurrentFormData(currentItineraryDays);
+                
                 // Block if any assigned hotel lacks room type before sending
-                const missingRoomType = currentItineraryDays.some(day => day.hotel_id && (!day.room_type_id || day.room_type_id === ''));
+                const missingRoomType = currentData.some(day => day.hotel_id && (!day.room_type_id || day.room_type_id === ''));
                 if (missingRoomType) {
                     openEmailStatusPanel();
                     clearEmailStatus();
@@ -1495,21 +1492,50 @@
                     return;
                 }
 
+                const uninformedHotels = currentData.some(day => day.hotel_id && !day.hotel_informed);
                 if (!uninformedHotels) {
                     showToast('All assigned hotels have already been informed.', 'info');
                     return;
                 }
 
-                // Show panel and initial queued message
-                openEmailStatusPanel();
-                clearEmailStatus();
-                addEmailStatusItem('queued', 'Processing hotel emails...');
-
-                emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                // Save changes first before sending emails
+                emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 emailHotelsBtn.disabled = true;
 
                 try {
-                    const response = await fetch('send_hotel_email.php', {
+                    // Save current form data
+                    const itinerary_days_data = currentData.map(d => ({
+                        id: d.id,
+                        guide_id: d.guide_id || null,
+                        vehicle_id: d.vehicle_id || null,
+                        hotel_id: d.hotel_id || null,
+                        room_type_id: d.room_type_id || null,
+                        guide_informed: d.guide_informed ? 1 : 0,
+                        vehicle_informed: d.vehicle_informed ? 1 : 0,
+                        hotel_informed: d.hotel_informed ? 1 : 0,
+                        notes: d.notes || '',
+                        services_provided: d.services_provided || '',
+                    }));
+
+                    const saveResponse = await fetch(`${API_URL}?action=updateItinerary`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itinerary_days: itinerary_days_data })
+                    });
+
+                    const saveResult = await saveResponse.json();
+                    if (saveResult.status !== 'success') {
+                        throw new Error('Failed to save changes: ' + saveResult.message);
+                    }
+
+                    // Show panel and initial queued message
+                    openEmailStatusPanel();
+                    clearEmailStatus();
+                    addEmailStatusItem('queued', 'Processing hotel emails...');
+
+                    emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                    const response = await fetch('../send_hotel_email.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1542,9 +1568,7 @@
                         setTimeout(() => switchDay(activeDayBeforeFetch), 100);
                     }
 
-
                     if (result.status === 'success') {
-                        // Optional: also toast a brief summary
                         showToast('Hotel emails processed.', 'success');
                     } else {
                         showToast(result.message, result.status || 'error');
@@ -1558,9 +1582,7 @@
                     emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
                     emailHotelsBtn.disabled = false;
                 }
-            };
-
-            itineraryForm.addEventListener('submit', async function(e) {
+            }; itineraryForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';

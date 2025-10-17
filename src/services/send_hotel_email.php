@@ -1,4 +1,8 @@
 <?php
+// Start output buffering immediately to catch any unwanted output
+ob_start();
+
+// Set headers before any output
 header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -8,14 +12,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 	exit(0);
 }
 
-// Ensure only JSON is output (suppress HTML errors) and buffer early
-ob_start();
+// Suppress all HTML errors and ensure clean JSON output
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-error_reporting(E_ALL);
+error_reporting(0); // Completely suppress errors that might output HTML
 
-require_once __DIR__ . '/db_connect.php';
-@include_once __DIR__ . '/mail_config.php';
+// Set error handler to catch any PHP errors and convert to JSON
+set_error_handler(function($severity, $message, $file, $line) {
+    // Clean output buffer
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'error', 
+        'message' => "PHP Error: $message in $file on line $line"
+    ]);
+    exit;
+});
+
+// Check if db_connect.php exists before requiring it
+$db_path = __DIR__ . '/../../db_connect.php';
+if (file_exists($db_path)) {
+    require_once $db_path;
+} elseif (file_exists(__DIR__ . '/db_connect.php')) {
+    require_once __DIR__ . '/db_connect.php';
+} else {
+    respond('error', 'Database connection file is missing. Please create db_connect.php in the root directory');
+}
+
+// Include mail configuration if available
+$mail_config_path = __DIR__ . '/../../mail_config.php';
+if (file_exists($mail_config_path)) {
+    require_once $mail_config_path;
+} else {
+    @include_once __DIR__ . '/mail_config.php';
+}
 
 function respond($status, $message, $extra = []) {
 	// Clean any previous output to avoid invalid JSON
@@ -33,6 +65,23 @@ try {
 	if ($trip_id <= 0) {
 		respond('error', 'Invalid or missing trip_id.');
 	}
+
+	// --- ADDED: Fetch Trip Details (Tour Code and Customer Name) ---
+	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name FROM trips WHERE id = ?");
+	if (!$tripDetailsStmt) {
+		respond('error', 'Database prepare failed for trip details: ' . $conn->error);
+	}
+	$tripDetailsStmt->bind_param('i', $trip_id);
+	$tripDetailsStmt->execute();
+	$tripDetailsResult = $tripDetailsStmt->get_result();
+	if ($tripDetailsResult->num_rows === 0) {
+		respond('error', 'Trip not found.');
+	}
+	$tripData = $tripDetailsResult->fetch_assoc();
+	$tourCode = $tripData['tour_code'] ?: 'N/A';
+	$customerName = $tripData['customer_name'] ?: 'Our Valued Guest';
+	$tripDetailsStmt->close();
+	// --- END: Fetch Trip Details ---
 
 	// --- VALIDATION BLOCK ---
 	// First, fetch ALL days to validate that every day has a hotel and room type.
@@ -208,7 +257,7 @@ try {
 			$bookingBlocks[] = $currentBlock;
 		}
 
-		// --- NEW: HTML TABLE FORMATTING ---
+		// --- MODIFIED: HTML TABLE FORMATTING & EMAIL BODY ---
 		$tableRowsHtml = '';
 		$altTextLines = []; // For the plain text version of the email
 
@@ -245,7 +294,8 @@ try {
 
 		$emailBodyHtml = "
 			<p>Dear {$hotelName},</p>
-			<p>Please kindly review the following booking request and confirm availability at your earliest convenience.</p>
+			<p>We would like to request a booking for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>
+			<p>Please find the booking details below:</p>
 			<table style='width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: left;'>
 				<thead style='background-color: #f2f2f2;'>
 					<tr>
@@ -259,24 +309,25 @@ try {
 					{$tableRowsHtml}
 				</tbody>
 			</table>
+			<p>Kindly confirm this booking at your earliest convenience.</p>
 			<p>Thank you.</p>
 		";
-		$altBodyText = "Dear {$hotelName},\nPlease find the booking details below:\n\n" . implode("\n", $altTextLines) . "\n\nThank you.";
-		// --- END: HTML TABLE FORMATTING ---
+		$altBodyText = "Dear {$hotelName},\n\nWe would like to request a booking for our guest(s), " . htmlspecialchars($customerName) . ", under the tour code " . htmlspecialchars($tourCode) . ".\n\nPlease find the booking details below:\n\n" . implode("\n", $altTextLines) . "\n\nKindly confirm this booking at your earliest convenience.\n\nThank you.";
+		// --- END: MODIFICATION ---
 
 		$rangeText = $formatRanges($group['day_numbers']);
 		$sentOk = false;
 		$sendError = '';
 
 		if (defined('MAIL_SMTP_USER') && MAIL_SMTP_USER && defined('MAIL_SMTP_PASS') && MAIL_SMTP_PASS) {
-			$hasLib = (file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php'));
+			$hasLib = (file_exists(__DIR__ . '/../../PHPMailer/src/PHPMailer.php'));
 			if ($hasLib) {
 				try {
-					require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-					require_once __DIR__ . '/PHPMailer/src/SMTP.php';
-					require_once __DIR__ . '/PHPMailer/src/Exception.php';
+					require_once __DIR__ . '/../../PHPMailer/src/PHPMailer.php';
+					require_once __DIR__ . '/../../PHPMailer/src/SMTP.php';
+					require_once __DIR__ . '/../../PHPMailer/src/Exception.php';
 					$mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-          $mail->isSMTP();
+                    $mail->isSMTP();
 					$mail->Host = defined('MAIL_SMTP_HOST') ? MAIL_SMTP_HOST : 'smtp.gmail.com';
 					$mail->Port = defined('MAIL_SMTP_PORT') ? MAIL_SMTP_PORT : 587;
 					$mail->SMTPAuth = true;
@@ -286,8 +337,9 @@ try {
 					$mail->CharSet = 'UTF-8';
 					$mail->setFrom(defined('MAIL_FROM_EMAIL') && MAIL_FROM_EMAIL ? MAIL_FROM_EMAIL : MAIL_SMTP_USER, defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Trip Coordinator');
 					$mail->addAddress($hotelEmail, $hotelName);
-          $mail->isHTML(true);
-					$mail->Subject = 'Hotel Booking Details';
+                    $mail->isHTML(true);
+					// --- MODIFIED: Email Subject ---
+					$mail->Subject = 'Hotel Booking Request for ' . $tourCode . ' - ' . $customerName;
 					$mail->Body = $emailBodyHtml;
 					$mail->AltBody = $altBodyText;
 					$mail->send();
