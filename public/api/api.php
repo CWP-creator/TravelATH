@@ -1,7 +1,7 @@
 <?php
 require_once '../../utils/check_session.php';
 header('Content-Type: application/json');
-include '../../config/db_connect.php';
+include '../../src/services/db_connect.php';
 
 $response = ['status' => 'error', 'message' => 'An unknown error occurred.'];
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
