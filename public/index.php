@@ -829,7 +829,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = '../api.php';
+            const API_URL = 'api/api.php';
 
             let tripsData = [];
             let hotelsData = [];

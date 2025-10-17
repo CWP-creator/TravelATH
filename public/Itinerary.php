@@ -749,7 +749,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = '../api.php';
+            const API_URL = 'api/api.php';
             const itineraryForm = document.getElementById('itineraryForm');
             const itineraryGrid = document.getElementById('itineraryGrid');
             const summaryView = document.getElementById('summaryView');
@@ -1535,7 +1535,7 @@
 
                     emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
-                    const response = await fetch('../send_hotel_email.php', {
+                    const response = await fetch('../src/services/send_hotel_email.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
