@@ -90,6 +90,72 @@
             width: 20px;
         }
         
+        /* Collapsible Sidebar Styles */
+        .nav-section {
+            margin: 10px 0;
+        }
+        
+        .section-toggle {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .section-toggle:hover {
+            background-color: #e8f0fe;
+            color: var(--primary-color);
+        }
+        
+        .toggle-arrow {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+        
+        .section-toggle.expanded .toggle-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .nav-submenu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: #fdfdfd;
+        }
+        
+        .nav-submenu.expanded {
+            max-height: 500px;
+        }
+        
+        .nav-submenu li a {
+            padding: 12px 20px 12px 50px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-submenu li a:hover {
+            background-color: #e8f0fe;
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+        
+        .nav-submenu li.active a {
+            background-color: #e8f0fe;
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+        
         .page-wrapper {
             margin-left: 240px;
             width: calc(100% - 240px);
@@ -332,12 +398,78 @@
             color: #1976d2;
         }
 
-        #hotel_assignments_container {
-            max-height: 250px;
+        #day_requirements_container {
+            max-height: 400px;
             overflow-y: auto;
             border-top: 1px solid var(--border-color);
             margin-top: 15px;
             padding-top: 10px;
+        }
+        
+        .day-requirement-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .day-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            font-weight: 600;
+        }
+        
+        .day-content {
+            padding: 15px;
+            background: #fdfdfd;
+        }
+        
+        .requirement-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .requirement-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .requirement-section h5 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        
+        .requirement-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .requirement-checkbox input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .vehicle-type-select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        @media screen and (max-width: 768px) {
+            .requirement-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .toast {
@@ -362,6 +494,19 @@
                 justify-content: center;
             }
             .sidebar-nav li a .link-text { display: none; }
+            
+            /* Hide collapsible functionality on small screens */
+            .section-toggle .link-text { display: none; }
+            .toggle-arrow { display: none; }
+            .nav-submenu {
+                max-height: none;
+                position: static;
+            }
+            .nav-submenu li a {
+                padding: 15px;
+                justify-content: center;
+            }
+            .nav-submenu li a .link-text { display: none; }
 
             .page-wrapper {
                 width: calc(100% - 70px);
@@ -398,6 +543,127 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Hotel Records Styles */
+        .hotel-records-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hotel-group {
+            background: var(--card-background);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .hotel-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hotel-bookings {
+            padding: 0;
+        }
+
+        .booking-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .booking-item:last-child {
+            border-bottom: none;
+        }
+
+        .booking-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .booking-main {
+            flex: 1;
+        }
+
+        .booking-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .booking-details {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .booking-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .booking-duration {
+            background: var(--background-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+
+        .booking-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .booking-actions a {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            text-decoration: none;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        .booking-actions a:hover {
+            background-color: var(--background-color);
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        @media screen and (max-width: 768px) {
+            .booking-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .booking-meta {
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .booking-details {
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -408,11 +674,35 @@
 
         <ul class="sidebar-nav">
             <li class="active"><a data-section="dashboard"><i class="fas fa-tachometer-alt fa-fw"></i> <span class="link-text">Dashboard</span></a></li>
-            <li><a data-section="trips"><i class="fas fa-file-alt fa-fw"></i> <span class="link-text">Trip Files</span></a></li>
-            <li><a data-section="packages"><i class="fas fa-box-open fa-fw"></i> <span class="link-text">Packages</span></a></li>
-            <li><a data-section="hotels"><i class="fas fa-hotel fa-fw"></i> <span class="link-text">Hotels</span></a></li>
-            <li><a data-section="vehicles"><i class="fas fa-car fa-fw"></i> <span class="link-text">Vehicles</span></a></li>
-            <li><a data-section="guides"><i class="fas fa-user-friends fa-fw"></i> <span class="link-text">Guides</span></a></li>
+            
+            <!-- Entry Section -->
+            <li class="nav-section">
+                <a class="section-toggle" data-toggle="entry">
+                    <i class="fas fa-plus-circle fa-fw"></i> 
+                    <span class="link-text">Manage</span>
+                    <i class="fas fa-chevron-down toggle-arrow"></i>
+                </a>
+                <ul class="nav-submenu" id="entrySubmenu">
+                    <li><a data-section="trips"><i class="fas fa-file-alt fa-fw"></i> <span class="link-text">Trip Files</span></a></li>
+                    <li><a data-section="packages"><i class="fas fa-box-open fa-fw"></i> <span class="link-text">Packages</span></a></li>
+                    <li><a data-section="hotels"><i class="fas fa-hotel fa-fw"></i> <span class="link-text">Hotels</span></a></li>
+                    <li><a data-section="vehicles"><i class="fas fa-car fa-fw"></i> <span class="link-text">Vehicles</span></a></li>
+                    <li><a data-section="guides"><i class="fas fa-user-friends fa-fw"></i> <span class="link-text">Guides</span></a></li>
+                </ul>
+            </li>
+            
+            <!-- Reports Section -->
+            <li class="nav-section">
+                <a class="section-toggle" data-toggle="reports">
+                    <i class="fas fa-chart-bar fa-fw"></i> 
+                    <span class="link-text">Insights</span>
+                    <i class="fas fa-chevron-down toggle-arrow"></i>
+                </a>
+                <ul class="nav-submenu" id="reportsSubmenu">
+                    <li><a data-section="hotelrecords"><i class="fas fa-calendar-check fa-fw"></i> <span class="link-text">Hotel Records</span></a></li>
+                    <li><a data-section="guiderecords"><i class="fas fa-user-check fa-fw"></i> <span class="link-text">Guide Records</span></a></li>
+                </ul>
+            </li>
         </ul>
         <ul class="sidebar-nav">
     <li style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 10px;">
@@ -602,6 +892,7 @@
                                     <th>ID</th>
                                     <th>GUIDE NAME</th>
                                     <th>LANGUAGE</th>
+                                    <th>EMAIL</th>
                                     <th>AVAILABILITY</th>
                                     <th>ACTIONS</th>
                                 </tr>
@@ -611,6 +902,47 @@
                     </div>
                 </div>
             </section>
+
+            <section id="hotelrecordsSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <h2>Hotel Booking Records</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="filterStatus" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                            <input type="month" id="filterMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                        </div>
+                    </div>
+                    <div id="hotelRecordsContainer" class="hotel-records-container">
+                        <!-- Hotel records will be rendered here -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="guiderecordsSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <h2>Guide Assignment Records</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="guideFilterStatus" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                            <input type="month" id="guideFilterMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                        </div>
+                    </div>
+                    <div id="guideRecordsContainer" class="hotel-records-container">
+                        <!-- Guide records will be rendered here -->
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -679,7 +1011,7 @@
     </div>
 
     <div id="packageModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 800px;">
             <span class="close-btn" data-modal="packageModal">&times;</span>
             <h2 id="packageModalTitle">Add Package</h2>
             <form id="packageForm">
@@ -701,7 +1033,7 @@
                     <input type="number" id="package_days" name="No_of_Days" min="1" required>
                 </div>
                 
-                <div id="hotel_assignments_container" class="form-group">
+                <div id="day_requirements_container" class="form-group">
                     </div>
 
                 <div class="form-buttons">
@@ -810,6 +1142,10 @@
                     <input type="text" id="guide_language" name="language">
                 </div>
                 <div class="form-group">
+                    <label for="guide_email">Email</label>
+                    <input type="email" id="guide_email" name="email" placeholder="guide@example.com">
+                </div>
+                <div class="form-group">
                     <label for="guide_availability">Availability Status</label>
                     <select id="guide_availability" name="availability_status" required>
                         <option value="Available">Available</option>
@@ -829,38 +1165,98 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = '../api.php';
+            const API_URL = 'api/api.php';
 
             let tripsData = [];
             let hotelsData = [];
             let vehiclesData = [];
             let guidesData = [];
             let packagesData = [];
+            let hotelRecordsData = [];
+            let guideRecordsData = [];
 
     async function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        try {
-            const response = await fetch('../utils/auth.php?action=logout');
-            const result = await response.json();
-            if (result.status === 'success') {
-                window.location.href = '../login.html';
+        if (confirm('Are you sure you want to logout?')) {
+            try {
+                // Show loading state
+                showToast('Logging out...', 'success');
+                
+                const response = await fetch('../utils/auth.php?action=logout', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast('Logged out successfully', 'success');
+                    // Small delay to show the message
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1000);
+                } else {
+                    showToast(result.message || 'Logout failed', 'error');
+                    // Redirect anyway after a delay
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Logout failed, but redirecting...', 'error');
+                // Always redirect to login page even if logout fails
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             }
-        } catch (error) {
-            console.error('Logout error:', error);
-            window.location.href = '../login.html';
         }
     }
-}
 
+            // Collapsible Sidebar Toggle
+            document.querySelectorAll('.section-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.dataset.toggle + 'Submenu';
+                    const submenu = document.getElementById(targetId);
+                    
+                    // Toggle expanded class
+                    this.classList.toggle('expanded');
+                    submenu.classList.toggle('expanded');
+                });
+            });
+            
             // Navigation
-            document.querySelectorAll('.sidebar-nav a').forEach(link => {
+            document.querySelectorAll('.sidebar-nav a[data-section]').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const section = this.dataset.section;
                     if (!section) return;
                     
+                    // Remove active class from all nav items
                     document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
-                    this.parentElement.classList.add('active');
+                    
+                    // Handle dashboard (direct child)
+                    if (section === 'dashboard') {
+                        this.parentElement.classList.add('active');
+                    } else {
+                        // For submenu items, add active to the submenu li
+                        this.parentElement.classList.add('active');
+                        
+                        // Ensure the parent section is expanded
+                        const submenu = this.closest('.nav-submenu');
+                        if (submenu) {
+                            const sectionToggle = submenu.previousElementSibling;
+                            sectionToggle.classList.add('expanded');
+                            submenu.classList.add('expanded');
+                        }
+                    }
                     
                     document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
                     document.getElementById(section + 'Section').classList.add('active');
@@ -875,6 +1271,12 @@
                         case 'hotels':
                             fetchHotels();
                             break;
+                        case 'hotelrecords':
+                            fetchHotelRecords();
+                            break;
+                        case 'guiderecords':
+                            fetchGuideRecords();
+                            break;
                         case 'vehicles':
                             fetchVehicles();
                             break;
@@ -884,6 +1286,14 @@
                     }
                 });
             });
+            
+            // Initialize sidebar - expand Entry section by default
+            const entryToggle = document.querySelector('[data-toggle="entry"]');
+            const entrySubmenu = document.getElementById('entrySubmenu');
+            if (entryToggle && entrySubmenu) {
+                entryToggle.classList.add('expanded');
+                entrySubmenu.classList.add('expanded');
+            }
             
             const updateStats = (trips) => {
                 const totalTrips = trips.length;
@@ -971,6 +1381,36 @@
                     }
                 } catch (error) {
                     showToast('Error fetching guides.', 'error');
+                }
+            };
+
+            const fetchHotelRecords = async () => {
+                try {
+                    const response = await fetch(`${API_URL}?action=getHotelRecords`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        hotelRecordsData = result.data;
+                        renderHotelRecords(result.data);
+                    } else {
+                        showToast(result.message || 'Error fetching hotel records.', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error fetching hotel records.', 'error');
+                }
+            };
+            
+            const fetchGuideRecords = async () => {
+                try {
+                    const response = await fetch(`${API_URL}?action=getGuideRecords`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        guideRecordsData = result.data;
+                        renderGuideRecords(result.data);
+                    } else {
+                        showToast(result.message || 'Error fetching guide records.', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error fetching guide records.', 'error');
                 }
             };
 
@@ -1087,7 +1527,7 @@
                 const tbody = document.querySelector('#guidesTable tbody');
                 tbody.innerHTML = '';
                 if (!guides || guides.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No guides found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No guides found.</td></tr>';
                     return;
                 }
                 guides.forEach(guide => {
@@ -1100,6 +1540,7 @@
                         <td>${guide.id}</td>
                         <td>${guide.name}</td>
                         <td>${guide.language || 'N/A'}</td>
+                        <td>${guide.email || 'N/A'}</td>
                         <td>${guide.availability_status || 'N/A'}</td>
                         <td class="actions">
                             <a href="#" class="btn-edit-guide" data-id="${guide.id}"><i class="fas fa-pencil"></i></a>
@@ -1107,6 +1548,170 @@
                         </td>
                     `;
                     tbody.appendChild(row);
+                });
+            };
+            
+            const renderHotelRecords = (records) => {
+                const container = document.querySelector('#hotelRecordsContainer');
+                container.innerHTML = '';
+                
+                if (!records || records.length === 0) {
+                    container.innerHTML = '<div class="no-records">No hotel booking records found.</div>';
+                    return;
+                }
+                
+                // Group records by hotel name
+                const groupedByHotel = records.reduce((groups, record) => {
+                    const hotelName = record.hotel_name;
+                    if (!groups[hotelName]) {
+                        groups[hotelName] = [];
+                    }
+                    groups[hotelName].push(record);
+                    return groups;
+                }, {});
+                
+                // Render each hotel group
+                Object.keys(groupedByHotel).sort().forEach(hotelName => {
+                    const hotelGroup = document.createElement('div');
+                    hotelGroup.className = 'hotel-group';
+                    
+                    const hotelHeader = document.createElement('div');
+                    hotelHeader.className = 'hotel-header';
+                    hotelHeader.innerHTML = `
+                        <i class="fas fa-hotel"></i>
+                        ${hotelName}
+                        <span style="margin-left: auto; font-size: 0.9rem; opacity: 0.9;">${groupedByHotel[hotelName].length} booking(s)</span>
+                    `;
+                    
+                    const hotelBookings = document.createElement('div');
+                    hotelBookings.className = 'hotel-bookings';
+                    
+                    groupedByHotel[hotelName].forEach(record => {
+                        // Calculate duration
+                        const checkIn = new Date(record.check_in_date);
+                        const checkOut = new Date(record.check_out_date);
+                        const duration = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) + 1;
+                        
+                        // Format room details
+                        let roomDetails = 'No rooms specified';
+                        if (record.room_details) {
+                            try {
+                                const roomData = JSON.parse(record.room_details);
+                                const roomSummary = [];
+                                if (roomData.double > 0) roomSummary.push(`${roomData.double} Double`);
+                                if (roomData.twin > 0) roomSummary.push(`${roomData.twin} Twin`);
+                                if (roomData.single > 0) roomSummary.push(`${roomData.single} Single`);
+                                if (roomData.triple > 0) roomSummary.push(`${roomData.triple} Triple`);
+                                roomDetails = roomSummary.length > 0 ? roomSummary.join(', ') : 'No rooms specified';
+                            } catch (e) {
+                                roomDetails = record.room_details || 'No rooms specified';
+                            }
+                        }
+                        
+                        // Get tour code
+                        const tourCode = record.tour_code || 'No Code';
+                        
+                        const bookingItem = document.createElement('div');
+                        bookingItem.className = 'booking-item';
+                        bookingItem.innerHTML = `
+                            <div class="booking-main">
+                                <div class="booking-title">
+                                    ${record.guest_name} | Tour: ${tourCode}
+                                </div>
+                                <div class="booking-details">
+                                    <span><i class="fas fa-calendar-alt"></i> ${record.check_in_date} to ${record.check_out_date}</span>
+                                    <span><i class="fas fa-bed"></i> ${roomDetails}</span>
+                                </div>
+                            </div>
+                            <div class="booking-meta">
+                                <span class="booking-duration">${duration} day${duration !== 1 ? 's' : ''}</span>
+                                <span class="status status-${record.status}">${record.status}</span>
+                                <div class="booking-actions">
+                                    <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
+                                        <i class="fas fa-route"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                        
+                        hotelBookings.appendChild(bookingItem);
+                    });
+                    
+                    hotelGroup.appendChild(hotelHeader);
+                    hotelGroup.appendChild(hotelBookings);
+                    container.appendChild(hotelGroup);
+                });
+            };
+            
+            const renderGuideRecords = (records) => {
+                const container = document.querySelector('#guideRecordsContainer');
+                container.innerHTML = '';
+                
+                if (!records || records.length === 0) {
+                    container.innerHTML = '<div class="no-records">No guide assignment records found.</div>';
+                    return;
+                }
+                
+                // Group records by guide name
+                const groupedByGuide = records.reduce((groups, record) => {
+                    const guideName = record.guide_name;
+                    if (!groups[guideName]) {
+                        groups[guideName] = [];
+                    }
+                    groups[guideName].push(record);
+                    return groups;
+                }, {});
+                
+                // Render each guide group
+                Object.keys(groupedByGuide).sort().forEach(guideName => {
+                    const guideGroup = document.createElement('div');
+                    guideGroup.className = 'hotel-group';
+                    
+                    const guideHeader = document.createElement('div');
+                    guideHeader.className = 'hotel-header';
+                    guideHeader.innerHTML = `
+                        <i class="fas fa-user-tie"></i>
+                        ${guideName}
+                        <span style="margin-left: auto; font-size: 0.9rem; opacity: 0.9;">${groupedByGuide[guideName].length} assignment(s)</span>
+                    `;
+                    
+                    const guideAssignments = document.createElement('div');
+                    guideAssignments.className = 'hotel-bookings';
+                    
+                    groupedByGuide[guideName].forEach(record => {
+                        // Get tour code and guide language info
+                        const tourCode = record.tour_code || 'No Code';
+                        const languageInfo = record.guide_language ? ` (${record.guide_language})` : '';
+                        
+                        const assignmentItem = document.createElement('div');
+                        assignmentItem.className = 'booking-item';
+                        assignmentItem.innerHTML = `
+                            <div class="booking-main">
+                                <div class="booking-title">
+                                    ${record.guest_name} | Tour: ${tourCode}${languageInfo}
+                                </div>
+                                <div class="booking-details">
+                                    <span><i class="fas fa-calendar-alt"></i> ${record.assignment_date}</span>
+                                    ${record.guide_email ? `<span><i class="fas fa-envelope"></i> ${record.guide_email}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="booking-meta">
+                                <span class="booking-duration">1 day</span>
+                                <span class="status status-${record.status}">${record.status}</span>
+                                <div class="booking-actions">
+                                    <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
+                                        <i class="fas fa-route"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                        
+                        guideAssignments.appendChild(assignmentItem);
+                    });
+                    
+                    guideGroup.appendChild(guideHeader);
+                    guideGroup.appendChild(guideAssignments);
+                    container.appendChild(guideGroup);
                 });
             };
             
@@ -1198,7 +1803,7 @@
                 document.getElementById('packageForm').reset();
                 document.getElementById('packageId').value = '';
                 document.getElementById('packageModalTitle').textContent = 'Add Package';
-                document.getElementById('hotel_assignments_container').innerHTML = '';
+                document.getElementById('day_requirements_container').innerHTML = '';
                 openModal('packageModal');
             });
 
@@ -1225,9 +1830,9 @@
             });
 
             // --- Package Modal Logic ---
-            const generateHotelSelectors = (dayCount) => {
-                const container = document.getElementById('hotel_assignments_container');
-                container.innerHTML = '<h4>Hotel Assignments by Day</h4>';
+            const generateDayRequirements = (dayCount) => {
+                const container = document.getElementById('day_requirements_container');
+                container.innerHTML = '<h4>Day-wise Requirements</h4>';
                 
                 let hotelOptions = '<option value="">-- No Hotel --</option>';
                 hotelsData.forEach(hotel => {
@@ -1235,24 +1840,71 @@
                 });
 
                 for (let i = 1; i <= dayCount; i++) {
-                    const dayDiv = document.createElement('div');
-                    dayDiv.className = 'form-group';
-                    dayDiv.innerHTML = `
-                        <label for="hotel_day_${i}">Day ${i}</label>
-                        <select id="hotel_day_${i}" name="hotel_assignment_${i}" data-day="${i}">
-                            ${hotelOptions}
-                        </select>
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'day-requirement-card';
+                    dayCard.innerHTML = `
+                        <div class="day-header">
+                            <i class="fas fa-calendar-day"></i> Day ${i}
+                        </div>
+                        <div class="day-content">
+                            <div class="requirement-grid">
+                                <!-- Hotel Section -->
+                                <div class="requirement-section">
+                                    <h5><i class="fas fa-hotel"></i> Hotel</h5>
+                                    <select id="hotel_day_${i}" name="hotel_assignment_${i}" data-day="${i}" class="form-control">
+                                        ${hotelOptions}
+                                    </select>
+                                </div>
+                                
+                                <!-- Guide Section -->
+                                <div class="requirement-section">
+                                    <h5><i class="fas fa-user-friends"></i> Guide</h5>
+                                    <div class="requirement-checkbox">
+                                        <input type="checkbox" id="guide_required_day_${i}" name="guide_required_${i}" value="1">
+                                        <label for="guide_required_day_${i}">Guide Required</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Vehicle Section -->
+                                <div class="requirement-section">
+                                    <h5><i class="fas fa-car"></i> Vehicle</h5>
+                                    <div class="requirement-checkbox">
+                                        <input type="checkbox" id="vehicle_required_day_${i}" name="vehicle_required_${i}" value="1">
+                                        <label for="vehicle_required_day_${i}">Vehicle Required</label>
+                                    </div>
+                                    <select id="vehicle_type_day_${i}" name="vehicle_type_${i}" class="vehicle-type-select" style="display: none;">
+                                        <option value="">Select Vehicle Type</option>
+                                        <option value="tour">Tour/Sightseeing</option>
+                                        <option value="arrival">Arrival Transfer</option>
+                                        <option value="departure">Departure Transfer</option>
+                                        <option value="intercity">Intercity Travel</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     `;
-                    container.appendChild(dayDiv);
+                    container.appendChild(dayCard);
+                    
+                    // Add event listener for vehicle checkbox
+                    const vehicleCheckbox = dayCard.querySelector(`#vehicle_required_day_${i}`);
+                    const vehicleTypeSelect = dayCard.querySelector(`#vehicle_type_day_${i}`);
+                    
+                    vehicleCheckbox.addEventListener('change', function() {
+                        vehicleTypeSelect.style.display = this.checked ? 'block' : 'none';
+                        if (!this.checked) {
+                            vehicleTypeSelect.value = '';
+                        }
+                    });
                 }
             };
             
             document.getElementById('package_days').addEventListener('change', function() {
                 const days = parseInt(this.value, 10);
                 if (days > 0 && days < 100) { // Safety limit
-                    generateHotelSelectors(days);
+                    generateDayRequirements(days);
                 } else {
-                    document.getElementById('hotel_assignments_container').innerHTML = '';
+                    document.getElementById('day_requirements_container').innerHTML = '';
                 }
             });
 
@@ -1309,16 +1961,24 @@
                     name: document.getElementById('package_name').value,
                     code: document.getElementById('package_code').value,
                     No_of_Days: document.getElementById('package_days').value,
-                    hotel_assignments: {}
+                    day_requirements: {}
                 };
                 
-                document.querySelectorAll('#hotel_assignments_container select').forEach(select => {
-                    const day = select.dataset.day;
-                    const hotelId = select.value;
-                    if (hotelId) {
-                        data.hotel_assignments[day] = hotelId;
-                    }
-                });
+                // Collect day-wise requirements
+                const dayCount = parseInt(document.getElementById('package_days').value, 10);
+                for (let i = 1; i <= dayCount; i++) {
+                    const hotelSelect = document.getElementById(`hotel_day_${i}`);
+                    const guideRequired = document.getElementById(`guide_required_day_${i}`);
+                    const vehicleRequired = document.getElementById(`vehicle_required_day_${i}`);
+                    const vehicleType = document.getElementById(`vehicle_type_day_${i}`);
+                    
+                    data.day_requirements[i] = {
+                        hotel_id: hotelSelect ? hotelSelect.value : null,
+                        guide_required: guideRequired ? guideRequired.checked : false,
+                        vehicle_required: vehicleRequired ? vehicleRequired.checked : false,
+                        vehicle_type: vehicleType && vehicleType.value ? vehicleType.value : null
+                    };
+                }
 
                 try {
                     const response = await fetch(`${API_URL}?action=${action}`, {
@@ -1406,21 +2066,41 @@
                         document.getElementById('package_code').value = pkg.code || '';
                         document.getElementById('package_days').value = pkg.No_of_Days;
                         
-                        generateHotelSelectors(pkg.No_of_Days);
+                        generateDayRequirements(pkg.No_of_Days);
                         
                         try {
-                            const response = await fetch(`${API_URL}?action=getPackageHotels&trip_package_id=${pkg.id}`);
+                            const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
                             const result = await response.json();
                             if (result.status === 'success' && result.data) {
-                                result.data.forEach(assignment => {
-                                    const selector = document.getElementById(`hotel_day_${assignment.day_number}`);
-                                    if (selector) {
-                                        selector.value = assignment.hotel_id;
+                                result.data.forEach(req => {
+                                    const dayNum = req.day_number;
+                                    
+                                    // Set hotel
+                                    const hotelSelector = document.getElementById(`hotel_day_${dayNum}`);
+                                    if (hotelSelector && req.hotel_id) {
+                                        hotelSelector.value = req.hotel_id;
+                                    }
+                                    
+                                    // Set guide requirement
+                                    const guideCheckbox = document.getElementById(`guide_required_day_${dayNum}`);
+                                    if (guideCheckbox) {
+                                        guideCheckbox.checked = req.guide_required === '1' || req.guide_required === 1;
+                                    }
+                                    
+                                    // Set vehicle requirement
+                                    const vehicleCheckbox = document.getElementById(`vehicle_required_day_${dayNum}`);
+                                    const vehicleTypeSelect = document.getElementById(`vehicle_type_day_${dayNum}`);
+                                    if (vehicleCheckbox) {
+                                        vehicleCheckbox.checked = req.vehicle_required === '1' || req.vehicle_required === 1;
+                                        if (vehicleCheckbox.checked && vehicleTypeSelect) {
+                                            vehicleTypeSelect.style.display = 'block';
+                                            vehicleTypeSelect.value = req.vehicle_type || '';
+                                        }
                                     }
                                 });
                             }
                         } catch (error) {
-                            showToast('Could not load hotel assignments.', 'error');
+                            showToast('Could not load package requirements.', 'error');
                         }
 
                         openModal('packageModal');
@@ -1467,6 +2147,7 @@
                         document.getElementById('guideId').value = guide.id;
                         document.getElementById('guide_name').value = guide.name;
                         document.getElementById('guide_language').value = guide.language || '';
+                        document.getElementById('guide_email').value = guide.email || '';
                         document.getElementById('guide_availability').value = guide.availability_status || 'Available';
                         openModal('guideModal');
                     }
@@ -1524,12 +2205,64 @@
                 }, 3000);
             }
 
+            // Filter functions for hotel records
+            const filterHotelRecords = () => {
+                const statusFilter = document.getElementById('filterStatus').value;
+                const monthFilter = document.getElementById('filterMonth').value;
+                
+                let filteredData = [...hotelRecordsData];
+                
+                if (statusFilter) {
+                    filteredData = filteredData.filter(record => record.status === statusFilter);
+                }
+                
+                if (monthFilter) {
+                    const [year, month] = monthFilter.split('-');
+                    filteredData = filteredData.filter(record => {
+                        const checkInDate = new Date(record.check_in_date);
+                        return checkInDate.getFullYear() == year && (checkInDate.getMonth() + 1) == month;
+                    });
+                }
+                
+                renderHotelRecords(filteredData);
+            };
+            
+            // Add event listeners for hotel filters
+            document.getElementById('filterStatus').addEventListener('change', filterHotelRecords);
+            document.getElementById('filterMonth').addEventListener('change', filterHotelRecords);
+            
+            // Filter functions for guide records
+            const filterGuideRecords = () => {
+                const statusFilter = document.getElementById('guideFilterStatus').value;
+                const monthFilter = document.getElementById('guideFilterMonth').value;
+                
+                let filteredData = [...guideRecordsData];
+                
+                if (statusFilter) {
+                    filteredData = filteredData.filter(record => record.status === statusFilter);
+                }
+                
+                if (monthFilter) {
+                    const [year, month] = monthFilter.split('-');
+                    filteredData = filteredData.filter(record => {
+                        const assignmentDate = new Date(record.assignment_date);
+                        return assignmentDate.getFullYear() == year && (assignmentDate.getMonth() + 1) == month;
+                    });
+                }
+                
+                renderGuideRecords(filteredData);
+            };
+            
+            // Add event listeners for guide filters
+            document.getElementById('guideFilterStatus').addEventListener('change', filterGuideRecords);
+            document.getElementById('guideFilterMonth').addEventListener('change', filterGuideRecords);
+
             // Initial Data Load
             fetchTrips();
             fetchPackages();
             fetchVehicles();
             fetchGuides();
-            fetchHotels(); 
+            fetchHotels();
         });
     </script>
 </body>

@@ -9,7 +9,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once '../config/db_connect.php';
+// Connect to the database
+$db_path = __DIR__ . '/../src/services/db_connect.php';
+if (file_exists($db_path)) {
+    require_once $db_path;
+} else {
+    respond('error', 'Database connection file not found. Please check your setup.');
+}
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
@@ -43,7 +49,16 @@ if ($action === 'login') {
     }
 
     try {
+        // Check if connection exists
+        if (!isset($conn)) {
+            respond('error', 'Database connection not available');
+        }
+
         $stmt = $conn->prepare("SELECT id, name, email, password FROM users WHERE email = ? AND is_active = 1");
+        if (!$stmt) {
+            respond('error', 'Database query preparation failed: ' . $conn->error);
+        }
+        
         $stmt->bind_param('s', $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -67,8 +82,10 @@ if ($action === 'login') {
 
         // Update last login
         $updateStmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-        $updateStmt->bind_param('i', $user['id']);
-        $updateStmt->execute();
+        if ($updateStmt) {
+            $updateStmt->bind_param('i', $user['id']);
+            $updateStmt->execute();
+        }
 
         respond('success', 'Login successful', [
             'user' => [
@@ -85,7 +102,21 @@ if ($action === 'login') {
 
 // Logout action
 if ($action === 'logout') {
+    // Clear all session variables
+    $_SESSION = array();
+    
+    // Delete the session cookie if it exists
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    
+    // Destroy the session
     session_destroy();
+    
     respond('success', 'Logged out successfully');
 }
 

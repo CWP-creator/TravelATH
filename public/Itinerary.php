@@ -320,23 +320,165 @@
 
         .assignments-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 18px 12px;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
             margin-bottom: 15px;
         }
         
         .hotel-group {
-            grid-column: span 3; 
             display: grid;
-            grid-template-columns: 2fr 1fr; 
+            grid-template-columns: 1fr;
             gap: 12px;
         }
         
         .hotel-fields {
-            grid-column: span 2;
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
+            align-items: start;
+        }
+        
+        .notes-section {
+            grid-column: 1 / -1;
+        }
+        
+        .room-quantities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .room-quantity-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .room-quantity-item label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 45px;
+        }
+        
+        .room-quantity-item input {
+            width: 50px !important;
+            padding: 4px !important;
+            font-size: 0.8rem;
+            border-radius: 3px;
+        }
+        
+        /* Responsive layout for mobile */
+        @media screen and (max-width: 768px) {
+            .assignments-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .hotel-fields {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .room-quantities-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* Ensure form controls have consistent height */
+        .form-group-controls {
+            min-height: 80px;
+        }
+        
+        .custom-select select {
+            min-height: 32px;
+        }
+        
+        /* Searchable Select Styles */
+        .searchable-select {
+            position: relative;
+            width: 100%;
+        }
+        
+        .searchable-select-input {
+            width: 100%;
+            padding: 7px 30px 7px 9px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--border-light);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        .searchable-select-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+        }
+        
+        .searchable-select-arrow {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-light);
+            transition: transform 0.2s;
+        }
+        
+        .searchable-select.open .searchable-select-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+        
+        .searchable-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 7px 7px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .searchable-select.open .searchable-select-dropdown {
+            display: block;
+        }
+        
+        .searchable-select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85rem;
+        }
+        
+        .searchable-select-option:last-child {
+            border-bottom: none;
+        }
+        
+        .searchable-select-option:hover {
+            background: var(--background-color);
+        }
+        
+        .searchable-select-option.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .searchable-select-option.no-results {
+            color: var(--text-light);
+            font-style: italic;
+            cursor: default;
+        }
+        
+        .searchable-select-option.no-results:hover {
+            background: transparent;
         }
 
         .form-group {
@@ -626,6 +768,63 @@
             font-weight: 600;
             margin: 2px;
         }
+        
+        .room-quantities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            background: var(--border-light);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        
+        .room-quantity-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        
+        .room-quantity-item label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            flex: 1;
+        }
+        
+        /* Red dot indicator for missing hotel assignments */
+        .tab-button {
+            position: relative;
+        }
+        
+        .tab-button .missing-hotel-indicator {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background: var(--error);
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px var(--surface);
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2);
+            }
+        }
+        
+        .tab-button.active .missing-hotel-indicator {
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
 
         @media (max-width: 768px) {
             .tabs-and-toggle {
@@ -749,7 +948,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const API_URL = '../api.php';
+            const API_URL = 'api/api.php';
             const itineraryForm = document.getElementById('itineraryForm');
             const itineraryGrid = document.getElementById('itineraryGrid');
             const summaryView = document.getElementById('summaryView');
@@ -773,6 +972,7 @@
             let allHotels = [];
             let currentItineraryDays = [];
             let packageHotels = [];
+            let packageRequirements = [];
             let roomTypes = [];
 
             function showToast(message, type = 'success') {
@@ -836,8 +1036,158 @@
                 emailStatusList.appendChild(li);
             };
 
+            // Searchable Select Component
+            class SearchableSelect {
+                constructor(container, options, selectedValue = '') {
+                    if (!container) {
+                        throw new Error('SearchableSelect: container element is required');
+                    }
+                    if (!Array.isArray(options)) {
+                        throw new Error('SearchableSelect: options must be an array');
+                    }
+                    
+                    this.container = container;
+                    this.options = options;
+                    this.selectedValue = selectedValue;
+                    this.selectedText = '';
+                    this.isOpen = false;
+                    this.filteredOptions = [...options];
+                    
+                    this.init();
+                }
+                
+                init() {
+                    // Find selected option text
+                    const selectedOption = this.options.find(opt => opt.value === this.selectedValue);
+                    this.selectedText = selectedOption ? selectedOption.text : '';
+                    
+                    // Create HTML structure
+                    this.container.innerHTML = `
+                        <div class="searchable-select">
+                            <input type="text" class="searchable-select-input" 
+                                   placeholder="Search hotels..." 
+                                   value="${this.selectedText}" readonly>
+                            <i class="fas fa-chevron-down searchable-select-arrow"></i>
+                            <div class="searchable-select-dropdown"></div>
+                        </div>
+                    `;
+                    
+                    this.selectEl = this.container.querySelector('.searchable-select');
+                    this.inputEl = this.container.querySelector('.searchable-select-input');
+                    this.dropdownEl = this.container.querySelector('.searchable-select-dropdown');
+                    
+                    this.bindEvents();
+                    this.renderOptions();
+                }
+                
+                bindEvents() {
+                    // Toggle dropdown
+                    this.inputEl.addEventListener('click', () => {
+                        this.toggle();
+                    });
+                    
+                    // Enable typing to search
+                    this.inputEl.addEventListener('input', (e) => {
+                        if (!this.isOpen) this.open();
+                        this.filter(e.target.value);
+                    });
+                    
+                    // Handle keyboard navigation
+                    this.inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (!this.isOpen) this.open();
+                        } else if (e.key === 'Escape') {
+                            this.close();
+                        }
+                    });
+                    
+                    // Close on outside click
+                    document.addEventListener('click', (e) => {
+                        if (!this.container.contains(e.target)) {
+                            this.close();
+                        }
+                    });
+                }
+                
+                renderOptions() {
+                    const options = this.filteredOptions.length > 0 ? this.filteredOptions : 
+                        [{ value: '', text: 'No hotels found', disabled: true }];
+                    
+                    this.dropdownEl.innerHTML = options.map(option => 
+                        `<div class="searchable-select-option ${option.disabled ? 'no-results' : ''} ${option.value === this.selectedValue ? 'selected' : ''}" 
+                              data-value="${option.value}">
+                            ${option.text}
+                        </div>`
+                    ).join('');
+                    
+                    // Bind option click events
+                    this.dropdownEl.querySelectorAll('.searchable-select-option:not(.no-results)').forEach(optionEl => {
+                        optionEl.addEventListener('click', (e) => {
+                            const value = e.target.dataset.value;
+                            const option = this.options.find(opt => opt.value === value);
+                            this.selectOption(option);
+                        });
+                    });
+                }
+                
+                filter(searchText) {
+                    this.filteredOptions = this.options.filter(option => 
+                        option.text.toLowerCase().includes(searchText.toLowerCase())
+                    );
+                    this.renderOptions();
+                }
+                
+                selectOption(option) {
+                    this.selectedValue = option.value;
+                    this.selectedText = option.text;
+                    this.inputEl.value = option.text;
+                    this.close();
+                    
+                    // Trigger change event
+                    const changeEvent = new CustomEvent('change', {
+                        detail: { value: option.value, text: option.text }
+                    });
+                    this.container.dispatchEvent(changeEvent);
+                }
+                
+                open() {
+                    this.isOpen = true;
+                    this.selectEl.classList.add('open');
+                    this.inputEl.removeAttribute('readonly');
+                    this.inputEl.focus();
+                }
+                
+                close() {
+                    this.isOpen = false;
+                    this.selectEl.classList.remove('open');
+                    this.inputEl.setAttribute('readonly', true);
+                    this.inputEl.value = this.selectedText;
+                }
+                
+                toggle() {
+                    if (this.isOpen) {
+                        this.close();
+                    } else {
+                        this.open();
+                    }
+                }
+                
+                getValue() {
+                    return this.selectedValue;
+                }
+                
+                setValue(value) {
+                    const option = this.options.find(opt => opt.value === value);
+                    if (option) {
+                        this.selectOption(option);
+                    }
+                }
+            }
+
             const fetchItinerary = async () => {
                 try {
+                    console.log('Starting fetchItinerary...');
                     if (!tripId) {
                         itineraryGrid.innerHTML = '<div class="error-message">No trip ID provided. Please go back and select a trip.</div>';
                         return;
@@ -852,19 +1202,27 @@
                         return;
                     }
 
+                    console.log('API response received:', result);
                     const { trip, itinerary_days, guides, vehicles, hotels } = result.data;
                     
                     allGuides = guides;
                     allVehicles = vehicles;
                     allHotels = hotels;
                     currentItineraryDays = itinerary_days;
+                    console.log('Data loaded - hotels:', allHotels.length, 'guides:', allGuides.length, 'vehicles:', allVehicles.length);
                     
                     if (trip.trip_package_id) {
                         try {
-                            const pkgResponse = await fetch(`${API_URL}?action=getPackageHotels&trip_package_id=${trip.trip_package_id}`);
-                            const pkgResult = await pkgResponse.json();
-                            if (pkgResult.status === 'success') {
-                                packageHotels = pkgResult.data;
+                            // Fetch package requirements (new format with guide/vehicle info)
+                            const reqResponse = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${trip.trip_package_id}`);
+                            const reqResult = await reqResponse.json();
+                            if (reqResult.status === 'success') {
+                                packageRequirements = reqResult.data;
+                                // Also populate legacy packageHotels for backward compatibility
+                                packageHotels = reqResult.data.map(req => ({
+                                    day_number: req.day_number,
+                                    hotel_id: req.hotel_id
+                                })).filter(ph => ph.hotel_id);
                             }
 
                             const rtResponse = await fetch(`${API_URL}?action=getRoomTypes`);
@@ -873,7 +1231,7 @@
                                 roomTypes = rtResult.data;
                             }
                         } catch (e) {
-                            console.log('Package hotels/room types not available, using fallback');
+                            console.log('Package requirements/room types not available, using fallback');
                         }
                     }
                     
@@ -889,9 +1247,22 @@
                         </div>
                     `;
 
-                    renderItinerary(itinerary_days);
-                    renderTabsAndSwitch(itinerary_days);
-                    renderSummaryCards(itinerary_days);
+                    console.log('About to render itinerary...');
+                    try {
+                        renderItinerary(itinerary_days);
+                        console.log('Itinerary rendered successfully');
+                    } catch (error) {
+                        console.error('Error rendering itinerary:', error);
+                        itineraryGrid.innerHTML = '<div class="error-message">Error rendering itinerary: ' + error.message + '</div>';
+                        return;
+                    }
+                    
+                    try {
+                        renderTabsAndSwitch(itinerary_days);
+                        renderSummaryCards(itinerary_days);
+                    } catch (error) {
+                        console.error('Error rendering tabs/summary:', error);
+                    }
                     
                     summaryToggleBtn.addEventListener('click', () => {
                         const nextMode = summaryToggleBtn.dataset.viewMode === 'details' ? 'summary' : 'details';
@@ -907,8 +1278,9 @@
                     toggleView('details');
                     
                 } catch (error) {
+                    console.error('Fetch itinerary error:', error);
                     showToast('Error loading itinerary: ' + error.message, 'error');
-                    itineraryGrid.innerHTML = `<div class="error-message">Error loading itinerary. Please try again.</div>`;
+                    itineraryGrid.innerHTML = `<div class="error-message">Error loading itinerary: ${error.message}<br>Please check the console for details and try again.</div>`;
                 }
             };
 
@@ -928,7 +1300,27 @@
                     const vehicleOptions = createSelectOptions(allVehicles, day.vehicle_id, 'vehicle');
                     
                     let hotelOptions = createSelectOptions(allHotels, day.hotel_id, 'hotel');
-                    let roomTypeOptions = createSelectOptions(roomTypes, day.room_type_id, 'room_type');
+                    
+                    // Parse room quantities from existing data
+                    let roomQuantities = {
+                        double: 0,
+                        twin: 0,
+                        single: 0,
+                        triple: 0
+                    };
+                    
+                    // If there's existing room_type_data, parse it
+                    if (day.room_type_data && day.room_type_data !== 'null' && day.room_type_data.trim() !== '') {
+                        try {
+                            const parsed = JSON.parse(day.room_type_data);
+                            if (parsed && typeof parsed === 'object') {
+                                roomQuantities = { ...roomQuantities, ...parsed };
+                            }
+                        } catch (e) {
+                            // If parsing fails, keep defaults
+                            console.log('Failed to parse room_type_data:', day.room_type_data);
+                        }
+                    }
 
                     let hotelBadge = '';
                     let showServices = false;
@@ -980,6 +1372,13 @@
                     }
 
 
+                    // Check if guide/vehicle are required for this day
+                    const packageReq = packageRequirements.find(req => req.day_number === dayCounter);
+                    const showGuide = !packageReq || packageReq.guide_required == 1;
+                    const showVehicle = !packageReq || packageReq.vehicle_required == 1;
+                    const vehicleTypeLabel = packageReq && packageReq.vehicle_type ? 
+                        ` (${packageReq.vehicle_type.charAt(0).toUpperCase() + packageReq.vehicle_type.slice(1)})` : '';
+
                     const servicesHTML = showServices ? `
                         <div class="form-group">
                             <div class="form-group-controls">
@@ -1002,11 +1401,15 @@
                         </div>
                     ` : '';
 
+                    // Hotel always spans full width on its own row
+                    const hotelSpanClass = 'style="grid-column: 1 / -1;"';
+
                     dayContentWrapper.innerHTML = `
                         <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;">
                             Day ${dayCounter} – ${dateString}
                         </div>
                         <div class="assignments-grid">
+                            ${showGuide ? `
                             <div class="form-group">
                                 <div class="form-group-controls">
                                     <label for="day_${day.id}_guide_id"><i class="fas fa-user-tie"></i> Guide</label>
@@ -1016,16 +1419,19 @@
                                     ${createInformedSwitch(day.id, 'guide', day.guide_informed)}
                                 </div>
                             </div>
+                            ` : ''}
+                            ${showVehicle ? `
                             <div class="form-group">
                                 <div class="form-group-controls">
-                                    <label for="day_${day.id}_vehicle_id"><i class="fas fa-car"></i> Vehicle</label>
+                                    <label for="day_${day.id}_vehicle_id"><i class="fas fa-car"></i> Vehicle${vehicleTypeLabel}</label>
                                     <div class="custom-select">
                                         <select id="day_${day.id}_vehicle_id" name="day_${day.id}_vehicle_id">${vehicleOptions}</select>
                                     </div>
                                     ${createInformedSwitch(day.id, 'vehicle', day.vehicle_informed)}
                                 </div>
                             </div>
-                            <div class="hotel-group">
+                            ` : ''}
+                            <div class="hotel-group" ${hotelSpanClass}>
                                 <div class="hotel-fields">
                                     <div class="form-group">
                                         <div class="form-group-controls">
@@ -1038,11 +1444,25 @@
                                     </div>
                                     <div class="form-group">
                                         <div class="form-group-controls">
-                                            <label for="day_${day.id}_room_type_id"><i class="fas fa-door-open"></i> Room Type</label>
-                                            <div class="custom-select">
-                                                <select id="day_${day.id}_room_type_id" name="day_${day.id}_room_type_id">${roomTypeOptions}</select>
+                                            <label><i class="fas fa-door-open"></i> Rooms</label>
+                                            <div class="room-quantities-grid">
+                                                <div class="room-quantity-item">
+                                                    <label for="day_${day.id}_rooms_double">Double</label>
+                                                    <input type="number" id="day_${day.id}_rooms_double" name="day_${day.id}_rooms_double" min="0" max="50" value="${roomQuantities.double}">
+                                                </div>
+                                                <div class="room-quantity-item">
+                                                    <label for="day_${day.id}_rooms_twin">Twin</label>
+                                                    <input type="number" id="day_${day.id}_rooms_twin" name="day_${day.id}_rooms_twin" min="0" max="50" value="${roomQuantities.twin}">
+                                                </div>
+                                                <div class="room-quantity-item">
+                                                    <label for="day_${day.id}_rooms_single">Single</label>
+                                                    <input type="number" id="day_${day.id}_rooms_single" name="day_${day.id}_rooms_single" min="0" max="50" value="${roomQuantities.single}">
+                                                </div>
+                                                <div class="room-quantity-item">
+                                                    <label for="day_${day.id}_rooms_triple">Triple</label>
+                                                    <input type="number" id="day_${day.id}_rooms_triple" name="day_${day.id}_rooms_triple" min="0" max="50" value="${roomQuantities.triple}">
+                                                </div>
                                             </div>
-                                            <div style="height: 25px;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1061,45 +1481,85 @@
                         hotelSelect.addEventListener('change', function() {
                             const dayElement = this.closest('.day-content-wrapper');
                             const hotelGroup = dayElement.querySelector('.hotel-group');
-                            const existingServicesDiv = hotelGroup.querySelector('.form-group:last-child');
                             
+                            // Remove any existing services blocks first
+                            const existingServicesBlocks = hotelGroup.querySelectorAll('.form-group');
+                            existingServicesBlocks.forEach(block => {
+                                if (block.querySelector('.services-block')) {
+                                    block.remove();
+                                }
+                            });
+                            
+                            // Add services block only if hotel is selected
                             if (this.value && this.value !== '') {
-                                if (!existingServicesDiv || !existingServicesDiv.querySelector('.services-block')) {
-                                    const servicesHTML = `
-                                        <div class="form-group">
-                                            <div class="form-group-controls">
-                                                <label><i class="fas fa-utensils"></i> Services Provided</label>
-                                                <div class="services-block">
-                                                    <label>
-                                                        <input type="checkbox" name="day_${day.id}_service_breakfast" value="B">
-                                                        <span>Breakfast (B)</span>
-                                                    </label>
-                                                    <label>
-                                                        <input type="checkbox" name="day_${day.id}_service_lunch" value="L">
-                                                        <span>Lunch (L)</span>
-                                                    </label>
-                                                    <label>
-                                                        <input type="checkbox" name="day_${day.id}_service_dinner" value="D">
-                                                        <span>Dinner (D)</span>
-                                                    </label>
-                                                </div>
+                                const servicesHTML = `
+                                    <div class="form-group services-form-group">
+                                        <div class="form-group-controls">
+                                            <label><i class="fas fa-utensils"></i> Services Provided</label>
+                                            <div class="services-block">
+                                                <label>
+                                                    <input type="checkbox" name="day_${day.id}_service_breakfast" value="B">
+                                                    <span>Breakfast (B)</span>
+                                                </label>
+                                                <label>
+                                                    <input type="checkbox" name="day_${day.id}_service_lunch" value="L">
+                                                    <span>Lunch (L)</span>
+                                                </label>
+                                                <label>
+                                                    <input type="checkbox" name="day_${day.id}_service_dinner" value="D">
+                                                    <span>Dinner (D)</span>
+                                                </label>
                                             </div>
                                         </div>
-                                    `;
-                                    hotelGroup.insertAdjacentHTML('beforeend', servicesHTML);
-                                }
-                            } else {
-                                if (existingServicesDiv && existingServicesDiv.querySelector('.services-block')) {
-                                    existingServicesDiv.remove();
-                                }
+                                    </div>
+                                `;
+                                hotelGroup.insertAdjacentHTML('beforeend', servicesHTML);
                             }
                         });
                     }
+                    
                     
                     if (dayCounter === itinerary_days.length) {
                         setTimeout(setupInformedToggles, 0); 
                         // Attach room-type propagation after all day sections exist
                         setTimeout(setupRoomTypePropagation, 0);
+                        // Setup hotel change listeners for red dot indicators
+                        setTimeout(setupHotelChangeListeners, 0);
+                        // Initial update of missing hotel indicators
+                        setTimeout(updateMissingHotelIndicators, 200);
+                    }
+                    
+                    // Add guide conflict checking to guide select
+                    const guideSelect = document.getElementById(`day_${day.id}_guide_id`);
+                    if (guideSelect) {
+                        guideSelect.addEventListener('change', async function() {
+                            const guideId = this.value;
+                            const dayDate = day.day_date;
+                            
+                            // Remove any existing conflict warning for this day
+                            const existingWarning = this.parentElement.querySelector('.guide-conflict-warning');
+                            if (existingWarning) {
+                                existingWarning.remove();
+                            }
+                            
+                            if (guideId && guideId !== '') {
+                                try {
+                                    const response = await fetch(`${API_URL}?action=checkGuideAvailability&guide_id=${guideId}&day_date=${dayDate}&trip_id=${tripId}`);
+                                    const result = await response.json();
+                                    
+                                    if (!result.available && result.conflicts.length > 0) {
+                                        const conflict = result.conflicts[0];
+                                        const warningDiv = document.createElement('div');
+                                        warningDiv.className = 'guide-conflict-warning';
+                                        warningDiv.style.cssText = 'color: #ff4444; font-size: 0.8rem; margin-top: 4px; padding: 4px 8px; background: #ffebee; border-radius: 4px; border-left: 3px solid #ff4444;';
+                                        warningDiv.innerHTML = `⚠️ Conflict: This guide is already assigned to "${conflict.customer_name}" (${conflict.tour_code}) on this date.`;
+                                        this.parentElement.appendChild(warningDiv);
+                                    }
+                                } catch (error) {
+                                    console.error('Error checking guide availability:', error);
+                                }
+                            }
+                        });
                     }
                     
                     dayCounter++;
@@ -1208,33 +1668,108 @@
                 });
             };
 
-            // Propagate Day 1 room type selection to all other days automatically
+            // Propagate Day 1 room quantities to all other days automatically
             const setupRoomTypePropagation = () => {
                 const firstDayWrapper = document.querySelector('.day-content-wrapper[data-day-number="1"]');
                 if (!firstDayWrapper) return;
-                const firstSelect = firstDayWrapper.querySelector('select[name$="_room_type_id"]');
-                if (!firstSelect) return;
-
-                const propagate = () => {
-                    const value = firstSelect.value;
-                    if (!value) return; // nothing to propagate
-                    const allSelects = document.querySelectorAll('select[name$="_room_type_id"]');
-                    allSelects.forEach(sel => {
-                        if (sel === firstSelect) return;
-                        const hasOption = sel.querySelector(`option[value="${value}"]`);
-                        if (hasOption) {
-                            sel.value = value;
-                        }
-                    });
+                
+                // Get all room quantity inputs from day 1
+                const firstDayInputs = {
+                    double: firstDayWrapper.querySelector('input[name$="_rooms_double"]'),
+                    twin: firstDayWrapper.querySelector('input[name$="_rooms_twin"]'),
+                    single: firstDayWrapper.querySelector('input[name$="_rooms_single"]'),
+                    triple: firstDayWrapper.querySelector('input[name$="_rooms_triple"]')
                 };
-
-                // On change of day 1, propagate to all
-                firstSelect.addEventListener('change', propagate);
-
-                // If already selected on load, propagate once
-                if (firstSelect.value && firstSelect.value !== '') {
-                    propagate();
+                
+                // Function to propagate room quantities from day 1 to all other days
+                const propagateRoomQuantities = () => {
+                    const roomQuantities = {
+                        double: parseInt(firstDayInputs.double?.value || 0),
+                        twin: parseInt(firstDayInputs.twin?.value || 0),
+                        single: parseInt(firstDayInputs.single?.value || 0),
+                        triple: parseInt(firstDayInputs.triple?.value || 0)
+                    };
+                    
+                    // Apply to all other days (skip day 1)
+                    const allDayWrappers = document.querySelectorAll('.day-content-wrapper:not([data-day-number="1"])');
+                    allDayWrappers.forEach(dayWrapper => {
+                        const dayInputs = {
+                            double: dayWrapper.querySelector('input[name$="_rooms_double"]'),
+                            twin: dayWrapper.querySelector('input[name$="_rooms_twin"]'),
+                            single: dayWrapper.querySelector('input[name$="_rooms_single"]'),
+                            triple: dayWrapper.querySelector('input[name$="_rooms_triple"]')
+                        };
+                        
+                        // Set values for each room type
+                        Object.keys(roomQuantities).forEach(roomType => {
+                            if (dayInputs[roomType]) {
+                                dayInputs[roomType].value = roomQuantities[roomType];
+                            }
+                        });
+                    });
+                    
+                    // Update summary if in summary mode
+                    if (summaryToggleBtn.dataset.viewMode === 'summary') {
+                        renderSummaryCards(currentItineraryDays);
+                    }
+                    
+                    // Update missing hotel indicators
+                    setTimeout(updateMissingHotelIndicators, 50);
+                };
+                
+                // Add event listeners to all day 1 room quantity inputs
+                Object.values(firstDayInputs).forEach(input => {
+                    if (input) {
+                        input.addEventListener('input', propagateRoomQuantities);
+                        input.addEventListener('change', propagateRoomQuantities);
+                    }
+                });
+                
+                // Initial propagation if day 1 already has values
+                const hasValues = Object.values(firstDayInputs).some(input => 
+                    input && parseInt(input.value || 0) > 0
+                );
+                if (hasValues) {
+                    propagateRoomQuantities();
                 }
+            };
+            
+            // Function to update red dot indicators for missing hotel assignments
+            const updateMissingHotelIndicators = () => {
+                const dayButtons = document.querySelectorAll('.tab-button');
+                
+                dayButtons.forEach(button => {
+                    const dayId = button.dataset.dayId;
+                    if (!dayId) return;
+                    
+                    // Check if hotel is assigned for this day
+                    const hotelSelect = document.querySelector(`[name="day_${dayId}_hotel_id"]`);
+                    const hasHotel = hotelSelect && hotelSelect.value && hotelSelect.value !== '';
+                    
+                    // Remove existing indicator
+                    const existingIndicator = button.querySelector('.missing-hotel-indicator');
+                    if (existingIndicator) {
+                        existingIndicator.remove();
+                    }
+                    
+                    // Add red dot if hotel is missing
+                    if (!hasHotel) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'missing-hotel-indicator';
+                        indicator.title = 'Hotel assignment missing';
+                        button.appendChild(indicator);
+                    }
+                });
+            };
+            
+            // Function to setup hotel change listeners to update indicators
+            const setupHotelChangeListeners = () => {
+                const hotelSelects = document.querySelectorAll('select[name$="_hotel_id"]');
+                hotelSelects.forEach(select => {
+                    select.addEventListener('change', () => {
+                        setTimeout(updateMissingHotelIndicators, 50);
+                    });
+                });
             };
 
             const renderTabsAndSwitch = (itinerary_days) => {
@@ -1247,10 +1782,14 @@
                     const button = document.createElement('button');
                     button.className = 'tab-button';
                     button.dataset.dayNumber = dayNumber;
+                    button.dataset.dayId = day.id;
                     button.innerHTML = `Day ${dayNumber} <span style="font-weight: 400; color: var(--text-light); margin-left: 4px;">(${dateString})</span>`;
                     
                     dayTabsContainer.appendChild(button);
                 });
+                
+                // Update missing hotel indicators after tabs are created
+                setTimeout(updateMissingHotelIndicators, 100);
 
                 dayTabsContainer.addEventListener('click', function(e) {
                     if (e.target.classList.contains('tab-button')) {
@@ -1381,7 +1920,12 @@
                     const guideSelect = document.querySelector(`[name="day_${dayId}_guide_id"]`);
                     const vehicleSelect = document.querySelector(`[name="day_${dayId}_vehicle_id"]`);
                     const hotelSelect = document.querySelector(`[name="day_${dayId}_hotel_id"]`);
-                    const roomTypeSelect = document.querySelector(`[name="day_${dayId}_room_type_id"]`); // Get room type
+                    
+                    // Get room quantity inputs
+                    const roomsDouble = document.querySelector(`[name="day_${dayId}_rooms_double"]`);
+                    const roomsTwin = document.querySelector(`[name="day_${dayId}_rooms_twin"]`);
+                    const roomsSingle = document.querySelector(`[name="day_${dayId}_rooms_single"]`);
+                    const roomsTriple = document.querySelector(`[name="day_${dayId}_rooms_triple"]`);
                     
                     const guideInformedCheck = document.querySelector(`[name="day_${dayId}_guide_informed"]`);
                     const vehicleInformedCheck = document.querySelector(`[name="day_${dayId}_vehicle_informed"]`);
@@ -1402,7 +1946,25 @@
                     const guideId = guideSelect ? guideSelect.value : day.guide_id;
                     const vehicleId = vehicleSelect ? vehicleSelect.value : day.vehicle_id;
                     const hotelId = hotelSelect ? hotelSelect.value : day.hotel_id;
-                    const roomTypeId = roomTypeSelect ? roomTypeSelect.value : day.room_type_id;
+                    
+                    // Collect room quantities
+                    const roomQuantities = {
+                        double: roomsDouble ? parseInt(roomsDouble.value) || 0 : 0,
+                        twin: roomsTwin ? parseInt(roomsTwin.value) || 0 : 0,
+                        single: roomsSingle ? parseInt(roomsSingle.value) || 0 : 0,
+                        triple: roomsTriple ? parseInt(roomsTriple.value) || 0 : 0
+                    };
+                    
+                    // Create room summary for display
+                    const roomSummary = [];
+                    if (roomQuantities.double > 0) roomSummary.push(`${roomQuantities.double} Double`);
+                    if (roomQuantities.twin > 0) roomSummary.push(`${roomQuantities.twin} Twin`);
+                    if (roomQuantities.single > 0) roomSummary.push(`${roomQuantities.single} Single`);
+                    if (roomQuantities.triple > 0) roomSummary.push(`${roomQuantities.triple} Triple`);
+                    const roomSummaryText = roomSummary.length > 0 ? roomSummary.join(', ') : 'No rooms';
+                    
+                    // Check if any rooms are assigned
+                    const hasRooms = roomQuantities.double > 0 || roomQuantities.twin > 0 || roomQuantities.single > 0 || roomQuantities.triple > 0;
                     
                     const guideObj = allGuides.find(g => g.id == guideId);
                     const vehicleObj = allVehicles.find(v => v.id == vehicleId);
@@ -1418,7 +1980,9 @@
                         guide_id: guideId,
                         vehicle_id: vehicleId,
                         hotel_id: hotelId,
-                        room_type_id: roomTypeId,
+                        room_quantities: roomQuantities,
+                        room_summary: roomSummaryText,
+                        has_rooms: hasRooms,
                         notes: notesTextarea ? notesTextarea.value : day.notes,
                         services_provided: servicesProvided || day.services_provided,
                         guide_name: guideObj ? guideObj.name : 'Not assigned',
@@ -1482,13 +2046,37 @@
                 // First, get current form data to check for unsaved changes
                 const currentData = getCurrentFormData(currentItineraryDays);
                 
-                // Block if any assigned hotel lacks room type before sending
-                const missingRoomType = currentData.some(day => day.hotel_id && (!day.room_type_id || day.room_type_id === ''));
-                if (missingRoomType) {
+                // Debug: Log hotel_id values
+                currentData.forEach((day, i) => {
+                    console.log(`Day ${i+1}: hotel_id="${day.hotel_id}" (type: ${typeof day.hotel_id})`);
+                });
+                
+                // Check for missing hotel assignments
+                const missingHotels = currentData.filter(day => !day.hotel_id || day.hotel_id === '' || day.hotel_id === '0' || day.hotel_id === 0);
+                const missingRooms = currentData.filter(day => day.hotel_id && day.hotel_id !== '' && day.hotel_id !== '0' && day.hotel_id !== 0 && !day.has_rooms);
+                
+                if (missingHotels.length > 0 || missingRooms.length > 0) {
                     openEmailStatusPanel();
                     clearEmailStatus();
-                    addEmailStatusItem('error', 'One or more hotel days are missing a room type. Please select room types before emailing.');
-                    showToast('Select room types before emailing.', 'error');
+                    
+                    if (missingHotels.length > 0) {
+                        const missingDays = missingHotels.map(day => {
+                            const dayIndex = currentData.findIndex(d => d.id === day.id);
+                            return `Day ${dayIndex + 1}`;
+                        }).join(', ');
+                        addEmailStatusItem('error', `Missing hotel assignments: ${missingDays}`);
+                    }
+                    
+                    if (missingRooms.length > 0) {
+                        const missingRoomDays = missingRooms.map(day => {
+                            const dayIndex = currentData.findIndex(d => d.id === day.id);
+                            return `Day ${dayIndex + 1}`;
+                        }).join(', ');
+                        addEmailStatusItem('error', `Missing room quantities: ${missingRoomDays}`);
+                    }
+                    
+                    addEmailStatusItem('info', 'Please complete all hotel assignments and room quantities before sending emails.');
+                    showToast('Complete hotel assignments and room quantities first.', 'error');
                     return;
                 }
 
@@ -1509,7 +2097,7 @@
                         guide_id: d.guide_id || null,
                         vehicle_id: d.vehicle_id || null,
                         hotel_id: d.hotel_id || null,
-                        room_type_id: d.room_type_id || null,
+                        room_type_data: d.room_quantities ? JSON.stringify(d.room_quantities) : JSON.stringify({double: 0, twin: 0, single: 0, triple: 0}),
                         guide_informed: d.guide_informed ? 1 : 0,
                         vehicle_informed: d.vehicle_informed ? 1 : 0,
                         hotel_informed: d.hotel_informed ? 1 : 0,
@@ -1535,7 +2123,7 @@
 
                     emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
-                    const response = await fetch('../send_hotel_email.php', {
+                    const response = await fetch('../src/services/send_hotel_email.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1582,7 +2170,42 @@
                     emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
                     emailHotelsBtn.disabled = false;
                 }
-            }; itineraryForm.addEventListener('submit', async function(e) {
+            };
+            
+            // Function to check for guide conflicts
+            const checkGuideConflicts = async (currentData) => {
+                const conflicts = [];
+                
+                for (const dayData of currentData) {
+                    if (dayData.guide_id) {
+                        try {
+                            const response = await fetch(`${API_URL}?action=checkGuideAvailability&guide_id=${dayData.guide_id}&day_date=${dayData.day_date}&trip_id=${tripId}`);
+                            const result = await response.json();
+                            
+                            if (!result.available && result.conflicts.length > 0) {
+                                const guideName = allGuides.find(g => g.id == dayData.guide_id)?.name || 'Unknown Guide';
+                                const dayDate = new Date(dayData.day_date + 'T00:00:00').toLocaleDateString('en-US', { 
+                                    weekday: 'long', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                });
+                                
+                                conflicts.push({
+                                    day: dayDate,
+                                    guide: guideName,
+                                    conflictDetails: result.conflicts[0] // Take first conflict for display
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error checking guide availability:', error);
+                        }
+                    }
+                }
+                
+                return conflicts;
+            };
+            
+            itineraryForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -1590,13 +2213,28 @@
 
                 const currentData = getCurrentFormData(currentItineraryDays);
                 const activeDayBeforeSave = document.querySelector('.tab-button.active')?.dataset.dayNumber;
+                
+                // Check for guide conflicts before saving
+                const conflicts = await checkGuideConflicts(currentData);
+                if (conflicts.length > 0) {
+                    let conflictMessage = 'Guide conflicts detected:\n\n';
+                    conflicts.forEach(conflict => {
+                        conflictMessage += `• ${conflict.guide} is already assigned on ${conflict.day} to trip "${conflict.conflictDetails.customer_name}" (${conflict.conflictDetails.tour_code})\n`;
+                    });
+                    conflictMessage += '\nPlease resolve these conflicts before saving.';
+                    
+                    alert(conflictMessage);
+                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
+                    saveBtn.disabled = false;
+                    return;
+                }
 
                 const itinerary_days_data = currentData.map(d => ({
                     id: d.id,
                     guide_id: d.guide_id || null,
                     vehicle_id: d.vehicle_id || null,
                     hotel_id: d.hotel_id || null,
-                    room_type_id: d.room_type_id || null, // FIX: Save room_type_id
+                    room_type_data: d.room_quantities ? JSON.stringify(d.room_quantities) : JSON.stringify({double: 0, twin: 0, single: 0, triple: 0}),
                     guide_informed: d.guide_informed ? 1 : 0,
                     vehicle_informed: d.vehicle_informed ? 1 : 0,
                     hotel_informed: d.hotel_informed ? 1 : 0, 

@@ -32,22 +32,16 @@ set_error_handler(function($severity, $message, $file, $line) {
 });
 
 // Check if db_connect.php exists before requiring it
-$db_path = __DIR__ . '/../../db_connect.php';
+$db_path = __DIR__ . '/db_connect.php';
 if (file_exists($db_path)) {
     require_once $db_path;
-} elseif (file_exists(__DIR__ . '/db_connect.php')) {
-    require_once __DIR__ . '/db_connect.php';
 } else {
-    respond('error', 'Database connection file is missing. Please create db_connect.php in the root directory');
+    respond('error', 'Database connection file is missing.');
 }
 
-// Include mail configuration if available
-$mail_config_path = __DIR__ . '/../../mail_config.php';
-if (file_exists($mail_config_path)) {
-    require_once $mail_config_path;
-} else {
-    @include_once __DIR__ . '/mail_config.php';
-}
+// Note: Mail configuration should be defined as constants
+// MAIL_SMTP_USER, MAIL_SMTP_PASS, MAIL_SMTP_HOST, etc.
+// You can define these in a config file and include it here
 
 function respond($status, $message, $extra = []) {
 	// Clean any previous output to avoid invalid JSON
@@ -84,8 +78,8 @@ try {
 	// --- END: Fetch Trip Details ---
 
 	// --- VALIDATION BLOCK ---
-	// First, fetch ALL days to validate that every day has a hotel and room type.
-	$allDaysStmt = $conn->prepare("SELECT id, day_date, hotel_id, room_type_id FROM itinerary_days WHERE trip_id = ? ORDER BY day_date ASC");
+	// First, fetch ALL days to validate that every day has a hotel and room quantities.
+	$allDaysStmt = $conn->prepare("SELECT id, day_date, hotel_id, room_type_data FROM itinerary_days WHERE trip_id = ? ORDER BY day_date ASC");
 	if (!$allDaysStmt) {
 		respond('error', 'Database prepare failed: ' . $conn->error);
 	}
@@ -109,13 +103,33 @@ try {
 				'day_number' => $idx,
 				'text'       => 'Day ' . $idx . ' (' . $r['day_date'] . '): Missing hotel assignment.'
 			];
-		} elseif (empty($r['room_type_id']) || $r['room_type_id'] == 0) {
-			$validationMessages[] = [
-				'type'       => 'error',
-				'day_id'     => (int)$r['id'],
-				'day_number' => $idx,
-				'text'       => 'Day ' . $idx . ' (' . $r['day_date'] . '): Hotel assigned, but missing room type.'
-			];
+		} else {
+			// Check if room quantities are specified
+			$hasRooms = false;
+			if (!empty($r['room_type_data'])) {
+				try {
+					$parsed = json_decode($r['room_type_data'], true);
+					if ($parsed && is_array($parsed)) {
+						foreach ($parsed as $qty) {
+							if ($qty > 0) {
+								$hasRooms = true;
+								break;
+							}
+						}
+					}
+				} catch (Exception $e) {
+					// Ignore parsing errors
+				}
+			}
+			
+			if (!$hasRooms) {
+				$validationMessages[] = [
+					'type'       => 'error',
+					'day_id'     => (int)$r['id'],
+					'day_number' => $idx,
+					'text'       => 'Day ' . $idx . ' (' . $r['day_date'] . '): Hotel assigned, but missing room quantities.'
+				];
+			}
 		}
 		$idx++;
 	}
@@ -138,14 +152,12 @@ try {
 		SELECT id.id AS itinerary_day_id,
            id.day_date,
            id.hotel_id,
-           id.room_type_id,
+           id.room_type_data,
 		       id.services_provided,
 		       h.name AS hotel_name,
-		       h.email AS hotel_email,
-		       rt.name AS room_type_name
+		       h.email AS hotel_email
         FROM itinerary_days id
         LEFT JOIN hotels h ON id.hotel_id = h.id
-        LEFT JOIN room_types rt ON id.room_type_id = rt.id
         WHERE id.trip_id = ?
 		  AND id.hotel_id IS NOT NULL
 	" . ($hasHotelInformed ? "\n\t\t  AND (id.hotel_informed IS NULL OR id.hotel_informed = 0)\n" : "\n") . "
@@ -186,9 +198,27 @@ try {
 		$dayId = (int)$row['itinerary_day_id'];
 		$byHotel[$hid]['day_ids'][] = $dayId;
 		$byHotel[$hid]['day_numbers'][] = isset($dayIndexById[$dayId]) ? $dayIndexById[$dayId] : null;
+		// Parse room quantities
+		$roomQuantities = [];
+		if (!empty($row['room_type_data'])) {
+			try {
+				$parsed = json_decode($row['room_type_data'], true);
+				if ($parsed && is_array($parsed)) {
+					foreach ($parsed as $type => $qty) {
+						if ($qty > 0) {
+							$roomQuantities[] = $qty . ' ' . ucfirst($type);
+						}
+					}
+				}
+			} catch (Exception $e) {
+				// Ignore parsing errors
+			}
+		}
+		$roomSummary = !empty($roomQuantities) ? implode(', ', $roomQuantities) : 'Not specified';
+		
 		$byHotel[$hid]['bookings'][] = [
 			'date' => $row['day_date'],
-			'room_type' => $row['room_type_name'] ?: 'Not specified',
+			'room_type' => $roomSummary,
 			'services' => isset($row['services_provided']) ? $row['services_provided'] : ''
 		];
 	}
@@ -320,12 +350,12 @@ try {
 		$sendError = '';
 
 		if (defined('MAIL_SMTP_USER') && MAIL_SMTP_USER && defined('MAIL_SMTP_PASS') && MAIL_SMTP_PASS) {
-			$hasLib = (file_exists(__DIR__ . '/../../PHPMailer/src/PHPMailer.php'));
+			$hasLib = (file_exists(__DIR__ . '/../libs/PHPMailer/src/PHPMailer.php'));
 			if ($hasLib) {
 				try {
-					require_once __DIR__ . '/../../PHPMailer/src/PHPMailer.php';
-					require_once __DIR__ . '/../../PHPMailer/src/SMTP.php';
-					require_once __DIR__ . '/../../PHPMailer/src/Exception.php';
+					require_once __DIR__ . '/../libs/PHPMailer/src/PHPMailer.php';
+					require_once __DIR__ . '/../libs/PHPMailer/src/SMTP.php';
+					require_once __DIR__ . '/../libs/PHPMailer/src/Exception.php';
 					$mail = new \PHPMailer\PHPMailer\PHPMailer(true);
                     $mail->isSMTP();
 					$mail->Host = defined('MAIL_SMTP_HOST') ? MAIL_SMTP_HOST : 'smtp.gmail.com';
