@@ -335,6 +335,15 @@
         .modal-content {
             background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s;
         }
+        /* Wider, compact Trip modal */
+#tripModal .modal-content { max-width: 700px; padding: 16px; }
+        #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        #tripModal .section-card { padding: 12px; margin-bottom: 10px; }
+        #tripModal .form-group { margin-bottom: 10px; }
+        #tripModal .form-group label { margin-bottom: 3px; }
+        #tripModal .form-group input, #tripModal .form-group select { padding: 8px; }
+        #tripModal details { background: #ffffff; border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px 10px; }
+        #tripModal details summary { cursor: pointer; font-weight: 600; color: var(--text-light); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { transform: translateY(-50px); } to { transform: translateY(0); } }
         .close-btn {
@@ -364,8 +373,26 @@
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 16px;
         }
+
+        .section-card {
+            border: 1px solid var(--border-color);
+            background: #f7f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+        }
+        .section-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-card h4 i { opacity: 0.85; }
 
         .services-block {
             border: 1px solid #ddd;
@@ -701,6 +728,7 @@
                 <ul class="nav-submenu" id="reportsSubmenu">
                     <li><a data-section="hotelrecords"><i class="fas fa-calendar-check fa-fw"></i> <span class="link-text">Hotel Records</span></a></li>
                     <li><a data-section="guiderecords"><i class="fas fa-user-check fa-fw"></i> <span class="link-text">Guide Records</span></a></li>
+                    <li><a data-section="vehiclerecords"><i class="fas fa-truck fa-fw"></i> <span class="link-text">Vehicle Records</span></a></li>
                 </ul>
             </li>
         </ul>
@@ -761,7 +789,9 @@
                 <div class="trips-container">
                     <div class="trips-header">
                         <h2>Recent Trip Files</h2>
-                        <button id="addTripBtn" class="btn-add"><i class="fas fa-plus"></i> New File</button>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                          <button id="addTripBtn" class="btn-add"><i class="fas fa-plus"></i> New File</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table id="tripsTable">
@@ -903,6 +933,15 @@
                 </div>
             </section>
 
+            <section id="vehiclerecordsSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <h2>Vehicle Assignment Records</h2>
+                    </div>
+                    <div id="vehicleRecordsContainer" class="hotel-records-container"></div>
+                </div>
+            </section>
+
             <section id="hotelrecordsSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
@@ -958,50 +997,93 @@
                     <input type="text" id="tripIdDisplay" readonly style="font-weight: bold; background-color: #f8f9fa;">
                 </div>
 
-                <div class="form-grid">
+                <div class="section-card">
+                    <h4><i class="fas fa-user"></i> Guest Info</h4>
                     <div class="form-group">
-                        <label for="customer_name">Customer Name</label>
-                        <input type="text" id="customer_name" name="customer_name" required>
+                        <label for="company">Company</label>
+                        <select id="company" name="company">
+                            <option value="">Select Company</option>
+                            <option value="Individual">Individual</option>
+                            <option value="ASI">ASI</option>
+                            <option value="Booking">Booking</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label for="tour_code">Tour Code</label>
-                        <input type="text" id="tour_code" name="tour_code">
+
+                        <div class="form-grid">
+                        <div class="form-group">
+                            <label for="customer_name">Guest Name</label>
+                            <input type="text" id="customer_name" name="customer_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <select id="country" name="country"></select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="trip_package_id">Trip Package</label>
-                    <select id="trip_package_id" name="trip_package_id" required>
-                        <option value="">Select Package</option>
-                    </select>
-                </div>
-
-                <div id="package_description_container" class="form-group" style="display: none;">
-                    <label>Package Details</label>
-                    <div id="package_description"></div>
-                </div>
-
-                <div class="form-grid">
+                <div class="section-card">
+                    <h4><i class="fas fa-suitcase-rolling"></i> Tour Details</h4>
                     <div class="form-group">
-                        <label for="start_date">Start Date</label>
-                        <input type="date" id="start_date" name="start_date" required>
+                        <label for="trip_package_id">Tour Name (Package)</label>
+                        <select id="trip_package_id" name="trip_package_id" required>
+                            <option value="">Select Package</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label for="end_date">End Date</label>
-                        <input type="date" id="end_date" name="end_date" required>
-                        <small id="end_date_suggestion" style="display: block; margin-top: 5px; color: var(--primary-color); font-weight: 500;"></small>
-                    </div>
-                </div>
-                
 
-                <div class="form-group">
-                    <label for="status">Status</label>
-                    <select id="status" name="status" required>
-                        <option value="Pending">Pending</option>
-                        <option value="Active">Active</option>
-                        <option value="Completed">Completed</option>
-                    </select>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="tour_code">Tour File No</label>
+                            <input type="text" id="tour_code" name="tour_code" placeholder="e.g. T-0001">
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status" name="status" required>
+                                <option value="Pending">Pending</option>
+                                <option value="Active">Active</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <details>
+                        <summary>Optional details</summary>
+                        <div class="form-grid" style="margin-top:8px;">
+                            <div class="form-group">
+                                <label for="passport_no">Passport No</label>
+                                <input type="text" id="passport_no" name="passport_no">
+                            </div>
+                            <div class="form-group">
+                                <label for="address">Address</label>
+                                <input type="text" id="address" name="address">
+                            </div>
+                        </div>
+                        <div id="package_description_container" class="form-group" style="display: none; margin-top:8px;">
+                            <label>Package Details</label>
+                            <div id="package_description"></div>
+                        </div>
+                    </details>
                 </div>
+
+
+                <div class="section-card">
+                    <h4><i class="fas fa-plane-arrival"></i> Travel Details</h4>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
+                            <h5 style="margin:0 0 6px 0; color: var(--text-light);">Arrival</h5>
+                            <div class="form-group"><label for="arrival_date">Date</label><input type="date" id="arrival_date" name="arrival_date"></div>
+<div class="form-group"><label for="arrival_time">Time (optional)</label><input type="time" id="arrival_time" name="arrival_time"></div>
+                            <div class="form-group"><label for="arrival_flight">Flight (optional)</label><input type="text" id="arrival_flight" name="arrival_flight" placeholder="e.g. XY123"></div>
+                        </div>
+                        <div class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
+                            <h5 style="margin:0 0 6px 0; color: var(--text-light);">Departure</h5>
+                            <div class="form-group"><label for="departure_date">Date</label><input type="date" id="departure_date" name="departure_date"></div>
+<div class="form-group"><label for="departure_time">Time (optional)</label><input type="time" id="departure_time" name="departure_time"></div>
+                            <div class="form-group"><label for="departure_flight">Flight (optional)</label><input type="text" id="departure_flight" name="departure_flight" placeholder="e.g. XY456"></div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <div class="form-buttons">
                     <button type="button" class="btn-cancel btn" data-modal="tripModal">Cancel</button>
                     <button type="submit" class="btn-save btn">Save Trip</button>
@@ -1112,6 +1194,14 @@
                     <input type="number" id="vehicle_capacity" name="capacity" min="1" required>
                 </div>
                 <div class="form-group">
+                    <label for="vehicle_email">Email</label>
+                    <input type="email" id="vehicle_email" name="email" placeholder="driver@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="vehicle_number_plate">Number Plate</label>
+                    <input type="text" id="vehicle_number_plate" name="number_plate" placeholder="e.g., BA-2-CHA-1234">
+                </div>
+                <div class="form-group">
                     <label for="vehicle_availability">Availability Status</label>
                     <select id="vehicle_availability" name="availability" required>
                         <option value="Available">Available</option>
@@ -1162,6 +1252,102 @@
     </div>
     
     <div id="toast" class="toast"></div>
+
+    <!-- Missing Assignment Modal -->
+    <style>
+      .mini-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items:center; justify-content:center; z-index: 1200; }
+      .mini-modal .content { width: 430px; background:#fff; border-radius:10px; box-shadow: var(--shadow-md); overflow:hidden; }
+      .mini-modal .header { padding:10px 14px; background:#f3f4f6; border-bottom:1px solid #e5e7eb; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+      .mini-modal .body { padding:14px; display:flex; flex-direction:column; gap:10px; }
+      .mini-modal .footer { padding:10px 14px; border-top:1px solid #e5e7eb; display:flex; gap:8px; justify-content:flex-end; }
+      .mini-modal .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+      .mini-modal .btn-primary { background: var(--primary-color); color: #fff; }
+      .mini-modal .btn-secondary { background: #e5e7eb; color:#111827; }
+      .mini-modal .close { cursor:pointer; color:#6b7280; }
+    </style>
+    <div id="missingAssignModal" class="mini-modal" aria-hidden="true">
+      <div class="content">
+        <div class="header">
+          <span id="missingAssignTitle">Assign Missing</span>
+          <span id="missingAssignClose" class="close"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="body">
+          <div id="missingAssignInfo" style="font-size:0.9rem; color: var(--text-color);"></div>
+          <div id="missingAssignSelectGroup" class="form-group">
+            <label id="missingAssignLabel">Select</label>
+            <div class="custom-select"><select id="missingAssignSelect"></select></div>
+            <small id="missingAssignHint" style="color:#6b7280"></small>
+          </div>
+          <div id="missingRoomsContainer" class="form-group" style="display:none;">
+            <label>Room Quantities</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div>
+                <label style="font-size:0.8rem; color:#6b7280;">Double</label>
+                <input type="number" id="room_double" min="0" value="0" style="width:100%; padding:8px;">
+              </div>
+              <div>
+                <label style="font-size:0.8rem; color:#6b7280;">Twin</label>
+                <input type="number" id="room_twin" min="0" value="0" style="width:100%; padding:8px;">
+              </div>
+              <div>
+                <label style="font-size:0.8rem; color:#6b7280;">Single</label>
+                <input type="number" id="room_single" min="0" value="0" style="width:100%; padding:8px;">
+              </div>
+              <div>
+                <label style="font-size:0.8rem; color:#6b7280;">Triple</label>
+                <input type="number" id="room_triple" min="0" value="0" style="width:100%; padding:8px;">
+              </div>
+            </div>
+            <small style="color:#6b7280">Enter at least one non-zero value.</small>
+          </div>
+          <div id="missingServicesContainer" class="form-group" style="display:none;">
+            <label>Services Provided</label>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <label style="display:flex; gap:6px; align-items:center;">
+                <input type="checkbox" id="svc_b" value="B"> <span>B (Breakfast)</span>
+              </label>
+              <label style="display:flex; gap:6px; align-items:center;">
+                <input type="checkbox" id="svc_l" value="L"> <span>L (Lunch)</span>
+              </label>
+              <label style="display:flex; gap:6px; align-items:center;">
+                <input type="checkbox" id="svc_d" value="D"> <span>D (Dinner)</span>
+              </label>
+            </div>
+            <small style="color:#6b7280">Select meals included for this day.</small>
+          </div
+        </div>
+        <div class="footer">
+          <button id="missingAssignSkip" class="btn btn-secondary">Skip</button>
+          <button id="missingAssignSave" class="btn btn-primary">Assign & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Status Panel -->
+    <style>
+      .email-status-panel { position: fixed; right: 20px; bottom: 95px; width: 360px; max-height: 60vh; background: #fff; border: 1px solid var(--border-color); box-shadow: var(--shadow-md); border-radius: 10px; overflow: hidden; display: none; z-index: 1100; }
+      .email-status-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#f7f7f9; border-bottom:1px solid var(--border-color); font-weight:700; color: var(--text-color); }
+      .email-status-body { padding:8px 12px; max-height:50vh; overflow:auto; }
+      .email-status-list { list-style:none; margin:0; padding:0; }
+      .email-status-item { display:flex; align-items:flex-start; gap:8px; padding:8px 4px; border-bottom:1px dashed #eee; font-size:0.9rem; }
+      .email-status-item:last-child { border-bottom:none; }
+      .status-pill { padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:700; white-space:nowrap; }
+      .pill-sent { background:#dcfce7; color:#166534; }
+      .pill-queued { background:#e0f2fe; color:#075985; }
+      .pill-error { background:#fee2e2; color:#991b1b; }
+      .email-status-close, .email-status-minmax { cursor:pointer; color:#666; }
+      .email-status-body.minimized { display:none; }
+    </style>
+    <div id="emailStatusPanel" class="email-status-panel">
+      <div class="email-status-header">
+        <span><i class="fas fa-envelope-open-text"></i> Email Status</span>
+        <div>
+          <span id="emailStatusMinMax" class="email-status-minmax" title="Minimize/Maximize"><i class="fas fa-minus"></i></span>
+          <span id="emailStatusClose" class="email-status-close"><i class="fas fa-times"></i></span>
+        </div>
+      </div>
+      <div class="email-status-body"><ul id="emailStatusList" class="email-status-list"></ul></div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1276,6 +1462,9 @@
                             break;
                         case 'guiderecords':
                             fetchGuideRecords();
+                            break;
+                        case 'vehiclerecords':
+                            fetchVehicleRecords();
                             break;
                         case 'vehicles':
                             fetchVehicles();
@@ -1399,6 +1588,20 @@
                 }
             };
             
+            const fetchVehicleRecords = async () => {
+                try {
+                    const response = await fetch(`${API_URL}?action=getVehicleRecords`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        renderVehicleRecords(result.data);
+                    } else {
+                        showToast(result.message || 'Error fetching vehicle records.', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error fetching vehicle records.', 'error');
+                }
+            };
+
             const fetchGuideRecords = async () => {
                 try {
                     const response = await fetch(`${API_URL}?action=getGuideRecords`);
@@ -1421,7 +1624,9 @@
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
                     return;
                 }
-                trips.forEach(trip => {
+                // Sort trips in ascending order by ID
+                const sortedTrips = [...trips].sort((a, b) => a.id - b.id);
+                sortedTrips.forEach(trip => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>#${String(trip.id).padStart(3, '0')}</td>
@@ -1433,7 +1638,7 @@
                         <td><span class="status status-${trip.status}">${trip.status}</span></td>
                         <td class="actions">
                             <a href="Itinerary.php?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
-                            <a href="#" class="btn-edit-trip" data-id="${trip.id}"><i class="fas fa-pencil"></i></a>
+                            <a href="#" class="btn-email-trip" data-id="${trip.id}" title="Send All Emails"><i class="fas fa-envelope"></i></a>
                             <a href="#" class="btn-delete-trip" data-id="${trip.id}"><i class="fas fa-trash"></i></a>
                         </td>
                     `;
@@ -1613,6 +1818,8 @@
                         
                         const bookingItem = document.createElement('div');
                         bookingItem.className = 'booking-item';
+                        const informed = Number(record.hotel_informed) === 1;
+                        const informedPill = `<span class="status" style="background: ${informed ? '#dcfce7' : '#fee2e2'}; color: ${informed ? '#166534' : '#991b1b'};">${informed ? 'Informed' : 'Uninformed'}</span>`;
                         bookingItem.innerHTML = `
                             <div class="booking-main">
                                 <div class="booking-title">
@@ -1625,6 +1832,7 @@
                             </div>
                             <div class="booking-meta">
                                 <span class="booking-duration">${duration} day${duration !== 1 ? 's' : ''}</span>
+                                ${informedPill}
                                 <span class="status status-${record.status}">${record.status}</span>
                                 <div class="booking-actions">
                                     <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
@@ -1643,6 +1851,46 @@
                 });
             };
             
+            const renderVehicleRecords = (records) => {
+                const container = document.querySelector('#vehicleRecordsContainer');
+                container.innerHTML = '';
+                if (!records || records.length === 0) {
+                    container.innerHTML = '<div class="no-records">No vehicle assignment records found.</div>';
+                    return;
+                }
+                // Group by vehicle name
+                const grouped = records.reduce((g, r) => { const name = r.vehicle_name + (r.number_plate ? ` (${r.number_plate})` : ''); (g[name] = g[name] || []).push(r); return g; }, {});
+                Object.keys(grouped).sort().forEach(name => {
+                    const groupEl = document.createElement('div'); groupEl.className = 'hotel-group';
+                    const header = document.createElement('div'); header.className = 'hotel-header';
+                    header.innerHTML = `<i class="fas fa-truck"></i> ${name} <span style="margin-left:auto; font-size:0.9rem; opacity:0.9;">${grouped[name].length} assignment(s)</span>`;
+                    const list = document.createElement('div'); list.className = 'hotel-bookings';
+                    grouped[name].forEach(rec => {
+                        const item = document.createElement('div'); item.className = 'booking-item';
+                        const informed = Number(rec.vehicle_informed) === 1;
+                        const informedPill = `<span class="status" style="background:${informed ? '#dcfce7' : '#fee2e2'}; color:${informed ? '#166534' : '#991b1b'};">${informed ? 'Informed' : 'Uninformed'}</span>`;
+                        item.innerHTML = `
+                            <div class="booking-main">
+                                <div class="booking-title">${rec.guest_name} | Tour: ${rec.tour_code || 'No Code'}</div>
+                                <div class="booking-details">
+                                    <span><i class="fas fa-calendar-alt"></i> ${rec.assignment_date}</span>
+                                    ${rec.vehicle_email ? `<span><i class=\"fas fa-envelope\"></i> ${rec.vehicle_email}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="booking-meta">
+                                <span class="booking-duration">1 day</span>
+                                ${informedPill}
+                                <span class="status status-${rec.status}">${rec.status}</span>
+                                <div class="booking-actions">
+                                    <a href="Itinerary.php?trip_id=${rec.trip_id}" title="View Itinerary #${String(rec.trip_id).padStart(3, '0')}"><i class="fas fa-route"></i></a>
+                                </div>
+                            </div>`;
+                        list.appendChild(item);
+                    });
+                    groupEl.appendChild(header); groupEl.appendChild(list); container.appendChild(groupEl);
+                });
+            };
+
             const renderGuideRecords = (records) => {
                 const container = document.querySelector('#guideRecordsContainer');
                 container.innerHTML = '';
@@ -1685,6 +1933,8 @@
                         
                         const assignmentItem = document.createElement('div');
                         assignmentItem.className = 'booking-item';
+                        const informed = Number(record.guide_informed) === 1;
+                        const informedPill = `<span class="status" style="background: ${informed ? '#dcfce7' : '#fee2e2'}; color: ${informed ? '#166534' : '#991b1b'};">${informed ? 'Informed' : 'Uninformed'}</span>`;
                         assignmentItem.innerHTML = `
                             <div class="booking-main">
                                 <div class="booking-title">
@@ -1692,11 +1942,12 @@
                                 </div>
                                 <div class="booking-details">
                                     <span><i class="fas fa-calendar-alt"></i> ${record.assignment_date}</span>
-                                    ${record.guide_email ? `<span><i class="fas fa-envelope"></i> ${record.guide_email}</span>` : ''}
+                                    ${record.guide_email ? `<span><i class=\"fas fa-envelope\"></i> ${record.guide_email}</span>` : ''}
                                 </div>
                             </div>
                             <div class="booking-meta">
                                 <span class="booking-duration">1 day</span>
+                                ${informedPill}
                                 <span class="status status-${record.status}">${record.status}</span>
                                 <div class="booking-actions">
                                     <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
@@ -1715,36 +1966,6 @@
                 });
             };
             
-            const calculateEndDate = () => {
-                const packageSelect = document.getElementById('trip_package_id');
-                const startDateInput = document.getElementById('start_date');
-                const endDateInput = document.getElementById('end_date');
-                const suggestionEl = document.getElementById('end_date_suggestion');
-
-                const selectedOption = packageSelect.options[packageSelect.selectedIndex];
-                const days = selectedOption.dataset.days;
-                const startDateValue = startDateInput.value;
-
-                suggestionEl.textContent = '';
-
-                if (days && startDateValue) {
-                    const duration = parseInt(days, 10);
-                    if (isNaN(duration)) return;
-                    const startDate = new Date(startDateValue);
-                    
-                    const endDate = new Date(startDate.getTime());
-                    endDate.setDate(endDate.getDate() + duration - 1);
-                    
-                    const year = endDate.getFullYear();
-                    const month = String(endDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(endDate.getDate()).padStart(2, '0');
-                    
-                    const formattedEndDate = `${year}-${month}-${day}`;
-                    
-                    endDateInput.value = formattedEndDate;
-                    suggestionEl.textContent = `End date auto-calculated for ${duration} days.`;
-                }
-            };
 
             document.getElementById('trip_package_id').addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
@@ -1758,11 +1979,36 @@
                 } else {
                     descriptionContainer.style.display = 'none';
                 }
-                
-                calculateEndDate();
+                calculateDepartureDate();
             });
 
-            document.getElementById('start_date').addEventListener('change', calculateEndDate);
+            const calculateDepartureDate = () => {
+                const packageSelect = document.getElementById('trip_package_id');
+                const arrivalInput = document.getElementById('arrival_date');
+                const departureInput = document.getElementById('departure_date');
+                if (!arrivalInput || !departureInput || !packageSelect) return;
+
+                const selectedOption = packageSelect.options[packageSelect.selectedIndex];
+                const rawDays = parseInt(selectedOption?.dataset?.days ?? '0', 10);
+                const arrivalVal = arrivalInput.value;
+
+                if (!arrivalVal) { departureInput.value = ''; return; }
+
+                const start = new Date(arrivalVal + 'T00:00:00');
+                const end = new Date(start.getTime());
+                const durationDays = (!isNaN(rawDays) && rawDays > 0) ? rawDays : 2; // default to 2-day trip
+                end.setDate(end.getDate() + durationDays - 1);
+
+                const year = end.getFullYear();
+                const month = String(end.getMonth() + 1).padStart(2, '0');
+                const day = String(end.getDate()).padStart(2, '0');
+                departureInput.value = `${year}-${month}-${day}`;
+            };
+
+            const arrivalDateEl = document.getElementById('arrival_date');
+            if (arrivalDateEl) {
+                arrivalDateEl.addEventListener('change', calculateDepartureDate);
+            }
             
             // --- Modal Handling ---
             const openModal = (modalId) => {
@@ -1785,6 +2031,15 @@
                 }
             });
 
+            // Populate countries dropdown
+            const COUNTRY_LIST = [
+              'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo (DRC)','Congo (Republic)','Costa Rica','Cote d\'Ivoire','Croatia','Cuba','Cyprus','Czechia','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
+            ];
+            const countryEl = document.getElementById('country');
+            if (countryEl && countryEl.tagName.toLowerCase()==='select'){
+              countryEl.innerHTML = '<option value="">Select Country</option>' + COUNTRY_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
+            }
+
             document.getElementById('addTripBtn').addEventListener('click', () => {
                 document.getElementById('tripForm').reset();
                 document.getElementById('tripIdHidden').value = '';
@@ -1793,7 +2048,6 @@
                 document.getElementById('modalTitle').textContent = 'Add Trip';
                 
                 document.getElementById('package_description_container').style.display = 'none';
-                document.getElementById('end_date_suggestion').textContent = '';
 
                 openModal('tripModal');
             });
@@ -1926,14 +2180,20 @@
                 try {
                     const response = await fetch(`${API_URL}?action=${action}`, {
                         method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
                         body: formData
                     });
-                    const result = await response.json();
+                    const text = await response.text();
+                    let result;
+                    try { result = JSON.parse(text); } catch(e){
+                        showToast(`Invalid server response (showing first 200 chars): ${text.substring(0,200)}`, 'error');
+                        return;
+                    }
                     if (result.status === 'success') {
                         showToast(result.message, 'success');
                         callback();
                     } else {
-                        showToast(result.message, 'error');
+                        showToast(result.message || 'Request failed.', 'error');
                     }
                 } catch (error) {
                     showToast('An error occurred while saving: ' + error.message, 'error');
@@ -2030,6 +2290,315 @@
             });
 
             // --- Event Delegation for Edit/Delete ---
+            // Email Status Panel helpers (for Trip Files bulk email)
+            const emailStatusPanel = document.getElementById('emailStatusPanel');
+            const emailStatusList = document.getElementById('emailStatusList');
+            const emailStatusClose = document.getElementById('emailStatusClose');
+            const emailStatusMinMax = document.getElementById('emailStatusMinMax');
+            const openEmailStatusPanel = () => { emailStatusPanel.style.display = 'block'; };
+            const closeEmailStatusPanel = () => { emailStatusPanel.style.display = 'none'; };
+            const clearEmailStatus = () => { emailStatusList.innerHTML = ''; };
+            const addEmailStatusItem = (status, text) => {
+              const li = document.createElement('li');
+              li.className = 'email-status-item';
+              let pillClass = 'pill-queued'; let pillText = 'QUEUED';
+              if (status === 'success' || status === 'sent') { pillClass = 'pill-sent'; pillText = 'SENT'; }
+              if (status === 'error' || status === 'failed') { pillClass = 'pill-error'; pillText = 'ERROR'; }
+              if (status === 'info' || status === 'queued') { pillClass = 'pill-queued'; pillText = 'QUEUED'; }
+              li.innerHTML = `<span class="status-pill ${pillClass}">${pillText}</span><span>${text}</span>`;
+              emailStatusList.appendChild(li);
+            };
+            emailStatusClose.addEventListener('click', closeEmailStatusPanel);
+            emailStatusMinMax.addEventListener('click', () => {
+              const body = emailStatusPanel.querySelector('.email-status-body');
+              const icon = emailStatusMinMax.querySelector('i');
+              if (body.classList.contains('minimized')) { body.classList.remove('minimized'); icon.classList.remove('fa-plus'); icon.classList.add('fa-minus'); }
+              else { body.classList.add('minimized'); icon.classList.remove('fa-minus'); icon.classList.add('fa-plus'); }
+            });
+
+            // Missing assignment wizard for Trip Files (before bulk email)
+            let wizardState = { type:'rooms', items:[], index:0, tripId:null, days:[], changes:{} };
+            const missingModal = document.getElementById('missingAssignModal');
+            const missingTitle = document.getElementById('missingAssignTitle');
+            const missingInfo = document.getElementById('missingAssignInfo');
+            const missingLabel = document.getElementById('missingAssignLabel');
+            const missingHint = document.getElementById('missingAssignHint');
+            const missingSelect = document.getElementById('missingAssignSelect');
+            const missingSelectGroup = document.getElementById('missingAssignSelectGroup');
+            const roomsGroup = document.getElementById('missingRoomsContainer');
+            const servicesGroup = document.getElementById('missingServicesContainer');
+            const rDouble = document.getElementById('room_double');
+            const rTwin = document.getElementById('room_twin');
+            const rSingle = document.getElementById('room_single');
+            const rTriple = document.getElementById('room_triple');
+            const svcB = document.getElementById('svc_b');
+            const svcL = document.getElementById('svc_l');
+            const svcD = document.getElementById('svc_d');
+            document.getElementById('missingAssignClose').addEventListener('click', () => missingModal.style.display='none');
+            document.getElementById('missingAssignSkip').addEventListener('click', () => { wizardState.index++; showWizardStep(); });
+            document.getElementById('missingAssignSave').addEventListener('click', () => { saveWizardSelection(); });
+
+            const openWizard = () => missingModal.style.display = 'flex';
+            const closeWizard = () => missingModal.style.display = 'none';
+
+            const fetchItineraryFor = async (tripId) => {
+              const cacheBuster = Date.now();
+              const res = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`);
+              const json = await res.json();
+              if (json.status !== 'success') throw new Error(json.message||'Failed to fetch itinerary');
+              const trip = json.data.trip;
+              const days = json.data.itinerary_days;
+              let reqByDay = {};
+              try {
+                if (trip && trip.trip_package_id){
+                  const r = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${trip.trip_package_id}&_=${Date.now()}`);
+                  const jr = await r.json();
+                  if (jr.status==='success'){
+                    (jr.data||[]).forEach(req => { reqByDay[req.day_number] = req; });
+                  }
+                }
+              } catch (e) { /* ignore */ }
+              return { trip, days, reqByDay };
+            };
+
+            function parseRoomData(rd){
+              try { const j = rd && rd !== 'null' ? JSON.parse(rd) : {}; return {double:+(j.double||0),twin:+(j.twin||0),single:+(j.single||0),triple:+(j.triple||0)}; } catch(e){ return {double:0,twin:0,single:0,triple:0}; }
+            }
+
+            function roomsAreMissing(day){
+              const q = parseRoomData(day.room_type_data);
+              return (q.double + q.twin + q.single + q.triple) === 0;
+            }
+
+            function collectMissingFromDays(days, type){
+              const items = [];
+              days.forEach((d, idx) => {
+                const dayIndex = idx + 1;
+                const req = wizardState.requirementsByDay?.[dayIndex];
+                if (type==='hotel'){
+                  if (!d.hotel_id || d.hotel_id===0 || String(d.hotel_id)==='0') items.push({day:d, dayIndex});
+                }
+                if (type==='rooms'){
+                  const hasHotel = d.hotel_id && String(d.hotel_id) !== '0';
+                  if (hasHotel && roomsAreMissing(d)) items.push({day:d, dayIndex});
+                }
+                if (type==='guide'){
+                  const guideRequired = !req || String(req.guide_required)==='1' || req.guide_required===1;
+                  if (guideRequired && (!d.guide_id || d.guide_id===0 || String(d.guide_id)==='0')) items.push({day:d, dayIndex});
+                }
+                if (type==='vehicle'){
+                  const vehicleRequired = !req || String(req.vehicle_required)==='1' || req.vehicle_required===1;
+                  if (vehicleRequired && (!d.vehicle_id || d.vehicle_id===0 || String(d.vehicle_id)==='0')) items.push({day:d, dayIndex});
+                }
+                if (type==='services'){
+                  const hasHotel = d.hotel_id && String(d.hotel_id) !== '0';
+                  const hasServices = (d.services_provided||'').trim().length>0;
+                  if (hasHotel && !hasServices) items.push({day:d, dayIndex});
+                }
+              });
+              return items;
+            }
+
+            function renderWizard(type, it){
+              servicesGroup.style.display = 'none';
+              if (type==='rooms'){
+                missingTitle.textContent = 'Enter Room Quantities';
+                missingLabel.textContent = 'Rooms';
+                const q = parseRoomData(it.day.room_type_data);
+                rDouble.value = q.double||0; rTwin.value=q.twin||0; rSingle.value=q.single||0; rTriple.value=q.triple||0;
+                missingHint.textContent = 'Provide room counts for this day';
+                roomsGroup.style.display = 'block';
+                missingSelectGroup.style.display = 'none';
+              } else if (type==='hotel') {
+                let opts = '<option value=\"\">Not assigned</option>';
+                hotelsData.forEach(h => { const sel=(String(h.id)===String(it.day.hotel_id))?'selected':''; opts+=`<option value=\"${h.id}\" ${sel}>${h.name}</option>`; });
+                missingSelect.innerHTML = opts;
+                missingTitle.textContent = 'Assign Hotel';
+                missingLabel.textContent = 'Select Hotel';
+                missingHint.textContent = 'Choose a hotel for this day';
+                roomsGroup.style.display = 'none';
+                servicesGroup.style.display = 'none';
+                missingSelectGroup.style.display = 'block';
+              } else if (type==='guide') {
+                let opts = '<option value=\"\">Not assigned</option>';
+                guidesData.forEach(g => { const sel=(String(g.id)===String(it.day.guide_id))?'selected':''; opts+=`<option value=\"${g.id}\" ${sel}>${g.name}${g.language?` (${g.language})`:''}</option>`; });
+                missingSelect.innerHTML = opts;
+                missingTitle.textContent = 'Assign Guide';
+                missingLabel.textContent = 'Select Guide';
+                missingHint.textContent = 'Choose a guide for this day';
+                roomsGroup.style.display = 'none';
+                missingSelectGroup.style.display = 'block';
+              } else if (type==='vehicle') {
+                let opts = '<option value=\"\">Not assigned</option>';
+                vehiclesData.forEach(v => { const plate=v.number_plate?` (${v.number_plate})`:''; const sel=(String(v.id)===String(it.day.vehicle_id))?'selected':''; opts+=`<option value=\"${v.id}\" ${sel}>${v.vehicle_name}${plate}</option>`; });
+                missingSelect.innerHTML = opts;
+                missingTitle.textContent = 'Assign Vehicle';
+                missingLabel.textContent = 'Select Vehicle';
+                missingHint.textContent = 'Choose a vehicle for this day';
+                roomsGroup.style.display = 'none';
+                missingSelectGroup.style.display = 'block';
+              } else if (type==='services') {
+                const val = (it.day.services_provided || '').split(',').map(s=>s.trim());
+                svcB.checked = val.includes('B'); svcL.checked = val.includes('L'); svcD.checked = val.includes('D');
+                missingTitle.textContent = 'Select Services';
+                missingLabel.textContent = 'Meals';
+                missingHint.textContent = 'Tick applicable services for this day';
+                roomsGroup.style.display = 'none';
+                missingSelectGroup.style.display = 'none';
+                servicesGroup.style.display = 'block';
+              }
+            }
+
+            function showWizardStep(){
+              if (wizardState.index >= wizardState.items.length){
+                if (wizardState.type==='hotel'){
+                  wizardState.type='rooms';
+                  wizardState.items = collectMissingFromDays(wizardState.days,'rooms');
+                  wizardState.index = 0;
+                } else if (wizardState.type==='rooms'){
+                  wizardState.type='guide';
+                  wizardState.items = collectMissingFromDays(wizardState.days,'guide');
+                  wizardState.index = 0;
+                } else if (wizardState.type==='guide'){
+                  wizardState.type='vehicle';
+                  wizardState.items = collectMissingFromDays(wizardState.days,'vehicle');
+                  wizardState.index = 0;
+                } else if (wizardState.type==='vehicle'){
+                  wizardState.type='services';
+                  wizardState.items = collectMissingFromDays(wizardState.days,'services');
+                  wizardState.index = 0;
+                } else { closeWizard(); proceedAfterWizard(); return; }
+              }
+              if (wizardState.items.length===0){ closeWizard(); proceedAfterWizard(); return; }
+              const it = wizardState.items[wizardState.index];
+              missingInfo.textContent = `Trip #${String(wizardState.tripId).padStart(3,'0')} • Day ${it.dayIndex} (${it.day.day_date})`;
+              renderWizard(wizardState.type, it);
+              openWizard();
+            }
+
+            async function saveWizardSelection(){
+              const it = wizardState.items[wizardState.index];
+              const val = missingSelect.value;
+              const d = it.day;
+              if (!wizardState.changes[d.id]) wizardState.changes[d.id] = { id: d.id, guide_id: d.guide_id, vehicle_id: d.vehicle_id, hotel_id: d.hotel_id, notes: d.notes||'', services_provided: d.services_provided||'', room_type_data: d.room_type_data||null };
+              if (wizardState.type==='hotel'){
+                if (!val){ alert('Please select a hotel.'); return; }
+                wizardState.changes[d.id].hotel_id = val || null;
+                // reflect change so subsequent steps see hotel
+                it.day.hotel_id = val;
+              } else if (wizardState.type==='rooms'){
+                const q = { double: parseInt(rDouble.value||0), twin: parseInt(rTwin.value||0), single: parseInt(rSingle.value||0), triple: parseInt(rTriple.value||0) };
+                if ((q.double+q.twin+q.single+q.triple)===0){ alert('Please enter at least one room.'); return; }
+                wizardState.changes[d.id].room_type_data = JSON.stringify(q);
+                it.day.room_type_data = wizardState.changes[d.id].room_type_data;
+              } else if (wizardState.type==='guide') {
+                if (!val){ alert('Please select a guide.'); return; }
+                wizardState.changes[d.id].guide_id = val || null;
+                it.day.guide_id = val;
+              } else if (wizardState.type==='vehicle') {
+                if (!val){ alert('Please select a vehicle.'); return; }
+                wizardState.changes[d.id].vehicle_id = val || null;
+                it.day.vehicle_id = val;
+              } else if (wizardState.type==='services') {
+                const svcs = [];
+                if (svcB.checked) svcs.push('B'); if (svcL.checked) svcs.push('L'); if (svcD.checked) svcs.push('D');
+                if (svcs.length===0){ alert('Please select at least one service (B/L/D).'); return; }
+                wizardState.changes[d.id].services_provided = svcs.join(', ');
+                it.day.services_provided = wizardState.changes[d.id].services_provided;
+              }
+              wizardState.index++;
+              showWizardStep();
+            }
+
+            async function ensureAssignmentsForTrip(tripId){
+              // Make sure lists available
+              if (!hotelsData.length) await fetchHotels();
+              if (!vehiclesData.length) await fetchVehicles();
+              if (!guidesData.length) await fetchGuides();
+              wizardState.tripId = tripId; wizardState.changes = {};
+              const it = await fetchItineraryFor(tripId);
+              wizardState.days = it.days;
+              wizardState.requirementsByDay = it.reqByDay || {};
+              // Auto-assign hotels from package if day has none
+              wizardState.days.forEach((d, idx) => {
+                const req = wizardState.requirementsByDay[idx+1];
+                if (req && req.hotel_id && (!d.hotel_id || String(d.hotel_id)==='0')){
+                  if (!wizardState.changes[d.id]) wizardState.changes[d.id] = { id: d.id };
+                  wizardState.changes[d.id].hotel_id = req.hotel_id;
+                  d.hotel_id = req.hotel_id;
+                }
+              });
+              wizardState.type='hotel'; wizardState.items = collectMissingFromDays(wizardState.days,'hotel'); wizardState.index=0;
+              if (wizardState.items.length===0){ wizardState.type='rooms'; wizardState.items = collectMissingFromDays(wizardState.days,'rooms'); wizardState.index=0; }
+              if (wizardState.items.length===0){ wizardState.type='guide'; wizardState.items = collectMissingFromDays(wizardState.days,'guide'); wizardState.index=0; }
+              if (wizardState.items.length===0){ wizardState.type='vehicle'; wizardState.items = collectMissingFromDays(wizardState.days,'vehicle'); wizardState.index=0; }
+              if (wizardState.items.length===0){ wizardState.type='services'; wizardState.items = collectMissingFromDays(wizardState.days,'services'); wizardState.index=0; }
+              if (wizardState.items.length===0) return true;
+              return new Promise(async (resolve) => {
+                proceedAfterWizard = async () => {
+                  closeWizard();
+                  const changed = Object.values(wizardState.changes);
+                  if (changed.length){
+                    try {
+                      const resp = await fetch(`${API_URL}?action=updateItinerary`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ itinerary_days: changed })});
+                      const js = await resp.json(); if (js.status!=='success') showToast(js.message||'Failed to save assignments','error'); else showToast('Assignments updated','success');
+                    } catch(e){ showToast('Failed to save assignments','error'); }
+                  }
+                  resolve(true);
+                };
+                showWizardStep();
+              });
+            }
+
+            async function parseJsonResponse(resp, label){
+              const text = await resp.text();
+              try { return JSON.parse(text); } catch(e){
+                addEmailStatusItem('error', `${label}: invalid response (showing first 120 chars) -> ${text.substring(0,120)}`);
+                throw new Error(`${label} returned non-JSON response`);
+              }
+            }
+
+            async function sendAllEmailsForTrip(tripId, triggerEl){
+              try {
+                // Ensure required assignments
+                await ensureAssignmentsForTrip(tripId);
+                if (triggerEl) { triggerEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; triggerEl.style.pointerEvents = 'none'; }
+                openEmailStatusPanel(); clearEmailStatus(); addEmailStatusItem('queued', `Trip #${String(tripId).padStart(3,'0')}: starting bulk emails...`);
+
+                // Guides
+                addEmailStatusItem('queued','Guides: sending...');
+                let resp = await fetch('../src/services/send_guide_email.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: tripId })});
+                let result = await parseJsonResponse(resp, 'Guides');
+                if (result.messages && result.messages.length) { result.messages.forEach(m => addEmailStatusItem(m.type||'info', '[Guides] ' + (m.text||''))); }
+                else { addEmailStatusItem(result.status||'info','[Guides] ' + (result.message||'')); }
+
+                // Hotels
+                addEmailStatusItem('queued','Hotels: sending...');
+                resp = await fetch('../src/services/send_hotel_email.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: tripId })});
+                result = await parseJsonResponse(resp, 'Hotels');
+                if (result.messages && result.messages.length) { result.messages.forEach(m => addEmailStatusItem(m.type||'info', '[Hotels] ' + (m.text||''))); }
+                else { addEmailStatusItem(result.status||'info','[Hotels] ' + (result.message||'')); }
+
+                // Vehicles
+                addEmailStatusItem('queued','Vehicles: sending...');
+                resp = await fetch('../src/services/send_vehicle_email.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: tripId })});
+                result = await parseJsonResponse(resp, 'Vehicles');
+                if (result.messages && result.messages.length) { result.messages.forEach(m => addEmailStatusItem(m.type||'info', '[Vehicles] ' + (m.text||''))); }
+                else { addEmailStatusItem(result.status||'info','[Vehicles] ' + (result.message||'')); }
+
+                addEmailStatusItem('sent', 'Bulk emails completed.');
+                showToast('All emails processed.','success');
+                fetchTrips();
+              } catch (err){
+                addEmailStatusItem('error','Bulk email failed: ' + err.message);
+                showToast('Bulk email failed: ' + err.message, 'error');
+              } finally {
+                if (triggerEl) { triggerEl.innerHTML = '<i class="fas fa-envelope"></i>'; triggerEl.style.pointerEvents = ''; }
+              }
+            }
+
+
+
             document.addEventListener('click', async function(e) {
                 const target = e.target.closest('a[data-id]');
                 if (!target) return;
@@ -2037,6 +2606,11 @@
                 const id = target.dataset.id;
                 
                 // Edit Actions
+                if (target.classList.contains('btn-email-trip')) {
+                    e.preventDefault();
+                    await sendAllEmailsForTrip(id, target);
+                }
+
                 if (target.classList.contains('btn-edit-trip')) {
                     e.preventDefault();
                     const trip = tripsData.find(t => t.id == id);
@@ -2045,11 +2619,19 @@
                         document.getElementById('tripIdHidden').value = trip.id;
                         document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
                         document.getElementById('fileIdGroup').style.display = 'block';
+                        document.getElementById('company').value = (trip.company || '');
                         document.getElementById('customer_name').value = trip.customer_name;
+                        document.getElementById('country').value = (trip.country || '');
                         document.getElementById('tour_code').value = trip.tour_code || '';
+                        document.getElementById('passport_no').value = (trip.passport_no || '');
+                        document.getElementById('address').value = (trip.address || '');
                         document.getElementById('trip_package_id').value = trip.trip_package_id;
-                        document.getElementById('start_date').value = trip.start_date;
-                        document.getElementById('end_date').value = trip.end_date;
+                        document.getElementById('arrival_date').value = (trip.arrival_date || '');
+                        document.getElementById('arrival_time').value = (trip.arrival_time || '');
+                        document.getElementById('arrival_flight').value = (trip.arrival_flight || '');
+                        document.getElementById('departure_date').value = (trip.departure_date || '');
+                        document.getElementById('departure_time').value = (trip.departure_time || '');
+                        document.getElementById('departure_flight').value = (trip.departure_flight || '');
                         document.getElementById('status').value = trip.status;
                         document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
                         openModal('tripModal');
@@ -2134,6 +2716,9 @@
                         document.getElementById('vehicleId').value = vehicle.id;
                         document.getElementById('vehicle_name').value = vehicle.vehicle_name;
                         document.getElementById('vehicle_capacity').value = vehicle.capacity || '';
+                        document.getElementById('vehicle_email').value = vehicle.email || '';
+                        const plateInput = document.getElementById('vehicle_number_plate');
+                        if (plateInput) { plateInput.value = vehicle.number_plate || ''; }
                         document.getElementById('vehicle_availability').value = vehicle.availability || 'Available';
                         openModal('vehicleModal');
                     }

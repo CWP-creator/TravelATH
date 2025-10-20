@@ -1,4 +1,29 @@
 <?php
+// Ensure clean JSON-only responses and catch fatals
+ob_start();
+header('Content-Type: application/json');
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+set_error_handler(function($severity, $message, $file, $line){
+    while (ob_get_level() > 0) { ob_end_clean(); }
+    if (!headers_sent()) { header('Content-Type: application/json'); }
+    echo json_encode(['status'=>'error','message'=>"PHP Error: $message in $file on line $line"]);
+    exit;
+});
+register_shutdown_function(function(){
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])){
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        if (!headers_sent()) { header('Content-Type: application/json'); }
+        echo json_encode(['status'=>'error','message'=>'Fatal server error: '.$err['message'].' in '.$err['file'].' on line '.$err['line']]);
+    }
+});
+
+// Mark this request as API so session checker returns JSON instead of redirecting
+if (!defined('IS_API')) { define('IS_API', true); }
+
 // Try to include session check with error handling
 if (file_exists('../../utils/check_session.php')) {
     require_once '../../utils/check_session.php';
@@ -6,7 +31,6 @@ if (file_exists('../../utils/check_session.php')) {
     // Fallback session check
     session_start();
     if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-        header('Content-Type: application/json');
         echo json_encode([
             'status' => 'error',
             'message' => 'Authentication required',
@@ -16,16 +40,10 @@ if (file_exists('../../utils/check_session.php')) {
     }
 }
 
-header('Content-Type: application/json');
 include '../../src/services/db_connect.php';
 
 $response = ['status' => 'error', 'message' => 'An unknown error occurred.'];
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
-
-// Handle CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
@@ -115,6 +133,9 @@ switch ($action) {
     case 'getGuideRecords':
         getGuideRecords($conn);
         break;
+    case 'getVehicleRecords':
+        getVehicleRecords($conn);
+        break;
     case 'checkGuideAvailability':
         checkGuideAvailability($conn);
         break;
@@ -125,7 +146,7 @@ switch ($action) {
 
 // ============= TRIP MANAGEMENT =============
 function getTrips($conn) {
-    $sql = "SELECT t.id, t.customer_name, t.tour_code, t.start_date, t.end_date, t.status, t.trip_package_id, p.name as package_name
+    $sql = "SELECT t.*, p.name as package_name
             FROM trips t
             JOIN trip_packages p ON t.trip_package_id = p.id
             ORDER BY t.start_date DESC";
@@ -165,6 +186,22 @@ function addTrip($conn) {
     $end_date = isset($_POST['end_date']) ? trim($_POST['end_date']) : '';
     $status = isset($_POST['status']) ? trim($_POST['status']) : 'Pending';
 
+    // Optional fields
+    $company = isset($_POST['company']) ? trim($_POST['company']) : null;
+    $country = isset($_POST['country']) ? trim($_POST['country']) : null;
+    $address = isset($_POST['address']) ? trim($_POST['address']) : null;
+    $passport_no = isset($_POST['passport_no']) ? trim($_POST['passport_no']) : null;
+    $arrival_date = isset($_POST['arrival_date']) ? trim($_POST['arrival_date']) : null;
+    $arrival_time = isset($_POST['arrival_time']) ? trim($_POST['arrival_time']) : null;
+    $arrival_flight = isset($_POST['arrival_flight']) ? trim($_POST['arrival_flight']) : null;
+    $departure_date = isset($_POST['departure_date']) ? trim($_POST['departure_date']) : null;
+    $departure_time = isset($_POST['departure_time']) ? trim($_POST['departure_time']) : null;
+    $departure_flight = isset($_POST['departure_flight']) ? trim($_POST['departure_flight']) : null;
+
+    // Derive trip start/end from arrival/departure if not provided
+    if (empty($start_date)) { $start_date = $arrival_date; }
+    if (empty($end_date)) { $end_date = $departure_date; }
+
     if (empty($customer_name) || $trip_package_id === 0 || empty($start_date) || empty($end_date)) {
         echo json_encode(['status' => 'error', 'message' => 'Please fill all required fields.']);
         return;
@@ -198,15 +235,58 @@ function addTrip($conn) {
 
     $conn->begin_transaction();
     try {
-        // --- 2. INSERT trip with correct bind_param ---
-        $stmt = $conn->prepare("INSERT INTO trips (customer_name, tour_code, trip_package_id, start_date, end_date, status, total_price) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        if (!$stmt) {
-            throw new Exception('Prepare failed: ' . $conn->error);
+        // Discover available columns in trips table
+        $cols = [];
+        $resCols = $conn->query("SHOW COLUMNS FROM trips");
+        if ($resCols) {
+            while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; }
         }
-        $stmt->bind_param("ssisssd", $customer_name, $tour_code, $trip_package_id, $start_date, $end_date, $status, $total_price);
-        if (!$stmt->execute()) {
-            throw new Exception('Execute failed: ' . $stmt->error);
+
+        // Base fields
+        $fields = [
+            'customer_name' => $customer_name,
+            'tour_code' => $tour_code,
+            'trip_package_id' => $trip_package_id,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'status' => $status,
+            'total_price' => $total_price
+        ];
+
+        // Optional fields if columns exist
+        $optionalMap = [
+            'company' => $company,
+            'country' => $country,
+            'address' => $address,
+            'passport_no' => $passport_no,
+            'arrival_date' => $arrival_date,
+            'arrival_time' => $arrival_time,
+            'arrival_flight' => $arrival_flight,
+            'departure_date' => $departure_date,
+            'departure_time' => $departure_time,
+            'departure_flight' => $departure_flight,
+        ];
+        foreach ($optionalMap as $col => $val) {
+            if (isset($cols[$col])) { $fields[$col] = $val; }
         }
+
+        // Build dynamic insert
+        $columns = array_keys($fields);
+        $placeholders = [];
+        $types = '';
+        $values = [];
+        foreach ($columns as $col) {
+            $placeholders[] = '?';
+            if ($col === 'trip_package_id') { $types .= 'i'; $values[] = (int)$fields[$col]; }
+            elseif ($col === 'total_price') { $types .= 'd'; $values[] = (float)$fields[$col]; }
+            else { $types .= 's'; $values[] = $fields[$col]; }
+        }
+
+        $sql = "INSERT INTO trips (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { throw new Exception('Prepare failed: ' . $conn->error); }
+        $stmt->bind_param($types, ...$values);
+        if (!$stmt->execute()) { throw new Exception('Execute failed: ' . $stmt->error); }
         $trip_id = $conn->insert_id;
         $stmt->close();
 
@@ -321,18 +401,75 @@ function updateTrip($conn) {
     $end_date = isset($_POST['end_date']) ? trim($_POST['end_date']) : '';
     $status = isset($_POST['status']) ? trim($_POST['status']) : 'Pending';
 
+    // Optional fields
+    $company = isset($_POST['company']) ? trim($_POST['company']) : null;
+    $country = isset($_POST['country']) ? trim($_POST['country']) : null;
+    $address = isset($_POST['address']) ? trim($_POST['address']) : null;
+    $passport_no = isset($_POST['passport_no']) ? trim($_POST['passport_no']) : null;
+    $arrival_date = isset($_POST['arrival_date']) ? trim($_POST['arrival_date']) : null;
+    $arrival_time = isset($_POST['arrival_time']) ? trim($_POST['arrival_time']) : null;
+    $arrival_flight = isset($_POST['arrival_flight']) ? trim($_POST['arrival_flight']) : null;
+    $departure_date = isset($_POST['departure_date']) ? trim($_POST['departure_date']) : null;
+    $departure_time = isset($_POST['departure_time']) ? trim($_POST['departure_time']) : null;
+    $departure_flight = isset($_POST['departure_flight']) ? trim($_POST['departure_flight']) : null;
+
+    // Derive trip start/end from arrival/departure if not provided
+    if (empty($start_date)) { $start_date = $arrival_date; }
+    if (empty($end_date)) { $end_date = $departure_date; }
+
     if (empty($id) || empty($customer_name) || $trip_package_id === 0 || empty($start_date) || empty($end_date)) {
         echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE trips SET customer_name = ?, tour_code = ?, trip_package_id = ?, start_date = ?, end_date = ?, status = ? WHERE id = ?");
+    // Discover available columns
+    $cols = [];
+    $resCols = $conn->query("SHOW COLUMNS FROM trips");
+    if ($resCols) { while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; } }
+
+    $fields = [
+        'customer_name' => $customer_name,
+        'tour_code' => $tour_code,
+        'trip_package_id' => $trip_package_id,
+        'start_date' => $start_date,
+        'end_date' => $end_date,
+        'status' => $status
+    ];
+
+    $optionalMap = [
+        'company' => $company,
+        'country' => $country,
+        'address' => $address,
+        'passport_no' => $passport_no,
+        'arrival_date' => $arrival_date,
+        'arrival_time' => $arrival_time,
+        'arrival_flight' => $arrival_flight,
+        'departure_date' => $departure_date,
+        'departure_time' => $departure_time,
+        'departure_flight' => $departure_flight,
+    ];
+    foreach ($optionalMap as $col => $val) { if (isset($cols[$col])) { $fields[$col] = $val; } }
+
+    // Build dynamic update
+    $setParts = [];
+    $types = '';
+    $values = [];
+    foreach ($fields as $key => $val) {
+        $setParts[] = "$key = ?";
+        if ($key === 'trip_package_id') { $types .= 'i'; $values[] = (int)$val; }
+        else { $types .= 's'; $values[] = $val; }
+    }
+    $types .= 'i';
+    $values[] = $id;
+
+    $sql = "UPDATE trips SET " . implode(', ', $setParts) . " WHERE id = ?";
+    $stmt = $conn->prepare($sql);
     if (!$stmt) {
         echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
         return;
     }
 
-    $stmt->bind_param("ssisssi", $customer_name, $tour_code, $trip_package_id, $start_date, $end_date, $status, $id);
+    $stmt->bind_param($types, ...$values);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Trip updated successfully.']);
@@ -463,7 +600,12 @@ function getItinerary($conn) {
     $stmt_days->close();
 
     $data['guides'] = $conn->query("SELECT id, name, language FROM guides ORDER BY name")->fetch_all(MYSQLI_ASSOC);
-    $data['vehicles'] = $conn->query("SELECT id, vehicle_name, capacity FROM vehicles ORDER BY vehicle_name")->fetch_all(MYSQLI_ASSOC);
+    // Vehicles with optional number_plate
+    $vehHasPlate = false;
+    $vehColCheck = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'");
+    if ($vehColCheck && $vehColCheck->num_rows > 0) { $vehHasPlate = true; }
+    $vehSelect = "SELECT id, vehicle_name, capacity" . ($vehHasPlate ? ", number_plate" : "") . " FROM vehicles ORDER BY vehicle_name";
+    $data['vehicles'] = $conn->query($vehSelect)->fetch_all(MYSQLI_ASSOC);
     $data['hotels'] = $conn->query("SELECT id, name FROM hotels ORDER BY name")->fetch_all(MYSQLI_ASSOC);
 
     echo json_encode(['status' => 'success', 'data' => $data]);
@@ -510,7 +652,15 @@ function updateItinerary($conn) {
                 $fields['day_type'] = isset($day['day_type']) ? trim($day['day_type']) : 'normal';
             }
             if (isset($cols['guide_informed']) && array_key_exists('guide_informed', $day)) {
-                $fields['guide_informed'] = intval($day['guide_informed']) ? 1 : 0;
+                // Read current guide_informed to prevent reverting once set (same as hotel logic)
+                $cur = $conn->query("SELECT guide_informed FROM itinerary_days WHERE id = " . $id);
+                $curVal = null;
+                if ($cur && $cur->num_rows > 0) {
+                    $curVal = (int)($cur->fetch_assoc()['guide_informed']);
+                }
+                $requested = intval($day['guide_informed']) ? 1 : 0;
+                // Lock to 1 if already informed (prevents changing back to uninformed)
+                $fields['guide_informed'] = ($curVal === 1) ? 1 : $requested;
             }
             if (isset($cols['vehicle_informed']) && array_key_exists('vehicle_informed', $day)) {
                 $fields['vehicle_informed'] = intval($day['vehicle_informed']) ? 1 : 0;
@@ -657,7 +807,16 @@ function deleteHotel($conn) {
 
 // ============= VEHICLE MANAGEMENT =============
 function getVehicles($conn) {
-    $result = $conn->query("SELECT id, vehicle_name, capacity, availability FROM vehicles ORDER BY vehicle_name");
+    // Detect optional columns
+    $hasEmail = false; $hasPlate = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'email'");
+    if ($colCheck && $colCheck->num_rows > 0) { $hasEmail = true; }
+    $colCheck2 = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'");
+    if ($colCheck2 && $colCheck2->num_rows > 0) { $hasPlate = true; }
+
+    $select = "SELECT id, vehicle_name, capacity, availability" . ($hasEmail ? ", email" : "") . ($hasPlate ? ", number_plate" : "") . " FROM vehicles ORDER BY vehicle_name";
+
+    $result = $conn->query($select);
     if (!$result) {
         echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
         return;
@@ -674,25 +833,38 @@ function addVehicle($conn) {
     $vehicle_name = isset($_POST['vehicle_name']) ? trim($_POST['vehicle_name']) : '';
     $capacity = isset($_POST['capacity']) ? intval($_POST['capacity']) : 1;
     $availability = isset($_POST['availability']) ? trim($_POST['availability']) : 'Available';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : null;
+    $number_plate = isset($_POST['number_plate']) ? trim($_POST['number_plate']) : null;
 
     if (empty($vehicle_name)) {
         echo json_encode(['status' => 'error', 'message' => 'Vehicle name is required.']);
         return;
     }
 
-    $stmt = $conn->prepare("INSERT INTO vehicles (vehicle_name, capacity, availability) VALUES (?, ?, ?)");
-    if (!$stmt) {
-        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
-        return;
+    // Detect optional columns
+    $cols = [];
+    $resCols = $conn->query("SHOW COLUMNS FROM vehicles");
+    if ($resCols) { while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; } }
+
+    $fields = [ 'vehicle_name'=>$vehicle_name, 'capacity'=>$capacity, 'availability'=>$availability ];
+    if (isset($cols['email'])) $fields['email'] = $email;
+    if (isset($cols['number_plate'])) $fields['number_plate'] = $number_plate;
+
+    $columns = array_keys($fields);
+    $placeholders = array_fill(0, count($columns), '?');
+    $types = ''; $values = [];
+    foreach ($columns as $col) {
+        if ($col === 'capacity') { $types .= 'i'; $values[] = (int)$fields[$col]; }
+        else { $types .= 's'; $values[] = $fields[$col]; }
     }
 
-    $stmt->bind_param("sis", $vehicle_name, $capacity, $availability);
+    $sql = "INSERT INTO vehicles (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) { echo json_encode(['status'=>'error','message'=>'Database prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param($types, ...$values);
 
-    if ($stmt->execute()) {
-        echo json_encode(['status' => 'success', 'message' => 'Vehicle added successfully.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to add vehicle: ' . $stmt->error]);
-    }
+    if ($stmt->execute()) { echo json_encode(['status'=>'success','message'=>'Vehicle added successfully.']); }
+    else { echo json_encode(['status'=>'error','message'=>'Failed to add vehicle: '.$stmt->error]); }
     $stmt->close();
 }
 
@@ -701,25 +873,38 @@ function updateVehicle($conn) {
     $vehicle_name = isset($_POST['vehicle_name']) ? trim($_POST['vehicle_name']) : '';
     $capacity = isset($_POST['capacity']) ? intval($_POST['capacity']) : 1;
     $availability = isset($_POST['availability']) ? trim($_POST['availability']) : 'Available';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : null;
+    $number_plate = isset($_POST['number_plate']) ? trim($_POST['number_plate']) : null;
 
     if (empty($id) || empty($vehicle_name)) {
         echo json_encode(['status' => 'error', 'message' => 'Vehicle ID and name are required.']);
         return;
     }
 
-    $stmt = $conn->prepare("UPDATE vehicles SET vehicle_name = ?, capacity = ?, availability = ? WHERE id = ?");
-    if (!$stmt) {
-        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
-        return;
-    }
+    // Detect columns
+    $cols = [];
+    $resCols = $conn->query("SHOW COLUMNS FROM vehicles");
+    if ($resCols) { while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; } }
 
-    $stmt->bind_param("sisi", $vehicle_name, $capacity, $availability, $id);
+    $fields = [ 'vehicle_name'=>$vehicle_name, 'capacity'=>$capacity, 'availability'=>$availability ];
+    if (isset($cols['email'])) $fields['email'] = $email;
+    if (isset($cols['number_plate'])) $fields['number_plate'] = $number_plate;
 
-    if ($stmt->execute()) {
-        echo json_encode(['status' => 'success', 'message' => 'Vehicle updated successfully.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to update vehicle: ' . $stmt->error]);
+    $setParts = []; $types=''; $values=[];
+    foreach ($fields as $k=>$v) {
+        $setParts[] = "$k = ?";
+        if ($k==='capacity') { $types.='i'; $values[] = (int)$v; }
+        else { $types.='s'; $values[] = $v; }
     }
+    $types.='i'; $values[] = $id;
+
+    $sql = "UPDATE vehicles SET ".implode(', ',$setParts)." WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) { echo json_encode(['status'=>'error','message'=>'Database prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param($types, ...$values);
+
+    if ($stmt->execute()) { echo json_encode(['status'=>'success','message'=>'Vehicle updated successfully.']); }
+    else { echo json_encode(['status'=>'error','message'=>'Failed to update vehicle: '.$stmt->error]); }
     $stmt->close();
 }
 
@@ -1105,6 +1290,13 @@ function getPackageRequirements($conn) {
 
 // ============= HOTEL RECORDS =============
 function getHotelRecords($conn) {
+    // Detect hotel_informed column
+    $hasHotelInformed = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'hotel_informed'");
+    if ($colCheck && $colCheck->num_rows > 0) { $hasHotelInformed = true; }
+
+    $selectInformed = $hasHotelInformed ? ', id.hotel_informed as hotel_informed' : ", 0 as hotel_informed";
+
     $sql = "
         SELECT 
             t.id as trip_id,
@@ -1114,7 +1306,7 @@ function getHotelRecords($conn) {
             id.day_date as check_in_date,
             id.day_date as check_out_date,
             h.name as hotel_name,
-            id.room_type_data as room_details
+            id.room_type_data as room_details" . $selectInformed . "
         FROM trips t
         JOIN itinerary_days id ON t.id = id.trip_id
         JOIN hotels h ON id.hotel_id = h.id
@@ -1143,11 +1335,13 @@ function getHotelRecords($conn) {
                 'hotel_name' => $row['hotel_name'],
                 'status' => $row['status'],
                 'dates' => [],
+                'date_informed' => [],
                 'room_details' => $row['room_details']
             ];
         }
         
         $grouped_bookings[$key]['dates'][] = $row['check_in_date'];
+        $grouped_bookings[$key]['date_informed'][$row['check_in_date']] = intval($row['hotel_informed']);
     }
     
     // Convert grouped bookings to individual records with check-in and check-out dates
@@ -1172,6 +1366,13 @@ function getHotelRecords($conn) {
         
         // Create records for each consecutive group
         foreach ($consecutive_groups as $group) {
+            // Compute informed = all days in the block are informed
+            $allInformed = true;
+            foreach ($group as $d) {
+                $val = isset($booking['date_informed'][$d]) ? intval($booking['date_informed'][$d]) : 0;
+                if ($val !== 1) { $allInformed = false; break; }
+            }
+
             $records[] = [
                 'trip_id' => $booking['trip_id'],
                 'guest_name' => $booking['guest_name'],
@@ -1180,7 +1381,8 @@ function getHotelRecords($conn) {
                 'check_in_date' => $group[0],
                 'check_out_date' => end($group),
                 'status' => $booking['status'],
-                'room_details' => $booking['room_details']
+                'room_details' => $booking['room_details'],
+                'hotel_informed' => $allInformed ? 1 : 0
             ];
         }
     }
@@ -1200,6 +1402,13 @@ function getGuideRecords($conn) {
     $year = isset($_GET['year']) && $_GET['year'] ? $_GET['year'] : date('Y');
     
     try {
+        // Detect guide_informed column
+        $hasGuideInformed = false;
+        $colCheck = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'guide_informed'");
+        if ($colCheck && $colCheck->num_rows > 0) { $hasGuideInformed = true; }
+
+        $selectInformed = $hasGuideInformed ? 'id.guide_informed as guide_informed,' : '0 as guide_informed,';
+
         $sql = "SELECT DISTINCT 
                    g.id as guide_id,
                    g.name as guide_name,
@@ -1207,6 +1416,7 @@ function getGuideRecords($conn) {
                    g.language as guide_language,
                    g.availability_status as guide_status,
                    id.day_date as assignment_date,
+                   $selectInformed
                    t.id as trip_id,
                    t.customer_name as guest_name,
                    t.tour_code,
@@ -1252,9 +1462,7 @@ function getGuideRecords($conn) {
             $records[] = $row;
         }
         
-        if (isset($stmt)) {
-            $stmt->close();
-        }
+        if (isset($stmt)) { $stmt->close(); }
         
         echo json_encode(['status' => 'success', 'data' => $records]);
         
@@ -1262,19 +1470,6 @@ function getGuideRecords($conn) {
         http_response_code(500);
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
-    
-    $result = $conn->query($sql);
-    if (!$result) {
-        echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
-        return;
-    }
-
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
-    }
-    
-    echo json_encode(['status' => 'success', 'data' => $records]);
 }
 
 function checkGuideAvailability($conn) {
@@ -1331,6 +1526,46 @@ function checkGuideAvailability($conn) {
     } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+function getVehicleRecords($conn) {
+    try {
+        // Detect vehicle_informed column
+        $hasVehicleInformed = false;
+        $colCheck = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'vehicle_informed'");
+        if ($colCheck && $colCheck->num_rows > 0) { $hasVehicleInformed = true; }
+        $selectInformed = $hasVehicleInformed ? 'id.vehicle_informed as vehicle_informed,' : '0 as vehicle_informed,';
+        // Optional number_plate
+        $hasPlate = false; $pc = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'"); if ($pc && $pc->num_rows > 0) { $hasPlate = true; }
+        $selectPlate = $hasPlate ? 'v.number_plate as number_plate,' : "'' as number_plate,";
+
+        $sql = "SELECT 
+                   v.id as vehicle_id,
+                   v.vehicle_name,
+                   $selectPlate
+                   v.email as vehicle_email,
+                   id.day_date as assignment_date,
+                   $selectInformed
+                   t.id as trip_id,
+                   t.customer_name as guest_name,
+                   t.tour_code,
+                   t.status
+                FROM vehicles v
+                INNER JOIN itinerary_days id ON v.id = id.vehicle_id
+                INNER JOIN trips t ON id.trip_id = t.id
+                WHERE id.vehicle_id IS NOT NULL AND id.vehicle_id != '' AND id.vehicle_id != '0'
+                ORDER BY v.vehicle_name, id.day_date";
+
+        $result = $conn->query($sql);
+        if (!$result) { throw new Exception('Database query failed: ' . $conn->error); }
+
+        $records = [];
+        while ($row = $result->fetch_assoc()) { $records[] = $row; }
+        echo json_encode(['status' => 'success', 'data' => $records]);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
 }
 

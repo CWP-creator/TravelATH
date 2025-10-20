@@ -17,6 +17,16 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(0); // Completely suppress errors that might output HTML
 
+// Fatal error catcher to avoid HTML responses on fatal errors
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR])) {
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Fatal server error: ' . $err['message'] . ' in ' . $err['file'] . ' on line ' . $err['line']]);
+    }
+});
+
 // Set error handler to catch any PHP errors and convert to JSON
 set_error_handler(function($severity, $message, $file, $line) {
     // Clean output buffer
@@ -55,10 +65,11 @@ function respond($status, $message, $extra = []) {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
-	$trip_id = isset($input['trip_id']) ? intval($input['trip_id']) : 0;
-	if ($trip_id <= 0) {
-		respond('error', 'Invalid or missing trip_id.');
-	}
+    $trip_id = isset($input['trip_id']) ? intval($input['trip_id']) : 0;
+    $test_mode = !empty($input['test_mode']);
+    if ($trip_id <= 0) {
+        respond('error', 'Invalid or missing trip_id.');
+    }
 
 	// --- ADDED: Fetch Trip Details (Tour Code and Customer Name) ---
 	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name FROM trips WHERE id = ?");
@@ -384,7 +395,13 @@ try {
 			$sendError = 'SMTP credentials not configured.';
 		}
 
-		if ($sentOk) {
+		if ($test_mode) {
+			$messages[] = [
+				'type' => 'info',
+				'text' => '[TEST MODE] ' . $rangeText . ' ----> ' . $hotelName . ' (no email sent)'
+			];
+			$sentOk = true;
+		} elseif ($sentOk) {
 			$messages[] = [
 				'type' => 'success',
 				'text' => $rangeText . ' ----> ' . $hotelName . ' status email sent'
@@ -398,7 +415,7 @@ try {
 		}
 	}
 
-	if ($hasHotelInformed && !empty($toMarkInformed)) {
+	if (!$test_mode && $hasHotelInformed && !empty($toMarkInformed)) {
 		$placeholders = implode(',', array_fill(0, count($toMarkInformed), '?'));
 		$types = str_repeat('i', count($toMarkInformed));
 		$upd = $conn->prepare("UPDATE itinerary_days SET hotel_informed = 1 WHERE id IN ($placeholders)");

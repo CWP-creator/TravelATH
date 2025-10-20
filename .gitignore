@@ -4,6 +4,8 @@
 # Configuration files (should not be committed)
 config/db_connect.php
 config/mail_config.php
+# Local service credentials (ignore actual db connect file)
+src/services/db_connect.php
 
 # Vendor dependencies (PHPMailer)
 vendor/

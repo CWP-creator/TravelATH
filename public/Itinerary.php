@@ -861,10 +861,18 @@
             .form-actions-buttons {
                 width: 100%;
                 justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
             }
             .btn-save, .btn-export {
                 flex: 1;
-                padding: 12px 15px;
+                min-width: calc(50% - 4px);
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+            .btn-save {
+                flex-basis: 100%;
+                order: 4;
             }
         }
     </style>
@@ -914,9 +922,17 @@
                         <span>Changes will be saved to database</span>
                     </div>
                     <div class="form-actions-buttons">
+                        <button type="button" id="emailGuidesBtn" class="btn-export">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Email Guides</span>
+                        </button>
                         <button type="button" id="emailHotelsBtn" class="btn-export">
                             <i class="fas fa-envelope"></i>
                             <span>Email Hotels</span>
+                        </button>
+                        <button type="button" id="emailVehiclesBtn" class="btn-export">
+                            <i class="fas fa-truck"></i>
+                            <span>Email Vehicles</span>
                         </button>
                         <button type="button" id="exportCsvBtn" class="btn-export">
                             <i class="fas fa-file-csv"></i>
@@ -930,6 +946,38 @@
                 </div>
             </form>
         </main>
+    </div>
+
+    <!-- Missing Assignment Modal -->
+    <style>
+      .mini-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items:center; justify-content:center; z-index: 1200; }
+      .mini-modal .content { width: 380px; background:#fff; border-radius:10px; box-shadow: var(--shadow-md); overflow:hidden; }
+      .mini-modal .header { padding:10px 14px; background:#f3f4f6; border-bottom:1px solid #e5e7eb; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+      .mini-modal .body { padding:14px; display:flex; flex-direction:column; gap:10px; }
+      .mini-modal .footer { padding:10px 14px; border-top:1px solid #e5e7eb; display:flex; gap:8px; justify-content:flex-end; }
+      .mini-modal .btn { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+      .mini-modal .btn-primary { background: var(--primary-color); color: #fff; }
+      .mini-modal .btn-secondary { background: #e5e7eb; color:#111827; }
+      .mini-modal .close { cursor:pointer; color:#6b7280; }
+    </style>
+    <div id="missingAssignModal" class="mini-modal" aria-hidden="true">
+      <div class="content">
+        <div class="header">
+          <span id="missingAssignTitle">Assign Missing</span>
+          <span id="missingAssignClose" class="close"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="body">
+          <div id="missingAssignInfo" style="font-size:0.9rem; color: var(--text-secondary);"></div>
+          <div class="form-group">
+            <label id="missingAssignLabel">Select</label>
+            <div class="custom-select"><select id="missingAssignSelect"></select></div>
+          </div>
+        </div>
+        <div class="footer">
+          <button id="missingAssignSkip" class="btn btn-secondary">Skip</button>
+          <button id="missingAssignSave" class="btn btn-primary">Assign & Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Email Status Panel -->
@@ -959,6 +1007,8 @@
             const saveBtn = document.querySelector('.btn-save');
             const exportCsvBtn = document.getElementById('exportCsvBtn');
             const emailHotelsBtn = document.getElementById('emailHotelsBtn');
+            const emailGuidesBtn = document.getElementById('emailGuidesBtn');
+            const emailVehiclesBtn = document.getElementById('emailVehiclesBtn');
             const emailStatusPanel = document.getElementById('emailStatusPanel');
             const emailStatusList = document.getElementById('emailStatusList');
             const emailStatusClose = document.getElementById('emailStatusClose');
@@ -1271,11 +1321,14 @@
                     
                     exportCsvBtn.addEventListener('click', exportToCSV);
                     emailHotelsBtn.addEventListener('click', sendHotelEmail);
+                    emailGuidesBtn.addEventListener('click', sendGuideEmail);
+                    emailVehiclesBtn.addEventListener('click', sendVehicleEmail);
                     
                     scrollLeftBtn.addEventListener('click', () => scrollTabs('left'));
                     scrollRightBtn.addEventListener('click', () => scrollTabs('right'));
                     
                     toggleView('details');
+                    // Do not auto-start missing assignment wizard on itinerary view
                     
                 } catch (error) {
                     console.error('Fetch itinerary error:', error);
@@ -1574,8 +1627,16 @@
                     
                     if (type === 'guide') {
                         subtext = item.language ? ` (${item.language})` : '';
-                    } else if (type === 'vehicle') {
-                        subtext = item.capacity ? ` (Seats: ${item.capacity})` : '';
+                } else if (type === 'vehicle') {
+                        if (item.capacity && item.number_plate) {
+                            subtext = ` (Seats: ${item.capacity}, Plate: ${item.number_plate})`;
+                        } else if (item.number_plate) {
+                            subtext = ` (Plate: ${item.number_plate})`;
+                        } else if (item.capacity) {
+                            subtext = ` (Seats: ${item.capacity})`;
+                        } else {
+                            subtext = '';
+                        }
                     }
 
                     const nameKey = item.name || item.vehicle_name || 'N/A';
@@ -1587,11 +1648,15 @@
             const createInformedSwitch = (dayId, fieldName, isChecked) => {
                 const checked = isChecked ? 'checked' : '';
                 const toggleText = isChecked ? 'Informed' : 'Uninformed';
-                const isDisabled = '';
+                
+                // Disable guide/vehicle/hotel toggles if they are already informed (can't change back)
+                const isDisabled = ((fieldName === 'guide' || fieldName === 'vehicle' || fieldName === 'hotel') && isChecked) ? 'disabled' : '';
                 
                 let labelStatusText = 'Status:';
                 if (!isChecked && fieldName === 'hotel') {
                     labelStatusText = 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
+                } else if ((fieldName === 'guide' || fieldName === 'vehicle' || fieldName === 'hotel') && isChecked) {
+                    labelStatusText = 'Status: <span style="color: var(--success); font-size: 0.7rem; font-weight: 700;">(Locked)</span>';
                 }
 
                 const inputId = `day_${dayId}_${fieldName}_informed_toggle`; 
@@ -1610,14 +1675,17 @@
             const updateStatusLabel = (inputId, isChecked) => {
                 const container = document.getElementById(inputId).closest('.informed-switch-container');
                 const statusLabel = container ? container.querySelector('.informed-status-label') : null;
+                const input = document.getElementById(inputId);
                 
                 if (statusLabel) {
                     const fieldName = inputId.split('_')[2]; 
                     
-                    if (isChecked) {
+                    if ((fieldName === 'guide' || fieldName === 'vehicle' || fieldName === 'hotel') && isChecked && input.disabled) {
+                        statusLabel.innerHTML = 'Status: <span style=\"color: var(--success); font-size: 0.7rem; font-weight: 700;\">(Locked)</span>';
+                    } else if (isChecked) {
                         statusLabel.innerHTML = 'Status:';
                     } else if (fieldName === 'hotel') {
-                         statusLabel.innerHTML = 'Status: <span style="color: var(--error); font-size: 0.7rem; font-weight: 700;">(Required)</span>';
+                         statusLabel.innerHTML = 'Status: <span style=\"color: var(--error); font-size: 0.7rem; font-weight: 700;\">(Required)</span>';
                     } else {
                         statusLabel.innerHTML = 'Status:';
                     }
@@ -1633,10 +1701,11 @@
                     if (input.disabled) {
                         if (label) {
                             label.textContent = 'Informed';
+                            label.style.cursor = 'not-allowed';
+                            label.style.opacity = '0.7';
                         }
                         return; 
                     }
-
 
                     if (label) {
                         label.textContent = input.checked ? 'Informed' : 'Uninformed';
@@ -1647,6 +1716,12 @@
                     label.parentNode.replaceChild(newLabel, label);
 
                     newLabel.addEventListener('click', (e) => {
+                        // Prevent clicking on disabled guide toggles
+                        if (input.disabled) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        
                         setTimeout(() => {
                             const isChecked = input.checked;
                             newLabel.textContent = isChecked ? 'Informed' : 'Uninformed';
@@ -1771,6 +1846,93 @@
                     });
                 });
             };
+
+            // Missing assignments wizard (small modal)
+            let missingWizardState = { type: 'hotel', items: [], index: 0 };
+            const missingModal = document.getElementById('missingAssignModal');
+            const missingTitle = document.getElementById('missingAssignTitle');
+            const missingInfo = document.getElementById('missingAssignInfo');
+            const missingLabel = document.getElementById('missingAssignLabel');
+            const missingSelect = document.getElementById('missingAssignSelect');
+            const missingClose = document.getElementById('missingAssignClose');
+            const missingSkip = document.getElementById('missingAssignSkip');
+            const missingSave = document.getElementById('missingAssignSave');
+
+            const openMissingModal = () => { if (missingModal) { missingModal.style.display = 'flex'; } };
+            const closeMissingModal = () => { if (missingModal) { missingModal.style.display = 'none'; } };
+
+            function collectMissing(type) {
+                const items = [];
+                const dayWrappers = document.querySelectorAll('.day-content-wrapper');
+                dayWrappers.forEach(dw => {
+                    const dayId = dw.dataset.dayId;
+                    if (type === 'hotel') {
+                        const sel = dw.querySelector('select[name$="_hotel_id"]');
+                        if (sel && (!sel.value || sel.value === '')) { items.push({ dayId, sel }); }
+                    } else if (type === 'vehicle') {
+                        const sel = dw.querySelector('select[name$="_vehicle_id"]');
+                        if (sel && (!sel.value || sel.value === '')) { items.push({ dayId, sel }); }
+                    }
+                });
+                return items;
+            }
+
+            function populateSelectFor(type, currentValue) {
+                let opts = '<option value="">Not assigned</option>';
+                if (type === 'hotel') {
+                    allHotels.forEach(h => { const sel = (String(h.id)===String(currentValue))?'selected':''; opts += `<option value="${h.id}" ${sel}>${h.name}</option>`; });
+                } else if (type === 'vehicle') {
+                    allVehicles.forEach(v => { const plate = v.number_plate ? ` (${v.number_plate})` : ''; const sel=(String(v.id)===String(currentValue))?'selected':''; opts += `<option value="${v.id}" ${sel}>${v.vehicle_name}${plate}</option>`; });
+                }
+                missingSelect.innerHTML = opts;
+            }
+
+            function showCurrentMissing() {
+                if (!missingWizardState.items.length || missingWizardState.index >= missingWizardState.items.length) {
+                    // Move to next type or finish
+                    if (missingWizardState.type === 'hotel') {
+                        missingWizardState = { type: 'vehicle', items: collectMissing('vehicle'), index: 0 };
+                        if (missingWizardState.items.length) { showCurrentMissing(); return; }
+                        closeMissingModal();
+                        return;
+                    } else {
+                        closeMissingModal();
+                        return;
+                    }
+                }
+                const { dayId, sel } = missingWizardState.items[missingWizardState.index];
+                missingTitle.textContent = missingWizardState.type === 'hotel' ? 'Assign Hotel' : 'Assign Vehicle';
+                missingLabel.textContent = missingWizardState.type === 'hotel' ? 'Select Hotel' : 'Select Vehicle';
+                const dayBtn = document.querySelector(`.tab-button[data-day-id="${dayId}"]`);
+                const dayText = dayBtn ? dayBtn.textContent : '';
+                missingInfo.textContent = `Missing ${missingWizardState.type} for ${dayText}`;
+                populateSelectFor(missingWizardState.type, sel.value);
+                openMissingModal();
+            }
+
+            function startMissingAssignmentsWizard() {
+                missingWizardState = { type: 'hotel', items: collectMissing('hotel'), index: 0 };
+                if (missingWizardState.items.length) {
+                    showCurrentMissing();
+                } else {
+                    // No missing hotels, check vehicles
+                    missingWizardState = { type: 'vehicle', items: collectMissing('vehicle'), index: 0 };
+                    if (missingWizardState.items.length) showCurrentMissing();
+                }
+            }
+
+            if (missingClose) missingClose.addEventListener('click', closeMissingModal);
+            if (missingSkip) missingSkip.addEventListener('click', () => { missingWizardState.index++; showCurrentMissing(); });
+            if (missingSave) missingSave.addEventListener('click', () => {
+                const item = missingWizardState.items[missingWizardState.index];
+                if (!item) { closeMissingModal(); return; }
+                const { sel } = item;
+                sel.value = missingSelect.value || '';
+                // Trigger change to update indicators
+                sel.dispatchEvent(new Event('change'));
+                missingWizardState.index++;
+                showCurrentMissing();
+            });
 
             const renderTabsAndSwitch = (itinerary_days) => {
                 dayTabsContainer.innerHTML = '';
@@ -2169,6 +2331,167 @@
                 } finally {
                     emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
                     emailHotelsBtn.disabled = false;
+                }
+            };
+            
+                // Function to send email to ALL uninformed vehicles for the trip
+            const sendVehicleEmail = async () => {
+                const currentData = getCurrentFormData(currentItineraryDays);
+                const assignedVehicles = currentData.filter(day => day.vehicle_id && day.vehicle_id !== '' && day.vehicle_id !== '0' && day.vehicle_id !== 0);
+                if (assignedVehicles.length === 0) { showToast('No vehicle assignments found for this trip.', 'info'); return; }
+                const anyUninformed = assignedVehicles.some(day => !day.vehicle_informed);
+                if (!anyUninformed) { showToast('All assigned vehicles have already been informed.', 'info'); return; }
+
+                emailVehiclesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                emailVehiclesBtn.disabled = true;
+                try {
+                    const itinerary_days_data = currentData.map(d => ({
+                        id: d.id,
+                        guide_id: d.guide_id || null,
+                        vehicle_id: d.vehicle_id || null,
+                        hotel_id: d.hotel_id || null,
+                        room_type_data: d.room_quantities ? JSON.stringify(d.room_quantities) : JSON.stringify({double:0,twin:0,single:0,triple:0}),
+                        guide_informed: d.guide_informed ? 1 : 0,
+                        vehicle_informed: d.vehicle_informed ? 1 : 0,
+                        hotel_informed: d.hotel_informed ? 1 : 0,
+                        notes: d.notes || '',
+                        services_provided: d.services_provided || ''
+                    }));
+                    const saveResponse = await fetch(`${API_URL}?action=updateItinerary`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ itinerary_days: itinerary_days_data })});
+                    const saveResult = await saveResponse.json();
+                    if (saveResult.status !== 'success') { throw new Error('Failed to save changes: ' + saveResult.message); }
+
+                    openEmailStatusPanel();
+                    clearEmailStatus();
+                    addEmailStatusItem('queued','Processing vehicle emails...');
+
+                    emailVehiclesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                    const response = await fetch('../src/services/send_vehicle_email.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: tripId })});
+                    if (!response.ok) { const txt = await response.text(); throw new Error(`Server Error ${response.status}: ${txt}`); }
+                    const result = await response.json();
+                    clearEmailStatus();
+                    if (result.messages && result.messages.length) { result.messages.forEach(m => addEmailStatusItem(m.type||'info', m.text||'')); } else { addEmailStatusItem(result.status||'info', result.message||'No messages'); }
+
+                    const activeDayBeforeFetch = document.querySelector('.tab-button.active')?.dataset.dayNumber;
+                    await fetchItinerary();
+                    if (activeDayBeforeFetch) setTimeout(() => switchDay(activeDayBeforeFetch), 100);
+
+                    if (result.status === 'success') showToast('Vehicle emails processed.','success'); else showToast(result.message, result.status||'error');
+                } catch (error) {
+                    clearEmailStatus(); addEmailStatusItem('error','Request failed: ' + error.message); showToast('Request Failed: ' + error.message, 'error');
+                } finally {
+                    emailVehiclesBtn.innerHTML = '<i class="fas fa-truck"></i> <span>Email Vehicles</span>';
+                    emailVehiclesBtn.disabled = false;
+                }
+            };
+
+            // Function to send email to ALL uninformed guides for the trip
+            const sendGuideEmail = async () => {
+                // First, get current form data to check for unsaved changes
+                const currentData = getCurrentFormData(currentItineraryDays);
+                
+                // Debug: Log guide_id values
+                currentData.forEach((day, i) => {
+                    console.log(`Day ${i+1}: guide_id="${day.guide_id}" (type: ${typeof day.guide_id})`);
+                });
+                
+                // Check if there are any guide assignments at all
+                const assignedGuides = currentData.filter(day => day.guide_id && day.guide_id !== '' && day.guide_id !== '0' && day.guide_id !== 0);
+                
+                if (assignedGuides.length === 0) {
+                    showToast('No guide assignments found for this trip.', 'info');
+                    return;
+                }
+
+                const uninformedGuides = assignedGuides.some(day => !day.guide_informed);
+                if (!uninformedGuides) {
+                    showToast('All assigned guides have already been informed.', 'info');
+                    return;
+                }
+
+                // Save changes first before sending emails
+                emailGuidesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                emailGuidesBtn.disabled = true;
+
+                try {
+                    // Save current form data
+                    const itinerary_days_data = currentData.map(d => ({
+                        id: d.id,
+                        guide_id: d.guide_id || null,
+                        vehicle_id: d.vehicle_id || null,
+                        hotel_id: d.hotel_id || null,
+                        room_type_data: d.room_quantities ? JSON.stringify(d.room_quantities) : JSON.stringify({double: 0, twin: 0, single: 0, triple: 0}),
+                        guide_informed: d.guide_informed ? 1 : 0,
+                        vehicle_informed: d.vehicle_informed ? 1 : 0,
+                        hotel_informed: d.hotel_informed ? 1 : 0,
+                        notes: d.notes || '',
+                        services_provided: d.services_provided || '',
+                    }));
+
+                    const saveResponse = await fetch(`${API_URL}?action=updateItinerary`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itinerary_days: itinerary_days_data })
+                    });
+
+                    const saveResult = await saveResponse.json();
+                    if (saveResult.status !== 'success') {
+                        throw new Error('Failed to save changes: ' + saveResult.message);
+                    }
+
+                    // Show panel and initial queued message
+                    openEmailStatusPanel();
+                    clearEmailStatus();
+                    addEmailStatusItem('queued', 'Processing guide emails...');
+
+                    emailGuidesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                    const response = await fetch('../src/services/send_guide_email.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            trip_id: tripId
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Server Error ${response.status}: ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Update status panel with server messages
+                    clearEmailStatus();
+                    if (result.messages && result.messages.length) {
+                        result.messages.forEach(m => addEmailStatusItem(m.type || 'info', m.text || ''));
+                    } else {
+                        addEmailStatusItem(result.status || 'info', result.message || 'No messages');
+                    }
+
+                    const activeDayBeforeFetch = document.querySelector('.tab-button.active')?.dataset.dayNumber;
+
+                    // Re-fetch itinerary to get the latest 'informed' status and re-render the UI
+                    await fetchItinerary();
+                    
+                    // After re-rendering, try to switch back to the previously active day
+                    if(activeDayBeforeFetch) {
+                        setTimeout(() => switchDay(activeDayBeforeFetch), 100);
+                    }
+
+                    if (result.status === 'success') {
+                        showToast('Guide emails processed.', 'success');
+                    } else {
+                        showToast(result.message, result.status || 'error');
+                    }
+
+                } catch (error) {
+                    clearEmailStatus();
+                    addEmailStatusItem('error', 'Request failed: ' + error.message);
+                    showToast('Request Failed: ' + error.message, 'error');
+                } finally {
+                    emailGuidesBtn.innerHTML = '<i class="fas fa-user-tie"></i> <span>Email Guides</span>';
+                    emailGuidesBtn.disabled = false;
                 }
             };
             
