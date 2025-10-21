@@ -237,8 +237,8 @@
 
         .summary-card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 10px;
         }
 
         .summary-card {
@@ -250,11 +250,11 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            min-width: 250px;
+            min-width: 230px;
         }
         
         .summary-header {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 700;
             padding-bottom: 4px;
             border-bottom: 1px solid var(--border);
@@ -265,8 +265,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             padding: 2px 0;
+            gap: 8px;
         }
         
         .summary-item i {
@@ -281,18 +282,29 @@
             flex-shrink: 0;
             display: flex;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
         }
 
         .summary-value {
             font-weight: 700;
             text-align: right;
             color: var(--text-primary);
-            max-width: 50%;
+            max-width: 80%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
+        }
+        .summary-notes {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-align: left;
+            max-width: 80%;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.78rem;
         }
 
         .summary-status {
@@ -683,6 +695,19 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        .btn-success { background: #10b981 !important; border-color: #10b981 !important; }
+        
+        /* Dropup menus for grouped actions */
+        .menu-item-success { background:#dcfce7 !important; color:#166534 !important; }
+        .menu-item-success:hover { background:#bbf7d0 !important; }
+        .dropup { position: relative; display: inline-block; }
+        .dropup-menu {
+            position: absolute; bottom: 44px; right: 0; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
+            padding: 6px; display: none; z-index: 1050;
+        }
+        .dropup.open .dropup-menu { display: block; }
+        .dropup-menu a { display: block; padding: 8px 10px; color: var(--text-primary); text-decoration: none; border-radius: 6px; font-size: 0.9rem; }
+        .dropup-menu a:hover { background: var(--border-light); }
 
         /* Email Status Panel */
         .email-status-panel {
@@ -762,11 +787,11 @@
             display: inline-block;
             background: #10b981;
             color: white;
-            padding: 2px 6px;
+            padding: 1px 4px;
             border-radius: 3px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
-            margin: 2px;
+            margin: 1px;
         }
         
         .room-quantities-grid {
@@ -922,26 +947,64 @@
                         <span>Changes will be saved to database</span>
                     </div>
                     <div class="form-actions-buttons">
-                        <button type="button" id="emailGuidesBtn" class="btn-export">
-                            <i class="fas fa-user-tie"></i>
-                            <span>Email Guides</span>
-                        </button>
-                        <button type="button" id="emailHotelsBtn" class="btn-export">
-                            <i class="fas fa-envelope"></i>
-                            <span>Email Hotels</span>
-                        </button>
-                        <button type="button" id="emailVehiclesBtn" class="btn-export">
-                            <i class="fas fa-truck"></i>
-                            <span>Email Vehicles</span>
-                        </button>
+                        <!-- Order: Assign (left) • Email • Export • Save (right) -->
+                        
+                        <!-- Assign dropup (leftmost) -->
+                        <div class="dropup" id="assignDropup">
+                            <button type="button" id="assignDropBtn" class="btn-export">
+                                <i class="fas fa-tasks"></i>
+                                <span>Assign</span>
+                            </button>
+                            <div class="dropup-menu" id="assignMenu">
+                                <a href="#" id="assignGuidesItem"><i class="fas fa-user-tie"></i> Assign Guides</a>
+                                <a href="#" id="assignHotelsItem"><i class="fas fa-hotel"></i> Assign Hotels</a>
+                                <a href="#" id="assignVehiclesItem"><i class="fas fa-truck"></i> Assign Vehicles</a>
+                            </div>
+                        </div>
+                        
+                        <!-- Email dropup -->
+                        <div class="dropup" id="emailDropup">
+                            <button type="button" id="emailDropBtn" class="btn-export">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email</span>
+                            </button>
+                            <div class="dropup-menu" id="emailMenu">
+                                <a href="#" id="emailGuidesItem"><i class="fas fa-user-tie"></i> Email Guides</a>
+                                <a href="#" id="emailHotelsItem"><i class="fas fa-hotel"></i> Email Hotels</a>
+                                <a href="#" id="emailVehiclesItem"><i class="fas fa-truck"></i> Email Vehicles</a>
+                            </div>
+                        </div>
+
+                        <!-- Export CSV -->
                         <button type="button" id="exportCsvBtn" class="btn-export">
                             <i class="fas fa-file-csv"></i>
                             <span>Export to CSV</span>
                         </button>
+
+                        <!-- Save (rightmost) -->
                         <button type="submit" class="btn-save">
                             <i class="fas fa-check"></i>
                             <span>Save Changes</span>
                         </button>
+
+                        <!-- Hidden individual buttons kept for internal logic -->
+                        <button type="button" id="emailGuidesBtn" class="btn-export" style="display:none">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Email Guides</span>
+                        </button>
+                        <button type="button" id="emailHotelsBtn" class="btn-export" style="display:none">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email Hotels</span>
+                        </button>
+                        <button type="button" id="emailVehiclesBtn" class="btn-export" style="display:none">
+                            <i class="fas fa-truck"></i>
+                            <span>Email Vehicles</span>
+                        </button>
+                        <button type="button" id="assignGuidesWizardBtn" class="btn-export" style="display:none" title="Assign guides on required days">
+                            <i class="fas fa-person-chalkboard"></i>
+                            <span>Assign Guides</span>
+                        </button>
+
                     </div>
                 </div>
             </form>
@@ -1009,6 +1072,7 @@
             const emailHotelsBtn = document.getElementById('emailHotelsBtn');
             const emailGuidesBtn = document.getElementById('emailGuidesBtn');
             const emailVehiclesBtn = document.getElementById('emailVehiclesBtn');
+            const emailDropBtn = document.getElementById('emailDropBtn');
             const emailStatusPanel = document.getElementById('emailStatusPanel');
             const emailStatusList = document.getElementById('emailStatusList');
             const emailStatusClose = document.getElementById('emailStatusClose');
@@ -1600,6 +1664,7 @@
                         setTimeout(setupHotelChangeListeners, 0);
                         // Initial update of missing hotel indicators
                         setTimeout(updateMissingHotelIndicators, 200);
+                        setTimeout(()=>{ try{ updateAssignMenuStatus(); }catch(e){} }, 300);
                     }
                     
                     // Guide overlap prompt on change
@@ -1932,6 +1997,12 @@
             }
 
             function populateSelectFor(type, currentValue) {
+                if (type === 'guide') {
+                    let opts = '<option value="">Not assigned</option>';
+                    allGuides.forEach(g => { const sel = (String(g.id)===String(currentValue))?'selected':''; const lang = g.language?` (${g.language})`:''; opts += `<option value="${g.id}" ${sel}>${g.name}${lang}</option>`; });
+                    missingSelect.innerHTML = opts;
+                    return;
+                }
                 let opts = '<option value="">Not assigned</option>';
                 if (type === 'hotel') {
                     allHotels.forEach(h => { const sel = (String(h.id)===String(currentValue))?'selected':''; opts += `<option value="${h.id}" ${sel}>${h.name}</option>`; });
@@ -1942,6 +2013,16 @@
             }
 
             function showCurrentMissing() {
+                if (missingWizardState.type === 'guide_required') {
+                    if (!missingWizardState.items.length || missingWizardState.index >= missingWizardState.items.length) { closeMissingModal(); return; }
+                    const { dayId, currentGuideId, dayLabel } = missingWizardState.items[missingWizardState.index];
+                    missingTitle.textContent = 'Assign Guide';
+                    missingLabel.textContent = 'Select Guide';
+                    missingInfo.innerHTML = `Required guide for ${dayLabel}`;
+                    populateSelectFor('guide', currentGuideId || '');
+                    openMissingModal();
+                    return;
+                }
                 if (!missingWizardState.items.length || missingWizardState.index >= missingWizardState.items.length) {
                     // Move to next type or finish
                     if (missingWizardState.type === 'hotel') {
@@ -1977,9 +2058,40 @@
 
             if (missingClose) missingClose.addEventListener('click', closeMissingModal);
             if (missingSkip) missingSkip.addEventListener('click', () => { missingWizardState.index++; showCurrentMissing(); });
-            if (missingSave) missingSave.addEventListener('click', () => {
+            if (missingSave) missingSave.addEventListener('click', async () => {
                 const item = missingWizardState.items[missingWizardState.index];
                 if (!item) { closeMissingModal(); return; }
+
+                if (missingWizardState.type === 'guide_required') {
+                    const guideId = missingSelect.value || '';
+                    // Update form select
+                    const guideSelect = document.querySelector(`[name="day_${item.dayId}_guide_id"]`);
+                    if (guideSelect) { guideSelect.value = guideId; }
+                    // Save this day only using current form data snapshot
+                    try {
+                        const allData = getCurrentFormData(currentItineraryDays);
+                        const one = allData.find(d => String(d.id) === String(item.dayId));
+                        if (one) {
+                            const payload = [{
+                                id: one.id,
+                                guide_id: guideId || null,
+                                vehicle_id: one.vehicle_id || null,
+                                hotel_id: one.hotel_id || null,
+                                room_type_data: one.room_quantities ? JSON.stringify(one.room_quantities) : JSON.stringify({double:0,twin:0,single:0,triple:0}),
+                                guide_informed: one.guide_informed ? 1 : 0,
+                                vehicle_informed: one.vehicle_informed ? 1 : 0,
+                                hotel_informed: one.hotel_informed ? 1 : 0,
+                                notes: one.notes || '',
+                                services_provided: one.services_provided || ''
+                            }];
+                            await fetch(`${API_URL}?action=updateItinerary`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ itinerary_days: payload }) });
+                        }
+                    } catch (e) { /* ignore */ }
+                    missingWizardState.index++;
+                    showCurrentMissing();
+                    return;
+                }
+
                 const { sel } = item;
                 sel.value = missingSelect.value || '';
                 // Trigger change to update indicators
@@ -2076,6 +2188,8 @@
                     const servicesDisplay = day.services_provided 
                         ? day.services_provided.split(',').map(s => `<span class="service-tag">${s.trim()}</span>`).join('')
                         : '<span style="color: var(--text-light);">No services</span>';
+                    const rawNotes = (day.notes || '').trim();
+                    const notesDisplay = rawNotes || '<span style="color: var(--text-light);">No activities</span>';
                     
                     itemsHtml += `
                         <div class="summary-item">
@@ -2083,6 +2197,12 @@
                                 <i class="fas fa-utensils"></i> Services
                             </span>
                             <span class="summary-value">${servicesDisplay}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">
+                                <i class="fas fa-list-ul"></i> Activities
+                            </span>
+                            <span class="summary-notes" title="${rawNotes.replace(/"/g,'&quot;')}">${notesDisplay}</span>
                         </div>
                     `;
 
@@ -2220,18 +2340,25 @@
                     return;
                 }
 
-                const headers = ['Day', 'Date', 'Guide', 'Guide Informed', 'Vehicle', 'Vehicle Informed', 'Hotel', 'Hotel Informed', 'Services'];
-                const csvRows = data.map((d, index) => [
-                    `Day ${index + 1}`,
-                    d.day_date,
-                    d.guide_name,
-                    d.guide_informed ? 'Yes' : 'No',
-                    d.vehicle_name,
-                    d.vehicle_informed ? 'Yes' : 'No',
-                    d.hotel_name,
-                    d.hotel_informed ? 'Yes' : 'No',
-                    d.services_provided || 'None',
-                ]);
+                // Build compact services token like BLD (ordered, unique)
+                const headers = ['Day', 'Date', 'Guide', 'Vehicle', 'Hotel', 'Services', 'Activities / Notes'];
+                const csvRows = data.map((d, index) => {
+                    const sv = (d.services_provided || '').toUpperCase();
+                    const tokens = Array.from(new Set(sv.split(/[\s,;]+/).filter(x=>['B','L','D'].includes(x))));
+                    const order = {'B':0,'L':1,'D':2};
+                    tokens.sort((a,b)=>(order[a]??9)-(order[b]??9));
+                    const compactServices = tokens.join('') || '';
+                    const notesOneLine = (d.notes || '').replace(/\n/g,' ').trim();
+                    return [
+                        `Day ${index + 1}`,
+                        d.day_date,
+                        d.guide_name,
+                        d.vehicle_name,
+                        d.hotel_name,
+                        compactServices,
+                        notesOneLine
+                    ];
+                });
 
                 const csvContent = [
                     headers.join(','),
@@ -2307,8 +2434,7 @@
                 }
 
                 // Save changes first before sending emails
-                emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                emailHotelsBtn.disabled = true;
+                if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Email'; emailDropBtn.disabled = true; }
 
                 try {
                     // Save current form data
@@ -2341,7 +2467,7 @@
                     clearEmailStatus();
                     addEmailStatusItem('queued', 'Processing hotel emails...');
 
-                    emailHotelsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                    if (emailDropBtn) emailDropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Email';
 
                     const response = await fetch('../src/services/send_hotel_email.php', {
                         method: 'POST',
@@ -2376,8 +2502,15 @@
                         setTimeout(() => switchDay(activeDayBeforeFetch), 100);
                     }
 
-                    if (result.status === 'success') {
+                        if (result.status === 'success') {
                         showToast('Hotel emails processed.', 'success');
+                        // Mark Email Hotels as completed (green)
+                        const hotelsItem = document.getElementById('emailHotelsItem');
+                        if (hotelsItem) hotelsItem.classList.add('menu-item-success');
+                        const emailBtn = document.getElementById('emailDropBtn');
+                        if (emailBtn) emailBtn.classList.add('btn-success');
+                        // After emailing hotels, hotels are considered assigned/informed; update Assign menu status
+                        try{ updateAssignMenuStatus(); }catch(e){}
                     } else {
                         showToast(result.message, result.status || 'error');
                     }
@@ -2387,8 +2520,7 @@
                     addEmailStatusItem('error', 'Request failed: ' + error.message);
                     showToast('Request Failed: ' + error.message, 'error');
                 } finally {
-                    emailHotelsBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email Hotels</span>';
-                    emailHotelsBtn.disabled = false;
+                    if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email</span>'; emailDropBtn.disabled = false; }
                 }
             };
             
@@ -2400,8 +2532,7 @@
                 const anyUninformed = assignedVehicles.some(day => !day.vehicle_informed);
                 if (!anyUninformed) { showToast('All assigned vehicles have already been informed.', 'info'); return; }
 
-                emailVehiclesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                emailVehiclesBtn.disabled = true;
+                if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Email'; emailDropBtn.disabled = true; }
                 try {
                     const itinerary_days_data = currentData.map(d => ({
                         id: d.id,
@@ -2438,8 +2569,7 @@
                 } catch (error) {
                     clearEmailStatus(); addEmailStatusItem('error','Request failed: ' + error.message); showToast('Request Failed: ' + error.message, 'error');
                 } finally {
-                    emailVehiclesBtn.innerHTML = '<i class="fas fa-truck"></i> <span>Email Vehicles</span>';
-                    emailVehiclesBtn.disabled = false;
+                    if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email</span>'; emailDropBtn.disabled = false; }
                 }
             };
 
@@ -2468,8 +2598,7 @@
                 }
 
                 // Save changes first before sending emails
-                emailGuidesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                emailGuidesBtn.disabled = true;
+                if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Email'; emailDropBtn.disabled = true; }
 
                 try {
                     // Save current form data
@@ -2502,7 +2631,7 @@
                     clearEmailStatus();
                     addEmailStatusItem('queued', 'Processing guide emails...');
 
-                    emailGuidesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                    if (emailDropBtn) emailDropBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Email';
 
                     const response = await fetch('../src/services/send_guide_email.php', {
                         method: 'POST',
@@ -2548,8 +2677,7 @@
                     addEmailStatusItem('error', 'Request failed: ' + error.message);
                     showToast('Request Failed: ' + error.message, 'error');
                 } finally {
-                    emailGuidesBtn.innerHTML = '<i class="fas fa-user-tie"></i> <span>Email Guides</span>';
-                    emailGuidesBtn.disabled = false;
+                    if (emailDropBtn) { emailDropBtn.innerHTML = '<i class="fas fa-envelope"></i> <span>Email</span>'; emailDropBtn.disabled = false; }
                 }
             };
             
@@ -2601,7 +2729,77 @@
                 }
             });
             
+            // Start wizard for guide-required days
+            function startGuideRequiredWizard(){
+                if (!Array.isArray(packageRequirements) || packageRequirements.length===0){ showToast('No package requirements found','info'); return; }
+                // Build list of days where guide_required == 1
+                const items = [];
+                currentItineraryDays.forEach((day, idx) => {
+                    const dn = idx+1;
+                    const req = packageRequirements.find(r => r.day_number === dn);
+                    if (req && (req.guide_required === 1 || req.guide_required === '1')){
+                        const dayDate = new Date(day.day_date + 'T00:00:00');
+                        const dayLabel = `Day ${dn} (${dayDate.toLocaleDateString('en-US', { month:'short', day:'numeric' })})`;
+                        items.push({ dayId: day.id, currentGuideId: day.guide_id || '', dayLabel });
+                    }
+                });
+                if (!items.length){ showToast('No days require a guide in this package.','info'); return; }
+                missingWizardState = { type: 'guide_required', items, index: 0 };
+                showCurrentMissing();
+            }
+
+            document.getElementById('assignGuidesWizardBtn').addEventListener('click', startGuideRequiredWizard);
+
+            // Assign only hotels
+            function startAssignHotelsOnly(){
+                missingWizardState = { type: 'hotel', items: collectMissing('hotel'), index: 0 };
+                if (missingWizardState.items.length) showCurrentMissing(); else showToast('No hotel assignments pending.','info');
+            }
+            // Assign only vehicles
+            function startAssignVehiclesOnly(){
+                missingWizardState = { type: 'vehicle', items: collectMissing('vehicle'), index: 0 };
+                if (missingWizardState.items.length) showCurrentMissing(); else showToast('No vehicle assignments pending.','info');
+            }
+
+            // Dropup handlers
+            function setupDropup(btnId, menuId){
+                const btn = document.getElementById(btnId); const menu = document.getElementById(menuId); const wrapper = menu.parentElement;
+                btn.addEventListener('click', (e)=>{ e.stopPropagation(); wrapper.classList.toggle('open'); });
+                document.addEventListener('click', ()=>{ wrapper.classList.remove('open'); });
+            }
+            setupDropup('emailDropBtn','emailMenu');
+            setupDropup('assignDropBtn','assignMenu');
+
+            // Email menu items
+            document.getElementById('emailGuidesItem').addEventListener('click', (e)=>{ e.preventDefault(); sendGuideEmail(); });
+            document.getElementById('emailHotelsItem').addEventListener('click', (e)=>{ e.preventDefault(); sendHotelEmail(); });
+            document.getElementById('emailVehiclesItem').addEventListener('click', (e)=>{ e.preventDefault(); sendVehicleEmail(); });
+            // Assign menu items
+            document.getElementById('assignGuidesItem').addEventListener('click', (e)=>{ e.preventDefault(); startGuideRequiredWizard(); });
+            document.getElementById('assignHotelsItem').addEventListener('click', (e)=>{ e.preventDefault(); startAssignHotelsOnly(); });
+            document.getElementById('assignVehiclesItem').addEventListener('click', (e)=>{ e.preventDefault(); startAssignVehiclesOnly(); });
+
+            // Update Assign->Hotels status (green when all assigned)
+            function updateAssignMenuStatus(){
+                try{
+                    const data = getCurrentFormData(currentItineraryDays);
+                    const requiresHotel = (dayNumber) => {
+                        const req = packageRequirements.find(r => r.day_number === dayNumber);
+                        return !!(req && req.hotel_id);
+                    };
+                    const anyMissing = data.some((d, idx) => requiresHotel(idx+1) && (!d.hotel_id || d.hotel_id==='0' || d.hotel_id===0));
+                    const hotelsItem = document.getElementById('assignHotelsItem');
+                    const assignBtn = document.getElementById('assignDropBtn');
+                    if (!anyMissing) { hotelsItem?.classList.add('menu-item-success'); assignBtn?.classList.add('btn-success'); }
+                    else { hotelsItem?.classList.remove('menu-item-success'); assignBtn?.classList.remove('btn-success'); }
+                }catch(e){/* ignore */}
+            }
+
             fetchItinerary();
+            // Re-evaluate after a short delay (post-render)
+            setTimeout(updateAssignMenuStatus, 500);
+            // Also update when toggling to summary (after render)
+            summaryToggleBtn.addEventListener('click', ()=> setTimeout(updateAssignMenuStatus, 400));
         });
     </script>
 

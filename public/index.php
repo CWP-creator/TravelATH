@@ -506,7 +506,21 @@
             visibility: visible; opacity: 1;
         }
         .toast.success { background-color: var(--success-color); }
-        .toast.error { background-color: var(--error-color); }
+.toast.error { background-color: var(--error-color); }
+        .toast.info { background-color: #3b82f6; }
+        .toast.warning { background-color: var(--warning-color); }
+
+        /* Action notification */
+        .action-toast {
+            position: fixed; right: 20px; bottom: 20px; background: #111827; color: #fff; padding: 14px 16px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.2); display: none; align-items: center; gap: 12px; z-index: 1002;
+        }
+        .action-toast.show { display: flex; }
+        .action-toast .msg { margin-right: 8px; }
+        .action-toast .btn {
+            border: none; border-radius: 6px; padding: 8px 10px; font-weight: 600; cursor: pointer;
+        }
+        .action-toast .btn-primary { background: var(--primary-color); color: #fff; }
+        .action-toast .btn-secondary { background: #374151; color: #e5e7eb; }
 
         @media screen and (max-width: 992px) {
             .sidebar {
@@ -1649,7 +1663,7 @@
                 });
             };
 
-            const renderPackages = (packages) => {
+                const renderPackages = (packages) => {
                 const tbody = document.querySelector('#packagesTable tbody');
                 tbody.innerHTML = '';
                 if (!packages || packages.length === 0) {
@@ -1664,10 +1678,13 @@
                         <td>${pkg.code || 'N/A'}</td>
                         <td>${pkg.No_of_Days || 'N/A'}</td>
                         <td class="actions">
-                            <a href="#" class="btn-edit-package" data-id="${pkg.id}"><i class="fas fa-pencil"></i></a>
-                            <a href="#" class="btn-delete-package" data-id="${pkg.id}"><i class="fas fa-trash"></i></a>
+                            <a href="#" class="btn-duplicate-package" data-id="${pkg.id}" title="Duplicate Package"><i class="fas fa-clone"></i></a>
+                            <a href="#" class="btn-create-trip-from-package" data-id="${pkg.id}" title="Create Trip from Package"><i class="fas fa-route"></i></a>
+                            <a href="#" class="btn-delete-package" data-id="${pkg.id}" title="Delete Package"><i class="fas fa-trash"></i></a>
                         </td>
                     `;
+                    row.classList.add('package-row');
+                    row.setAttribute('data-id', pkg.id);
                     tbody.appendChild(row);
                 });
             };
@@ -2290,8 +2307,13 @@
                     const result = await response.json();
                     if (result.status === 'success') {
                         showToast(result.message, 'success');
+                        const newId = (!packageId && result.data && result.data.id) ? result.data.id : (packageId || null);
                         closeModal('packageModal');
-                        fetchPackages();
+                        await fetchPackages();
+                        // After creating a package, ask to create a trip from it via notification
+                        if (!packageId && newId) {
+                            showActionToast('Package created. Create a trip from it now?', 'Create Trip', () => openTripModalForPackage(newId));
+                        }
                     } else {
                         showToast(result.message, 'error');
                     }
@@ -2663,6 +2685,60 @@
                 document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
             }
 
+            function openTripModalForPackage(pkgId){
+                // Reset trip form as Add Trip
+                document.getElementById('tripForm').reset();
+                document.getElementById('tripIdHidden').value = '';
+                document.getElementById('tripIdDisplay').value = '';
+                document.getElementById('fileIdGroup').style.display = 'none';
+                document.getElementById('modalTitle').textContent = 'Add Trip';
+                // Select the package
+                const pkgSelect = document.getElementById('trip_package_id');
+                if (pkgSelect){
+                    pkgSelect.value = String(pkgId);
+                    pkgSelect.dispatchEvent(new Event('change'));
+                }
+                openModal('tripModal');
+            }
+
+            async function openPackageEditModal(pkg){
+                document.getElementById('packageModalTitle').textContent = 'Edit Package';
+                document.getElementById('packageId').value = pkg.id;
+                document.getElementById('package_name').value = pkg.name;
+                document.getElementById('package_code').value = pkg.code || '';
+                document.getElementById('package_days').value = pkg.No_of_Days;
+                generateDayRequirements(pkg.No_of_Days);
+                try {
+                    const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
+                    const result = await response.json();
+                    if (result.status === 'success' && result.data) {
+                        result.data.forEach(req => {
+                            const dayNum = req.day_number;
+                            const hotelSelector = document.getElementById(`hotel_day_${dayNum}`);
+                            if (hotelSelector && req.hotel_id) { hotelSelector.value = req.hotel_id; }
+                            const guideCheckbox = document.getElementById(`guide_required_day_${dayNum}`);
+                            if (guideCheckbox) { guideCheckbox.checked = req.guide_required === '1' || req.guide_required === 1; }
+                            const vehicleCheckbox = document.getElementById(`vehicle_required_day_${dayNum}`);
+                            const vehicleTypeSelect = document.getElementById(`vehicle_type_day_${dayNum}`);
+                            if (vehicleCheckbox) {
+                                vehicleCheckbox.checked = req.vehicle_required === '1' || req.vehicle_required === 1;
+                                if (vehicleCheckbox.checked && vehicleTypeSelect) { vehicleTypeSelect.style.display = 'block'; vehicleTypeSelect.value = req.vehicle_type || ''; }
+                            }
+                            const svcB = document.getElementById(`svc_b_${dayNum}`);
+                            const svcL = document.getElementById(`svc_l_${dayNum}`);
+                            const svcD = document.getElementById(`svc_d_${dayNum}`);
+                            const svcs = (req.day_services || '').toString();
+                            if (svcB) svcB.checked = svcs.includes('B');
+                            if (svcL) svcL.checked = svcs.includes('L');
+                            if (svcD) svcD.checked = svcs.includes('D');
+                            const notesEl = document.getElementById(`notes_day_${dayNum}`);
+                            if (notesEl && typeof req.day_notes !== 'undefined' && req.day_notes !== null) { notesEl.value = req.day_notes; }
+                        });
+                    }
+                } catch (error) { showToast('Could not load package requirements.', 'error'); }
+                openModal('packageModal');
+            }
+
             function openTripById(id){
                 const trip = tripsData.find(t => t.id == id);
                 if (!trip){ showToast('Trip not found','error'); return; }
@@ -2670,11 +2746,19 @@
                 openModal('tripModal');
             }
 
-            document.addEventListener('dblclick', function(e){
+            document.addEventListener('dblclick', async function(e){
                 const tr = e.target.closest('tr.trip-row');
-                if (!tr) return;
-                const id = tr.getAttribute('data-id');
-                if (id) window.location.href = `Itinerary.php?trip_id=${id}`;
+                const pkgTr = e.target.closest('tr.package-row');
+                if (tr) {
+                    const id = tr.getAttribute('data-id');
+                    if (id) window.location.href = `Itinerary.php?trip_id=${id}`;
+                    return;
+                }
+                if (pkgTr) {
+                    const id = pkgTr.getAttribute('data-id');
+                    const pkg = packagesData.find(p => String(p.id) === String(id));
+                    if (pkg) { await openPackageEditModal(pkg); }
+                }
             });
 
             document.addEventListener('click', async function(e) {
@@ -2694,70 +2778,58 @@
                     openTripById(id);
                 }
 
-                if (target.classList.contains('btn-edit-package')) {
+                if (target.classList.contains('btn-create-trip-from-package')) {
                     e.preventDefault();
                     const pkg = packagesData.find(p => p.id == id);
                     if (pkg) {
-                        document.getElementById('packageModalTitle').textContent = 'Edit Package';
-                        document.getElementById('packageId').value = pkg.id;
-                        document.getElementById('package_name').value = pkg.name;
-                        document.getElementById('package_code').value = pkg.code || '';
-                        document.getElementById('package_days').value = pkg.No_of_Days;
-                        
-                        generateDayRequirements(pkg.No_of_Days);
-                        
-                        try {
-                            const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
-                            const result = await response.json();
-                            if (result.status === 'success' && result.data) {
-                                result.data.forEach(req => {
-                                    const dayNum = req.day_number;
-                                    
-                                    // Set hotel
-                                    const hotelSelector = document.getElementById(`hotel_day_${dayNum}`);
-                                    if (hotelSelector && req.hotel_id) {
-                                        hotelSelector.value = req.hotel_id;
-                                    }
-                                    
-                                    // Set guide requirement
-                                    const guideCheckbox = document.getElementById(`guide_required_day_${dayNum}`);
-                                    if (guideCheckbox) {
-                                        guideCheckbox.checked = req.guide_required === '1' || req.guide_required === 1;
-                                    }
-                                    
-                                    // Set vehicle requirement
-                                    const vehicleCheckbox = document.getElementById(`vehicle_required_day_${dayNum}`);
-                                    const vehicleTypeSelect = document.getElementById(`vehicle_type_day_${dayNum}`);
-                                    if (vehicleCheckbox) {
-                                        vehicleCheckbox.checked = req.vehicle_required === '1' || req.vehicle_required === 1;
-                                        if (vehicleCheckbox.checked && vehicleTypeSelect) {
-                                            vehicleTypeSelect.style.display = 'block';
-                                            vehicleTypeSelect.value = req.vehicle_type || '';
-                                        }
-                                    }
-
-                                    // Set services (B/L/D)
-                                    const svcB = document.getElementById(`svc_b_${dayNum}`);
-                                    const svcL = document.getElementById(`svc_l_${dayNum}`);
-                                    const svcD = document.getElementById(`svc_d_${dayNum}`);
-                                    const svcs = (req.day_services || '').toString();
-                                    if (svcB) svcB.checked = svcs.includes('B');
-                                    if (svcL) svcL.checked = svcs.includes('L');
-                                    if (svcD) svcD.checked = svcs.includes('D');
-
-                                    // Set notes
-                                    const notesEl = document.getElementById(`notes_day_${dayNum}`);
-                                    if (notesEl && typeof req.day_notes !== 'undefined' && req.day_notes !== null) {
-                                        notesEl.value = req.day_notes;
-                                    }
-                                });
-                            }
-                        } catch (error) {
-                            showToast('Could not load package requirements.', 'error');
-                        }
-
-                        openModal('packageModal');
+                        openTripModalForPackage(pkg.id);
                     }
+                }
+
+                if (target.classList.contains('btn-duplicate-package')) {
+                    e.preventDefault();
+                    const pkg = packagesData.find(p => p.id == id);
+                    if (!pkg) return;
+                    try {
+                        // Fetch requirements to clone
+                        const resp = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
+                        const reqJson = await resp.json();
+                        const reqs = (reqJson.status === 'success' && Array.isArray(reqJson.data)) ? reqJson.data : [];
+                        const day_requirements = {};
+                        reqs.forEach(r => {
+                            const dn = r.day_number;
+                            day_requirements[dn] = {
+                                hotel_id: r.hotel_id || null,
+                                guide_required: (r.guide_required === '1' || r.guide_required === 1),
+                                vehicle_required: (r.vehicle_required === '1' || r.vehicle_required === 1),
+                                vehicle_type: r.vehicle_type || null,
+                                day_services: r.day_services || '',
+                                day_notes: r.day_notes || ''
+                            };
+                        });
+
+                        const baseCode = (pkg.code && String(pkg.code).trim() !== '') ? String(pkg.code).trim() : ('PKG' + pkg.id);
+                        let attempt = 0; let maxAttempts = 20; let success = false; let lastErr = '';
+                        while (attempt < maxAttempts && !success) {
+                            attempt++;
+                            const suffix = (attempt === 1) ? '-COPY' : `-COPY${attempt}`;
+                            const newCode = (baseCode + suffix).slice(0,50);
+                            const payload = { name: pkg.name, code: newCode, No_of_Days: pkg.No_of_Days, description: pkg.description || '', day_requirements };
+                            const createResp = await fetch(`${API_URL}?action=addTripPackage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+                            const createJson = await createResp.json();
+                            if (createJson.status === 'success') { success = true; break; }
+                            lastErr = createJson.message || 'Unknown error';
+                            if (!/code/i.test(lastErr)) { break; }
+                        }
+                        if (success) { showToast('Package duplicated. Name is duplicate; please rename.', 'warning'); await fetchPackages(); }
+                        else { showToast(`Failed to duplicate package: ${lastErr}`, 'error'); }
+                    } catch (err) { showToast('Duplication failed: '+ err.message, 'error'); }
+                }
+
+                if (target.classList.contains('btn-edit-package')) {
+                    e.preventDefault();
+                    const pkg = packagesData.find(p => p.id == id);
+                    if (pkg) { await openPackageEditModal(pkg); }
                 }
                 
                 if (target.classList.contains('btn-edit-hotel')) {
@@ -2852,6 +2924,39 @@
             });
 
             // --- Utility ---
+            function ensureActionToastEl(){
+                let el = document.getElementById('actionToast');
+                if (!el){
+                    el = document.createElement('div');
+                    el.id = 'actionToast';
+                    el.className = 'action-toast';
+                    el.innerHTML = `
+                        <span class="msg"></span>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-secondary" data-role="dismiss">Dismiss</button>
+                            <button type="button" class="btn btn-primary" data-role="action">Action</button>
+                        </div>
+                    `;
+                    document.body.appendChild(el);
+                }
+                return el;
+            }
+            function showActionToast(message, actionLabel, onAction){
+                const el = ensureActionToastEl();
+                el.querySelector('.msg').textContent = message;
+                const actionBtn = el.querySelector('button[data-role="action"]');
+                actionBtn.textContent = actionLabel || 'OK';
+                const dismissBtn = el.querySelector('button[data-role="dismiss"]');
+                const hide = () => { el.classList.remove('show'); };
+                // Remove previous listeners by cloning
+                const actionBtnClone = actionBtn.cloneNode(true);
+                actionBtn.parentNode.replaceChild(actionBtnClone, actionBtn);
+                actionBtnClone.addEventListener('click', () => { hide(); try{ onAction && onAction(); }catch(e){} });
+                const dismissClone = dismissBtn.cloneNode(true);
+                dismissBtn.parentNode.replaceChild(dismissClone, dismissBtn);
+                dismissClone.addEventListener('click', hide);
+                el.classList.add('show');
+            }
             function showToast(message, type = 'success') {
                 const toast = document.getElementById('toast');
                 toast.textContent = message;

@@ -5,7 +5,7 @@
  * IMPORTANT: Delete or secure this file after creating your users!
  */
 
-require_once 'db_connect.php';
+require_once __DIR__ . '/../src/services/db_connect.php';
 
 // Set this to true to enable the script
 $ENABLE_USER_CREATION = true;
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn">Create User</button>
         </form>
 
-        <a href="login.html" class="back-link">← Back to Login</a>
+        <a href="../public/login.html" class="back-link">← Back to Login</a>
     </div>
 </body>
 </html>

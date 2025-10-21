@@ -1217,7 +1217,7 @@ function addTripPackage($conn) {
         }
         
         $conn->commit();
-        echo json_encode(['status' => 'success', 'message' => 'Package created successfully']);
+        echo json_encode(['status' => 'success', 'message' => 'Package created successfully', 'data' => ['id' => $package_id]]);
         
     } catch (Exception $e) {
         $conn->rollback();
