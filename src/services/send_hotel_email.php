@@ -71,8 +71,8 @@ try {
         respond('error', 'Invalid or missing trip_id.');
     }
 
-	// --- ADDED: Fetch Trip Details (Tour Code and Customer Name) ---
-	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name FROM trips WHERE id = ?");
+	// Fetch Trip Details (Tour Code, Customer, and Package)
+	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name, trip_package_id FROM trips WHERE id = ?");
 	if (!$tripDetailsStmt) {
 		respond('error', 'Database prepare failed for trip details: ' . $conn->error);
 	}
@@ -85,11 +85,11 @@ try {
 	$tripData = $tripDetailsResult->fetch_assoc();
 	$tourCode = $tripData['tour_code'] ?: 'N/A';
 	$customerName = $tripData['customer_name'] ?: 'Our Valued Guest';
+    $tripPackageId = isset($tripData['trip_package_id']) ? (int)$tripData['trip_package_id'] : 0;
 	$tripDetailsStmt->close();
-	// --- END: Fetch Trip Details ---
 
 	// --- VALIDATION BLOCK ---
-	// First, fetch ALL days to validate that every day has a hotel and room quantities.
+	// Fetch ALL days, then validate only days where the package requires a hotel (if defined).
 	$allDaysStmt = $conn->prepare("SELECT id, day_date, hotel_id, room_type_data FROM itinerary_days WHERE trip_id = ? ORDER BY day_date ASC");
 	if (!$allDaysStmt) {
 		respond('error', 'Database prepare failed: ' . $conn->error);
@@ -105,8 +105,28 @@ try {
 	$dayIndexById = [];
 	$validationMessages = [];
 	$idx = 1;
+
+    // Build set of days that require a hotel per package
+    $requiredHotelDays = [];
+    if ($tripPackageId > 0) {
+        $reqStmt = $conn->prepare("SELECT day_number, hotel_id FROM package_day_requirements WHERE trip_package_id = ? ORDER BY day_number");
+        if ($reqStmt) {
+            $reqStmt->bind_param('i', $tripPackageId);
+            $reqStmt->execute();
+            $reqRes = $reqStmt->get_result();
+            while ($rr = $reqRes->fetch_assoc()) {
+                $dn = (int)$rr['day_number'];
+                if (!empty($rr['hotel_id'])) { $requiredHotelDays[$dn] = true; }
+            }
+            $reqStmt->close();
+        }
+    }
+    $validateAll = empty($requiredHotelDays);
+
 	while ($r = $allDaysResult->fetch_assoc()) {
 		$dayIndexById[(int)$r['id']] = $idx;
+        $requiresHotel = $validateAll ? true : isset($requiredHotelDays[$idx]);
+        if (!$requiresHotel) { $idx++; continue; }
 		if (empty($r['hotel_id']) || $r['hotel_id'] == 0) {
 			$validationMessages[] = [
 				'type'       => 'error',
@@ -122,15 +142,10 @@ try {
 					$parsed = json_decode($r['room_type_data'], true);
 					if ($parsed && is_array($parsed)) {
 						foreach ($parsed as $qty) {
-							if ($qty > 0) {
-								$hasRooms = true;
-								break;
-							}
+							if ($qty > 0) { $hasRooms = true; break; }
 						}
 					}
-				} catch (Exception $e) {
-					// Ignore parsing errors
-				}
+				} catch (Exception $e) { /* ignore */ }
 			}
 			
 			if (!$hasRooms) {
@@ -147,7 +162,7 @@ try {
 	$allDaysStmt->close();
 
 	if (!empty($validationMessages)) {
-		respond('error', 'Cannot send emails. All days must have a hotel and room type assigned.', ['messages' => $validationMessages]);
+		respond('error', 'Cannot send emails. Required hotel days must have hotel and room quantities.', ['messages' => $validationMessages]);
 	}
 	// --- END: VALIDATION BLOCK ---
 
@@ -307,16 +322,24 @@ try {
 			$checkOutDate = htmlspecialchars(date('Y-m-d', strtotime($block['last_night'] . ' +1 day')));
 			$roomType = htmlspecialchars($block['room_type']);
 
-			// Aggregate all unique, non-empty services for the block
-			$servicesList = [];
+			// Aggregate and normalize services across the block (B/L/D unique, ordered)
+			$tokens = [];
 			foreach ($block['daily_services'] as $service) {
-				$serviceText = trim((string)$service);
-				if ($serviceText !== '') {
-					$servicesList[] = htmlspecialchars($serviceText);
+				$s = strtoupper(trim((string)$service));
+				if ($s === '') { continue; }
+				$parts = preg_split('/[\s,;]+/', $s);
+				foreach ($parts as $p) {
+					$p = trim($p);
+					if ($p === '') { continue; }
+					if (in_array($p, ['B','L','D'], true)) { $tokens[] = $p; }
 				}
 			}
-			$uniqueServices = array_unique($servicesList);
-			$servicesCellContent = !empty($uniqueServices) ? implode('<br>', $uniqueServices) : 'N/A';
+			$tokens = array_values(array_unique($tokens));
+			// Order B, L, D
+			$order = ['B'=>0,'L'=>1,'D'=>2];
+			usort($tokens, function($a,$b) use ($order){ return ($order[$a]??9) <=> ($order[$b]??9); });
+			$servicesDisplay = !empty($tokens) ? implode(', ', $tokens) : 'N/A';
+			$servicesCellContent = htmlspecialchars($servicesDisplay);
 			
 			// Build the HTML table row
 			$tableRowsHtml .= "

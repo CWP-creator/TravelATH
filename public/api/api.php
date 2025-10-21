@@ -136,8 +136,14 @@ switch ($action) {
     case 'getVehicleRecords':
         getVehicleRecords($conn);
         break;
-    case 'checkGuideAvailability':
-        checkGuideAvailability($conn);
+    case 'checkGuideConflict':
+        checkGuideConflict($conn);
+        break;
+    case 'updateTripPax':
+        updateTripPax($conn);
+        break;
+    case 'getNextTourCode':
+        getNextTourCode($conn);
         break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Invalid action specified.']);
@@ -165,7 +171,7 @@ function getTrips($conn) {
 }
 
 function getTripPackages($conn) {
-    $result = $conn->query("SELECT id, name, description, No_of_Days, total_price FROM trip_packages ORDER BY name");
+    $result = $conn->query("SELECT id, name, code, description, No_of_Days, total_price FROM trip_packages ORDER BY name");
 
     if (!$result) {
         echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
@@ -178,6 +184,19 @@ function getTripPackages($conn) {
     }
     echo json_encode(['status' => 'success', 'data' => $packages]);
 }
+function getNextTourCode($conn){
+    $pkg_id = isset($_GET['trip_package_id']) ? intval($_GET['trip_package_id']) : 0;
+    if ($pkg_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_package_id required']); return; }
+    $pkg = $conn->prepare("SELECT code FROM trip_packages WHERE id=?"); if(!$pkg){ echo json_encode(['status'=>'error','message'=>'DB error']); return; }
+    $pkg->bind_param('i',$pkg_id); $pkg->execute(); $res=$pkg->get_result(); if($res->num_rows===0){ echo json_encode(['status'=>'error','message'=>'Package not found']); return; }
+    $code = trim($res->fetch_assoc()['code']??''); $pkg->close(); if($code===''){ echo json_encode(['status'=>'error','message'=>'Package code is empty']); return; }
+    $prefix = $code . '-';
+    $q = $conn->prepare("SELECT tour_code FROM trips WHERE tour_code LIKE CONCAT(?, '%')"); $q->bind_param('s',$prefix); $q->execute(); $rs=$q->get_result();
+    $maxN = 0; while($row=$rs->fetch_assoc()){ if (preg_match('/^'.preg_quote($code,'/').'-00(\d+)$/',$row['tour_code'],$m)){ $n=intval($m[1]); if($n>$maxN)$maxN=$n; } }
+    $next = $maxN+1; $tour = sprintf('%s-00%02d',$code,$next);
+    echo json_encode(['status'=>'success','data'=>['tour_code'=>$tour]]);
+}
+
 function addTrip($conn) {
     $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
     $tour_code = isset($_POST['tour_code']) ? trim($_POST['tour_code']) : '';
@@ -210,6 +229,12 @@ function addTrip($conn) {
     if (strtotime($end_date) < strtotime($start_date)) {
         echo json_encode(['status' => 'error', 'message' => 'End date cannot be before the start date.']);
         return;
+    }
+
+    // Reject duplicate tour_code if provided
+    if (!empty($tour_code)){
+        $du = $conn->prepare("SELECT COUNT(*) c FROM trips WHERE tour_code = ?"); $du->bind_param('s',$tour_code); $du->execute(); $dr=$du->get_result(); $cnt=intval(($dr->fetch_assoc()['c'])??0); $du->close();
+        if ($cnt>0){ echo json_encode(['status'=>'error','message'=>'Tour File No already exists.']); return; }
     }
 
     // --- 1. FETCH package details from trip_packages table ---
@@ -363,22 +388,38 @@ $annapurna_itinerary = [
 
         } else {
             // --- DEFAULT LOGIC for any other trip package ---
+            // Try to pull package day requirements for notes/services/hotel.
+            $pkgReq = [];
+            $hasSvc=false; $hasNotes=false;
+            $c1=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_services'"); if($c1 && $c1->num_rows>0)$hasSvc=true;
+            $c2=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_notes'"); if($c2 && $c2->num_rows>0)$hasNotes=true;
+            $sel = "SELECT day_number, hotel_id" . ($hasSvc? ", day_services" : "") . ($hasNotes? ", day_notes" : "") . " FROM package_day_requirements WHERE trip_package_id = ?";
+            if ($s=$conn->prepare($sel)){
+                $s->bind_param('i', $trip_package_id); $s->execute(); $rs=$s->get_result();
+                while($row=$rs->fetch_assoc()){ $pkgReq[(int)$row['day_number']]=$row; }
+                $s->close();
+            }
+
             $current_date = new DateTime($start_date);
             $end = new DateTime($end_date);
             $end->modify('+1 day'); 
             
-            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided, day_type) VALUES (?, ?, NULL, NULL, NULL, '', '', 'normal')");
+            $stmt_itinerary = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided, day_type) VALUES (?, ?, NULL, NULL, ?, ?, ?, 'normal')");
             if (!$stmt_itinerary) {
                 throw new Exception('Prepare itinerary failed: ' . $conn->error);
             }
             
+            $dayNum = 1;
             while ($current_date < $end) {
                 $date_str = $current_date->format('Y-m-d');
-                $stmt_itinerary->bind_param("is", $trip_id, $date_str);
-                if (!$stmt_itinerary->execute()) {
-                    throw new Exception('Itinerary insert failed: ' . $stmt_itinerary->error);
-                }
+                $r = isset($pkgReq[$dayNum]) ? $pkgReq[$dayNum] : null;
+                $hid = $r && isset($r['hotel_id']) ? ( (int)$r['hotel_id'] ?: null ) : null;
+                $svc = $r && isset($r['day_services']) ? $r['day_services'] : '';
+                $nts = $r && isset($r['day_notes']) ? $r['day_notes'] : '';
+                $stmt_itinerary->bind_param("isiss", $trip_id, $date_str, $hid, $nts, $svc);
+                if (!$stmt_itinerary->execute()) { throw new Exception('Itinerary insert failed: ' . $stmt_itinerary->error); }
                 $current_date->modify('+1 day');
+                $dayNum++;
             }
             $stmt_itinerary->close();
         }
@@ -422,6 +463,14 @@ function updateTrip($conn) {
         return;
     }
 
+    // Fetch current trip dates to compute itinerary adjustments
+    $cur = $conn->prepare("SELECT start_date, end_date FROM trips WHERE id = ?");
+    if (!$cur) { echo json_encode(['status'=>'error','message'=>'Database prepare failed: '.$conn->error]); return; }
+    $cur->bind_param('i', $id); $cur->execute(); $res = $cur->get_result();
+    if ($res->num_rows===0){ echo json_encode(['status'=>'error','message'=>'Trip not found']); return; }
+    $old = $res->fetch_assoc(); $cur->close();
+    $old_start = $old['start_date']; $old_end = $old['end_date'];
+
     // Discover available columns
     $cols = [];
     $resCols = $conn->query("SHOW COLUMNS FROM trips");
@@ -450,6 +499,12 @@ function updateTrip($conn) {
     ];
     foreach ($optionalMap as $col => $val) { if (isset($cols[$col])) { $fields[$col] = $val; } }
 
+    // Reject duplicate tour_code if provided
+    if (!empty($tour_code)){
+        $du = $conn->prepare("SELECT COUNT(*) c FROM trips WHERE tour_code = ? AND id <> ?"); $du->bind_param('si',$tour_code,$id); $du->execute(); $dr=$du->get_result(); $cnt=intval(($dr->fetch_assoc()['c'])??0); $du->close();
+        if ($cnt>0){ echo json_encode(['status'=>'error','message'=>'Tour File No already exists.']); return; }
+    }
+
     // Build dynamic update
     $setParts = [];
     $types = '';
@@ -462,21 +517,59 @@ function updateTrip($conn) {
     $types .= 'i';
     $values[] = $id;
 
-    $sql = "UPDATE trips SET " . implode(', ', $setParts) . " WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
-        return;
-    }
+    $conn->begin_transaction();
+    try {
+        $sql = "UPDATE trips SET " . implode(', ', $setParts) . " WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { throw new Exception('Database prepare failed: ' . $conn->error); }
+        $stmt->bind_param($types, ...$values);
+        if (!$stmt->execute()) { throw new Exception('Trip update failed: ' . $stmt->error); }
+        $stmt->close();
 
-    $stmt->bind_param($types, ...$values);
+        // Adjust itinerary days if dates changed
+        $oldStart = new DateTime($old_start); $oldEnd = new DateTime($old_end);
+        $newStart = new DateTime($start_date); $newEnd = new DateTime($end_date);
+        $oldDays = (int)$oldEnd->diff($oldStart)->days + 1;
+        $newDays = (int)$newEnd->diff($newStart)->days + 1;
 
-    if ($stmt->execute()) {
+        if ($old_start !== $start_date || $old_end !== $end_date) {
+            // Always rebase itinerary: set Day 1 to newStart, keep order, adjust count
+            $rowsRes = $conn->query("SELECT id FROM itinerary_days WHERE trip_id = $id ORDER BY day_date ASC");
+            $existing = [];
+            while ($r = $rowsRes->fetch_assoc()) { $existing[] = (int)$r['id']; }
+            $minCount = min(count($existing), $newDays);
+            // Update dates for minCount rows
+            $d = clone $newStart;
+            for ($i=0; $i<$minCount; $i++){
+                $dateStr = $d->format('Y-m-d');
+                $eid = $existing[$i];
+                $u = $conn->prepare("UPDATE itinerary_days SET day_date = ? WHERE id = ?");
+                if ($u) { $u->bind_param('si', $dateStr, $eid); $u->execute(); $u->close(); }
+                $d->modify('+1 day');
+            }
+            // If more days needed, insert blanks
+            for ($i=$minCount; $i<$newDays; $i++){
+                $dateStr = $d->format('Y-m-d');
+                $ins = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, guide_id, vehicle_id, hotel_id, notes, services_provided, day_type) VALUES (?, ?, NULL, NULL, NULL, '', '', 'normal')");
+                if ($ins) { $ins->bind_param('is', $id, $dateStr); $ins->execute(); $ins->close(); }
+                $d->modify('+1 day');
+            }
+            // If too many days, delete extras starting from end
+            if (count($existing) > $newDays) {
+                $toDelete = array_slice($existing, $newDays);
+                if (!empty($toDelete)){
+                    $ids = implode(',', array_map('intval', $toDelete));
+                    $conn->query("DELETE FROM itinerary_days WHERE id IN ($ids)");
+                }
+            }
+        }
+
+        $conn->commit();
         echo json_encode(['status' => 'success', 'message' => 'Trip updated successfully.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to update trip: ' . $stmt->error]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
-    $stmt->close();
 }
 
 function deleteTrip($conn) {
@@ -1049,55 +1142,78 @@ function addTripPackage($conn) {
     }
     
     $name = trim($data['name'] ?? '');
-    $code = trim($data['code'] ?? '');
+    $code = strtoupper(trim($data['code'] ?? ''));
     $days = intval($data['No_of_Days'] ?? 0);
+    $description = trim($data['description'] ?? '');
     $day_requirements = $data['day_requirements'] ?? [];
     
     if (empty($name) || $days < 1) {
         echo json_encode(['status' => 'error', 'message' => 'Package name and days are required']);
         return;
     }
+    if (empty($code)) {
+        echo json_encode(['status' => 'error', 'message' => 'Package code is required']);
+        return;
+    }
+    // Prevent duplicate codes
+    $du = $conn->prepare("SELECT COUNT(*) c FROM trip_packages WHERE code = ?");
+    if ($du) { $du->bind_param('s',$code); $du->execute(); $dr=$du->get_result(); $cnt=intval(($dr->fetch_assoc()['c'])??0); $du->close(); if ($cnt>0){ echo json_encode(['status'=>'error','message'=>'Package code already exists']); return; } }
     
     $conn->begin_transaction();
     try {
-        // Insert package
-        $stmt = $conn->prepare("INSERT INTO trip_packages (name, code, No_of_Days) VALUES (?, ?, ?)");
-        if (!$stmt) {
-            throw new Exception('Database prepare failed: ' . $conn->error);
+        // Insert package (include columns that exist)
+        $pkgCols = [];
+        $resCols = $conn->query("SHOW COLUMNS FROM trip_packages");
+        if ($resCols) { while ($r = $resCols->fetch_assoc()) { $pkgCols[strtolower($r['Field'])] = true; } }
+        $hasDesc = isset($pkgCols['description']);
+        $hasCode = isset($pkgCols['code']);
+        if (!$hasCode) { throw new Exception("trip_packages.code column not found"); }
+        if ($hasDesc) {
+            $stmt = $conn->prepare("INSERT INTO trip_packages (name, code, No_of_Days, description) VALUES (?, ?, ?, ?)");
+            if (!$stmt) { throw new Exception('Database prepare failed: ' . $conn->error); }
+            $stmt->bind_param("ssis", $name, $code, $days, $description);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO trip_packages (name, code, No_of_Days) VALUES (?, ?, ?)");
+            if (!$stmt) { throw new Exception('Database prepare failed: ' . $conn->error); }
+            $stmt->bind_param("ssi", $name, $code, $days);
         }
-        
-        $stmt->bind_param("ssi", $name, $code, $days);
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to insert package: ' . $stmt->error);
-        }
-        
+        if (!$stmt->execute()) { throw new Exception('Failed to insert package: ' . $stmt->error); }
         $package_id = $conn->insert_id;
         $stmt->close();
         
         // Insert day requirements
         if (!empty($day_requirements)) {
-            $req_stmt = $conn->prepare(
-                "INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type) 
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            );
-            
-            if (!$req_stmt) {
-                throw new Exception('Failed to prepare requirements statement: ' . $conn->error);
-            }
-            
-            foreach ($day_requirements as $day => $req) {
-                $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : null;
-                $guide_required = $req['guide_required'] ? 1 : 0;
-                $vehicle_required = $req['vehicle_required'] ? 1 : 0;
-                $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : null;
-                
-                $req_stmt->bind_param("iiiiss", $package_id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type);
-                if (!$req_stmt->execute()) {
-                    throw new Exception('Failed to insert day requirement: ' . $req_stmt->error);
+            $hasSvc = false; $hasNotes=false; $c1=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_services'"); if($c1 && $c1->num_rows>0)$hasSvc=true; $c2=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_notes'"); if($c2 && $c2->num_rows>0)$hasNotes=true;
+            if ($hasSvc || $hasNotes){
+                $sqlIns = "INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type" . ($hasSvc?", day_services":"") . ($hasNotes?", day_notes":"") . ") VALUES (?, ?, NULLIF(?,0), ?, ?, NULLIF(?, '')" . ($hasSvc?", NULLIF(?, '')":"") . ($hasNotes?", NULLIF(?, '')":"") . ")";
+                $req_stmt = $conn->prepare($sqlIns);
+                if (!$req_stmt) { throw new Exception('Failed to prepare requirements statement: ' . $conn->error); }
+                foreach ($day_requirements as $day => $req) {
+                    $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : 0;
+                    $guide_required = $req['guide_required'] ? 1 : 0;
+                    $vehicle_required = $req['vehicle_required'] ? 1 : 0;
+                    $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : '';
+                    $svc = isset($req['day_services']) ? $req['day_services'] : '';
+                    $notes = isset($req['day_notes']) ? $req['day_notes'] : '';
+                    if ($hasSvc && $hasNotes){ $req_stmt->bind_param("iiiiisss", $package_id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type, $svc, $notes); }
+                    elseif ($hasSvc){ $req_stmt->bind_param("iiiiiss", $package_id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type, $svc); }
+                    else { $req_stmt->bind_param("iiiiis", $package_id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type); }
+                    if (!$req_stmt->execute()) { throw new Exception('Failed to insert day requirement: ' . $req_stmt->error); }
                 }
+                $req_stmt->close();
+            } else {
+                $req_stmt = $conn->prepare("INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type) VALUES (?, ?, NULLIF(?,0), ?, ?, NULLIF(?, ''))");
+                if (!$req_stmt) { throw new Exception('Failed to prepare requirements statement: ' . $conn->error); }
+                foreach ($day_requirements as $day => $req) {
+                    $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : 0;
+                    $guide_required = $req['guide_required'] ? 1 : 0;
+                    $vehicle_required = $req['vehicle_required'] ? 1 : 0;
+                    $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : '';
+                    $req_stmt->bind_param("iiiiis", $package_id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type);
+                    if (!$req_stmt->execute()) { throw new Exception('Failed to insert day requirement: ' . $req_stmt->error); }
+                }
+                $req_stmt->close();
             }
-            
-            $req_stmt->close();
         }
         
         $conn->commit();
@@ -1120,27 +1236,41 @@ function updateTripPackage($conn) {
     
     $id = intval($data['id'] ?? 0);
     $name = trim($data['name'] ?? '');
-    $code = trim($data['code'] ?? '');
+    $code = strtoupper(trim($data['code'] ?? ''));
     $days = intval($data['No_of_Days'] ?? 0);
+    $description = trim($data['description'] ?? '');
     $day_requirements = $data['day_requirements'] ?? [];
     
     if (!$id || empty($name) || $days < 1) {
         echo json_encode(['status' => 'error', 'message' => 'Package ID, name and days are required']);
         return;
     }
+    if (empty($code)) { echo json_encode(['status'=>'error','message'=>'Package code is required']); return; }
+    // Prevent duplicate codes on update
+    $du = $conn->prepare("SELECT COUNT(*) c FROM trip_packages WHERE code = ? AND id <> ?");
+    if ($du) { $du->bind_param('si',$code,$id); $du->execute(); $dr=$du->get_result(); $cnt=intval(($dr->fetch_assoc()['c'])??0); $du->close(); if ($cnt>0){ echo json_encode(['status'=>'error','message'=>'Package code already exists']); return; } }
     
     $conn->begin_transaction();
     try {
-        // Update package
-        $stmt = $conn->prepare("UPDATE trip_packages SET name = ?, code = ?, No_of_Days = ? WHERE id = ?");
-        if (!$stmt) {
-            throw new Exception('Database prepare failed: ' . $conn->error);
+        // Update package (respect existing columns)
+        $pkgCols = [];
+        $resCols = $conn->query("SHOW COLUMNS FROM trip_packages");
+        if ($resCols) { while ($r = $resCols->fetch_assoc()) { $pkgCols[strtolower($r['Field'])] = true; } }
+        $hasDesc = isset($pkgCols['description']);
+        $hasCode = isset($pkgCols['code']);
+        if ($hasCode && $hasDesc) {
+            $stmt = $conn->prepare("UPDATE trip_packages SET name = ?, code = ?, No_of_Days = ?, description = ? WHERE id = ?");
+            if (!$stmt) { throw new Exception('Database prepare failed: ' . $conn->error); }
+            $stmt->bind_param("ssisi", $name, $code, $days, $description, $id);
+        } elseif ($hasCode && !$hasDesc) {
+            $stmt = $conn->prepare("UPDATE trip_packages SET name = ?, code = ?, No_of_Days = ? WHERE id = ?");
+            if (!$stmt) { throw new Exception('Database prepare failed: ' . $conn->error); }
+            $stmt->bind_param("ssii", $name, $code, $days, $id);
+        } else {
+            // No 'code' column – cannot save code value
+            throw new Exception("trip_packages.code column not found");
         }
-        
-        $stmt->bind_param("ssii", $name, $code, $days, $id);
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to update package: ' . $stmt->error);
-        }
+        if (!$stmt->execute()) { throw new Exception('Failed to update package: ' . $stmt->error); }
         $stmt->close();
         
         // Delete existing requirements
@@ -1153,28 +1283,37 @@ function updateTripPackage($conn) {
         
         // Insert new day requirements
         if (!empty($day_requirements)) {
-            $req_stmt = $conn->prepare(
-                "INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type) 
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            );
-            
-            if (!$req_stmt) {
-                throw new Exception('Failed to prepare requirements statement: ' . $conn->error);
-            }
-            
-            foreach ($day_requirements as $day => $req) {
-                $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : null;
-                $guide_required = $req['guide_required'] ? 1 : 0;
-                $vehicle_required = $req['vehicle_required'] ? 1 : 0;
-                $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : null;
-                
-                $req_stmt->bind_param("iiiiss", $id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type);
-                if (!$req_stmt->execute()) {
-                    throw new Exception('Failed to insert day requirement: ' . $req_stmt->error);
+            $hasSvc = false; $hasNotes=false; $c1=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_services'"); if($c1 && $c1->num_rows>0)$hasSvc=true; $c2=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_notes'"); if($c2 && $c2->num_rows>0)$hasNotes=true;
+            if ($hasSvc || $hasNotes){
+                $sqlIns = "INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type" . ($hasSvc?", day_services":"") . ($hasNotes?", day_notes":"") . ") VALUES (?, ?, NULLIF(?,0), ?, ?, NULLIF(?, '')" . ($hasSvc?", NULLIF(?, '')":"") . ($hasNotes?", NULLIF(?, '')":"") . ")";
+                $req_stmt = $conn->prepare($sqlIns);
+                if (!$req_stmt) { throw new Exception('Failed to prepare requirements statement: ' . $conn->error); }
+                foreach ($day_requirements as $day => $req) {
+                    $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : 0;
+                    $guide_required = $req['guide_required'] ? 1 : 0;
+                    $vehicle_required = $req['vehicle_required'] ? 1 : 0;
+                    $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : '';
+                    $svc = isset($req['day_services']) ? $req['day_services'] : '';
+                    $notes = isset($req['day_notes']) ? $req['day_notes'] : '';
+                    if ($hasSvc && $hasNotes){ $req_stmt->bind_param("iiiiisss", $id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type, $svc, $notes); }
+                    elseif ($hasSvc){ $req_stmt->bind_param("iiiiiss", $id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type, $svc); }
+                    else { $req_stmt->bind_param("iiiiis", $id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type); }
+                    if (!$req_stmt->execute()) { throw new Exception('Failed to insert day requirement: ' . $req_stmt->error); }
                 }
+                $req_stmt->close();
+            } else {
+                $req_stmt = $conn->prepare("INSERT INTO package_day_requirements (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type) VALUES (?, ?, NULLIF(?,0), ?, ?, NULLIF(?, ''))");
+                if (!$req_stmt) { throw new Exception('Failed to prepare requirements statement: ' . $conn->error); }
+                foreach ($day_requirements as $day => $req) {
+                    $hotel_id = !empty($req['hotel_id']) ? intval($req['hotel_id']) : 0;
+                    $guide_required = $req['guide_required'] ? 1 : 0;
+                    $vehicle_required = $req['vehicle_required'] ? 1 : 0;
+                    $vehicle_type = !empty($req['vehicle_type']) ? $req['vehicle_type'] : '';
+                    $req_stmt->bind_param("iiiiis", $id, $day, $hotel_id, $guide_required, $vehicle_required, $vehicle_type);
+                    if (!$req_stmt->execute()) { throw new Exception('Failed to insert day requirement: ' . $req_stmt->error); }
+                }
+                $req_stmt->close();
             }
-            
-            $req_stmt->close();
         }
         
         $conn->commit();
@@ -1237,12 +1376,11 @@ function getPackageRequirements($conn) {
     }
     
     // First check if we have new format data in package_day_requirements
-    $sql = "SELECT day_number, hotel_id, guide_required, vehicle_required, vehicle_type 
-            FROM package_day_requirements 
-            WHERE trip_package_id = ? 
-            ORDER BY day_number";
+    // add services/notes if columns exist
+    $hasSvc=false; $hasNotes=false; $c1=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_services'"); if($c1 && $c1->num_rows>0)$hasSvc=true; $c2=$conn->query("SHOW COLUMNS FROM package_day_requirements LIKE 'day_notes'"); if($c2 && $c2->num_rows>0)$hasNotes=true;
+    $select = "SELECT day_number, hotel_id, guide_required, vehicle_required, vehicle_type" . ($hasSvc? ", day_services":"") . ($hasNotes? ", day_notes":"") . " FROM package_day_requirements WHERE trip_package_id = ? ORDER BY day_number";
     
-    $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare($select);
     if (!$stmt) {
         echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
         return;
@@ -1288,7 +1426,46 @@ function getPackageRequirements($conn) {
     echo json_encode(['status' => 'success', 'data' => $requirements]);
 }
 
+function checkGuideConflict($conn) {
+    $payload = file_get_contents('php://input');
+    $data = json_decode($payload, true);
+    $guide_id = isset($data['guide_id']) ? intval($data['guide_id']) : 0;
+    $date = isset($data['date']) ? trim($data['date']) : '';
+    $exclude_trip_id = isset($data['exclude_trip_id']) ? intval($data['exclude_trip_id']) : 0;
+
+    if ($guide_id<=0 || $date==='') { echo json_encode(['status'=>'error','message'=>'guide_id and date are required']); return; }
+
+    $sql = "SELECT t.id AS trip_id, t.customer_name, t.tour_code, id.day_date
+            FROM itinerary_days id
+            JOIN trips t ON t.id = id.trip_id
+            WHERE id.guide_id = ? AND id.day_date = ?" . ($exclude_trip_id>0 ? " AND id.trip_id <> ?" : "");
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) { echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    if ($exclude_trip_id>0) { $stmt->bind_param('isi', $guide_id, $date, $exclude_trip_id); }
+    else { $stmt->bind_param('is', $guide_id, $date); }
+    $stmt->execute(); $res = $stmt->get_result();
+    $conflicts = $res->fetch_all(MYSQLI_ASSOC); $stmt->close();
+    echo json_encode(['status'=>'success','data'=>$conflicts]);
+}
+
 // ============= HOTEL RECORDS =============
+
+function updateTripPax($conn) {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $trip_id = isset($input['trip_id']) ? intval($input['trip_id']) : 0;
+    $total_pax = isset($input['total_pax']) ? intval($input['total_pax']) : null;
+    if ($trip_id<=0 || $total_pax===null || $total_pax<0){ echo json_encode(['status'=>'error','message'=>'trip_id and valid total_pax required']); return; }
+    // Check column exists
+    $colCheck = $conn->query("SHOW COLUMNS FROM trips LIKE 'total_pax'");
+    if (!$colCheck || $colCheck->num_rows===0){ echo json_encode(['status'=>'error','message'=>'total_pax column not found in trips table']); return; }
+    $stmt = $conn->prepare("UPDATE trips SET total_pax = ? WHERE id = ?");
+    if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param('ii', $total_pax, $trip_id);
+    if ($stmt->execute()) echo json_encode(['status'=>'success','message'=>'Total pax updated']);
+    else echo json_encode(['status'=>'error','message'=>'Update failed: '.$stmt->error]);
+    $stmt->close();
+}
+
 function getHotelRecords($conn) {
     // Detect hotel_informed column
     $hasHotelInformed = false;

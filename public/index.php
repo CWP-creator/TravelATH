@@ -1011,7 +1011,7 @@
 
                         <div class="form-grid">
                         <div class="form-group">
-                            <label for="customer_name">Guest Name</label>
+                            <label for="customer_name">Guest/Group Name</label>
                             <input type="text" id="customer_name" name="customer_name" required>
                         </div>
                         <div class="form-group">
@@ -1628,6 +1628,8 @@
                 const sortedTrips = [...trips].sort((a, b) => a.id - b.id);
                 sortedTrips.forEach(trip => {
                     const row = document.createElement('tr');
+                    row.setAttribute('data-id', trip.id);
+                    row.classList.add('trip-row');
                     row.innerHTML = `
                         <td>#${String(trip.id).padStart(3, '0')}</td>
                         <td>${trip.customer_name}</td>
@@ -1635,13 +1637,14 @@
                         <td>${trip.package_name}</td>
                         <td>${trip.start_date}</td>
                         <td>${trip.end_date}</td>
-                        <td><span class="status status-${trip.status}">${trip.status}</span></td>
-                        <td class="actions">
-                            <a href="Itinerary.php?trip_id=${trip.id}" title="View Itinerary"><i class="fas fa-route"></i></a>
-                            <a href="#" class="btn-email-trip" data-id="${trip.id}" title="Send All Emails"><i class="fas fa-envelope"></i></a>
-                            <a href="#" class="btn-delete-trip" data-id="${trip.id}"><i class="fas fa-trash"></i></a>
+                        <td><span class=\"status status-${trip.status}\">${trip.status}</span></td>
+                        <td class=\"actions\">
+                            <a href=\"#\" class=\"btn-edit-trip\" data-id=\"${trip.id}\" title=\"Edit Trip\"><i class=\"fas fa-pencil\"></i></a>
+                            <a href=\"#\" class=\"btn-email-trip\" data-id=\"${trip.id}\" title=\"Send All Emails\"><i class=\"fas fa-envelope\"></i></a>
+                            <a href=\"#\" class=\"btn-delete-trip\" data-id=\"${trip.id}\"><i class=\"fas fa-trash\"></i></a>
                         </td>
                     `;
+                    row.addEventListener('dblclick', () => { window.location.href = `Itinerary.php?trip_id=${trip.id}`; });
                     tbody.appendChild(row);
                 });
             };
@@ -1967,7 +1970,7 @@
             };
             
 
-            document.getElementById('trip_package_id').addEventListener('change', function() {
+            document.getElementById('trip_package_id').addEventListener('change', async function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const description = selectedOption.dataset.description;
                 const descriptionContainer = document.getElementById('package_description_container');
@@ -1980,6 +1983,18 @@
                     descriptionContainer.style.display = 'none';
                 }
                 calculateDepartureDate();
+                // Auto-generate Tour File No from package code
+                const pkgId = this.value;
+                if (pkgId){
+                  try{
+                    const r = await fetch(`${API_URL}?action=getNextTourCode&trip_package_id=${pkgId}&_=${Date.now()}`);
+                    const j = await r.json();
+                    if (j.status==='success' && j.data && j.data.tour_code){
+                      document.getElementById('tour_code').value = j.data.tour_code;
+                      document.getElementById('modalTitle').textContent = 'New Trip • ' + j.data.tour_code;
+                    }
+                  }catch(e){ /* ignore */ }
+                }
             });
 
             const calculateDepartureDate = () => {
@@ -2135,6 +2150,22 @@
                                         <option value="other">Other</option>
                                     </select>
                                 </div>
+
+                                <!-- Services Section -->
+                                <div class="requirement-section">
+                                    <h5><i class="fas fa-utensils"></i> Services</h5>
+                                    <div class="requirement-checkbox">
+                                        <label><input type="checkbox" id="svc_b_${i}"> Breakfast (B)</label>
+                                        <label><input type="checkbox" id="svc_l_${i}"> Lunch (L)</label>
+                                        <label><input type="checkbox" id="svc_d_${i}"> Dinner (D)</label>
+                                    </div>
+                                </div>
+
+                                <!-- Activities/Notes -->
+                                <div class="requirement-section" style="grid-column: 1 / -1;">
+                                    <h5><i class="fas fa-list-ul"></i> Activities / Notes</h5>
+                                    <textarea id="notes_day_${i}" rows="2" placeholder="Describe activities for this day..."></textarea>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -2231,12 +2262,22 @@
                     const guideRequired = document.getElementById(`guide_required_day_${i}`);
                     const vehicleRequired = document.getElementById(`vehicle_required_day_${i}`);
                     const vehicleType = document.getElementById(`vehicle_type_day_${i}`);
+                    const svcB = document.getElementById(`svc_b_${i}`);
+                    const svcL = document.getElementById(`svc_l_${i}`);
+                    const svcD = document.getElementById(`svc_d_${i}`);
+                    const notes = document.getElementById(`notes_day_${i}`);
+                    const services = [];
+                    if (svcB && svcB.checked) services.push('B');
+                    if (svcL && svcL.checked) services.push('L');
+                    if (svcD && svcD.checked) services.push('D');
                     
                     data.day_requirements[i] = {
                         hotel_id: hotelSelect ? hotelSelect.value : null,
                         guide_required: guideRequired ? guideRequired.checked : false,
                         vehicle_required: vehicleRequired ? vehicleRequired.checked : false,
-                        vehicle_type: vehicleType && vehicleType.value ? vehicleType.value : null
+                        vehicle_type: vehicleType ? vehicleType.value : null,
+                        day_services: services.join(', '),
+                        day_notes: notes ? notes.value : ''
                     };
                 }
 
@@ -2599,6 +2640,43 @@
 
 
 
+            function populateTripForm(trip){
+                document.getElementById('modalTitle').textContent = 'Edit Trip';
+                document.getElementById('tripIdHidden').value = trip.id;
+                document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
+                document.getElementById('fileIdGroup').style.display = 'block';
+                document.getElementById('company').value = (trip.company || '');
+                document.getElementById('customer_name').value = trip.customer_name;
+                const countryEl = document.getElementById('country');
+                if (countryEl && countryEl.tagName.toLowerCase()==='select') countryEl.value = (trip.country || ''); else document.getElementById('country').value = (trip.country || '');
+                document.getElementById('tour_code').value = trip.tour_code || '';
+                document.getElementById('passport_no').value = (trip.passport_no || '');
+                document.getElementById('address').value = (trip.address || '');
+                document.getElementById('trip_package_id').value = trip.trip_package_id;
+                document.getElementById('arrival_date').value = (trip.arrival_date || '');
+                document.getElementById('arrival_time').value = (trip.arrival_time || '');
+                document.getElementById('arrival_flight').value = (trip.arrival_flight || '');
+                document.getElementById('departure_date').value = (trip.departure_date || '');
+                document.getElementById('departure_time').value = (trip.departure_time || '');
+                document.getElementById('departure_flight').value = (trip.departure_flight || '');
+                document.getElementById('status').value = trip.status;
+                document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
+            }
+
+            function openTripById(id){
+                const trip = tripsData.find(t => t.id == id);
+                if (!trip){ showToast('Trip not found','error'); return; }
+                populateTripForm(trip);
+                openModal('tripModal');
+            }
+
+            document.addEventListener('dblclick', function(e){
+                const tr = e.target.closest('tr.trip-row');
+                if (!tr) return;
+                const id = tr.getAttribute('data-id');
+                if (id) window.location.href = `Itinerary.php?trip_id=${id}`;
+            });
+
             document.addEventListener('click', async function(e) {
                 const target = e.target.closest('a[data-id]');
                 if (!target) return;
@@ -2613,29 +2691,7 @@
 
                 if (target.classList.contains('btn-edit-trip')) {
                     e.preventDefault();
-                    const trip = tripsData.find(t => t.id == id);
-                    if (trip) {
-                        document.getElementById('modalTitle').textContent = 'Edit Trip';
-                        document.getElementById('tripIdHidden').value = trip.id;
-                        document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
-                        document.getElementById('fileIdGroup').style.display = 'block';
-                        document.getElementById('company').value = (trip.company || '');
-                        document.getElementById('customer_name').value = trip.customer_name;
-                        document.getElementById('country').value = (trip.country || '');
-                        document.getElementById('tour_code').value = trip.tour_code || '';
-                        document.getElementById('passport_no').value = (trip.passport_no || '');
-                        document.getElementById('address').value = (trip.address || '');
-                        document.getElementById('trip_package_id').value = trip.trip_package_id;
-                        document.getElementById('arrival_date').value = (trip.arrival_date || '');
-                        document.getElementById('arrival_time').value = (trip.arrival_time || '');
-                        document.getElementById('arrival_flight').value = (trip.arrival_flight || '');
-                        document.getElementById('departure_date').value = (trip.departure_date || '');
-                        document.getElementById('departure_time').value = (trip.departure_time || '');
-                        document.getElementById('departure_flight').value = (trip.departure_flight || '');
-                        document.getElementById('status').value = trip.status;
-                        document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
-                        openModal('tripModal');
-                    }
+                    openTripById(id);
                 }
 
                 if (target.classList.contains('btn-edit-package')) {
@@ -2678,6 +2734,21 @@
                                             vehicleTypeSelect.style.display = 'block';
                                             vehicleTypeSelect.value = req.vehicle_type || '';
                                         }
+                                    }
+
+                                    // Set services (B/L/D)
+                                    const svcB = document.getElementById(`svc_b_${dayNum}`);
+                                    const svcL = document.getElementById(`svc_l_${dayNum}`);
+                                    const svcD = document.getElementById(`svc_d_${dayNum}`);
+                                    const svcs = (req.day_services || '').toString();
+                                    if (svcB) svcB.checked = svcs.includes('B');
+                                    if (svcL) svcL.checked = svcs.includes('L');
+                                    if (svcD) svcD.checked = svcs.includes('D');
+
+                                    // Set notes
+                                    const notesEl = document.getElementById(`notes_day_${dayNum}`);
+                                    if (notesEl && typeof req.day_notes !== 'undefined' && req.day_notes !== null) {
+                                        notesEl.value = req.day_notes;
                                     }
                                 });
                             }

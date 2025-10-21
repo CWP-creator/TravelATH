@@ -125,7 +125,7 @@ try {
                 "<p><strong>Trip Duration:</strong> ".htmlspecialchars($trip['start_date'])." to ".htmlspecialchars($trip['end_date'])."</p>".
                 "<table style='width:100%;border-collapse:collapse;font-family:sans-serif;font-size:14px;'><thead style='background:#f2f2f2'><tr><th style='border:1px solid #ddd;padding:8px;'>Date</th></tr></thead><tbody>$rowsHtml</tbody></table>".
                 "<p>Please confirm your availability.</p>";
-        $alt = "You are assigned for guest ".$trip['customer_name']." (Tour: ".$trip['tour_code'].").\n".implode("\n",$altLines);
+        $alt = "You are assigned for guest ".$trip['customer_name']." (Tour: ".$trip['tour_code'].").\n" . implode("\n",$altLines);
 
         $sentOk=false; $err='';
         if (defined('MAIL_SMTP_USER') && MAIL_SMTP_USER && defined('MAIL_SMTP_PASS') && MAIL_SMTP_PASS) {

@@ -1244,11 +1244,17 @@
                     }
 
                     const cacheBuster = new Date().getTime();
-                    const response = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`);
-                    const result = await response.json();
+                    const response = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`, { headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, cache: 'no-store' });
+                    const text = await response.text();
+                    let result;
+                    try { result = JSON.parse(text); } catch(e){
+                        console.error('Non-JSON response for getItinerary:', text.substring(0,500));
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">Server returned invalid response.<br><small>${text.substring(0,200).replace(/</g,'&lt;')}</small></div>`;
+                        return;
+                    }
                     
                     if (result.status !== 'success') {
-                        itineraryGrid.innerHTML = `<div class="error-message">${result.message}</div>`;
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">${result.message}</div>`;
                         return;
                     }
 
@@ -1382,6 +1388,18 @@
                     let hasBreakfast = servicesProvided.includes('B');
                     let hasLunch = servicesProvided.includes('L');
                     let hasDinner = servicesProvided.includes('D');
+
+                    // Fallback to package requirements if services missing
+                    if (!servicesProvided && packageRequirements && packageRequirements.length > 0) {
+                        const req = packageRequirements.find(r => r.day_number === dayCounter);
+                        if (req && req.day_services) {
+                            servicesProvided = req.day_services;
+                            hasBreakfast = servicesProvided.includes('B');
+                            hasLunch = servicesProvided.includes('L');
+                            hasDinner = servicesProvided.includes('D');
+                        }
+                    }
+
                     
                     if (packageHotels.length > 0) {
                         const packageHotel = packageHotels.find(ph => ph.day_number === dayCounter);
@@ -1420,17 +1438,17 @@
                         }
                     }
                     
-                    if (day.hotel_id) {
-                         showServices = true;
-                    }
-
-
                     // Check if guide/vehicle are required for this day
                     const packageReq = packageRequirements.find(req => req.day_number === dayCounter);
                     const showGuide = !packageReq || packageReq.guide_required == 1;
                     const showVehicle = !packageReq || packageReq.vehicle_required == 1;
                     const vehicleTypeLabel = packageReq && packageReq.vehicle_type ? 
                         ` (${packageReq.vehicle_type.charAt(0).toUpperCase() + packageReq.vehicle_type.slice(1)})` : '';
+
+                    // Only show hotel, rooms, and services if package has a hotel for this day
+                    const showHotelGroup = !!(packageReq && packageReq.hotel_id);
+                    // Services only visible when hotel block is shown
+                    showServices = showHotelGroup && (hasBreakfast || hasLunch || hasDinner || !!day.hotel_id);
 
                     const servicesHTML = showServices ? `
                         <div class="form-group">
@@ -1484,6 +1502,7 @@
                                 </div>
                             </div>
                             ` : ''}
+                            ${showHotelGroup ? `
                             <div class="hotel-group" ${hotelSpanClass}>
                                 <div class="hotel-fields">
                                     <div class="form-group">
@@ -1521,9 +1540,10 @@
                                 </div>
                                 ${servicesHTML}
                             </div>
+                            ` : ''}
                             <div class="form-group notes-section">
                                 <label for="day_${day.id}_notes"><i class="fas fa-list-ul"></i> Activities & Notes</label>
-                                <textarea id="day_${day.id}_notes" name="day_${day.id}_notes" placeholder="Add activities, destinations, or special instructions...">${day.notes || ''}</textarea>
+                                <textarea id=\"day_${day.id}_notes\" name=\"day_${day.id}_notes\" placeholder=\"Add activities, destinations, or special instructions...\">${(day.notes && day.notes.length>0) ? day.notes : ((packageRequirements.find(r => r.day_number === dayCounter)?.day_notes) || '')}</textarea>
                             </div>
                         </div>
                     `;
@@ -1582,36 +1602,40 @@
                         setTimeout(updateMissingHotelIndicators, 200);
                     }
                     
-                    // Add guide conflict checking to guide select
+                    // Guide overlap prompt on change
                     const guideSelect = document.getElementById(`day_${day.id}_guide_id`);
-                    if (guideSelect) {
-                        guideSelect.addEventListener('change', async function() {
-                            const guideId = this.value;
-                            const dayDate = day.day_date;
-                            
-                            // Remove any existing conflict warning for this day
-                            const existingWarning = this.parentElement.querySelector('.guide-conflict-warning');
-                            if (existingWarning) {
-                                existingWarning.remove();
-                            }
-                            
-                            if (guideId && guideId !== '') {
-                                try {
-                                    const response = await fetch(`${API_URL}?action=checkGuideAvailability&guide_id=${guideId}&day_date=${dayDate}&trip_id=${tripId}`);
-                                    const result = await response.json();
-                                    
-                                    if (!result.available && result.conflicts.length > 0) {
-                                        const conflict = result.conflicts[0];
-                                        const warningDiv = document.createElement('div');
-                                        warningDiv.className = 'guide-conflict-warning';
-                                        warningDiv.style.cssText = 'color: #ff4444; font-size: 0.8rem; margin-top: 4px; padding: 4px 8px; background: #ffebee; border-radius: 4px; border-left: 3px solid #ff4444;';
-                                        warningDiv.innerHTML = `⚠️ Conflict: This guide is already assigned to "${conflict.customer_name}" (${conflict.tour_code}) on this date.`;
-                                        this.parentElement.appendChild(warningDiv);
-                                    }
-                                } catch (error) {
-                                    console.error('Error checking guide availability:', error);
+                    if (guideSelect){
+                        guideSelect.dataset.prev = guideSelect.value || '';
+                        guideSelect.addEventListener('focus', function(){ this.dataset.prev = this.value || ''; });
+                        guideSelect.addEventListener('change', async function(){
+                            const newVal = this.value || '';
+                            const prevVal = this.dataset.prev || '';
+                            if (!newVal || newVal === prevVal) { this.dataset.prev = newVal; return; }
+                            try {
+                                const resp = await fetch(`${API_URL}?action=checkGuideConflict`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ guide_id: parseInt(newVal,10), date: day.day_date, exclude_trip_id: tripId })});
+                                const text = await resp.text();
+                                let js; try { js = JSON.parse(text); } catch(e){ js = { status:'error' }; }
+                                if (js.status==='success' && Array.isArray(js.data) && js.data.length){
+                                    const c = js.data[0];
+                                    // Build inline notification with actions
+                                    const holder = this.parentElement;
+                                    let bar = holder.querySelector('.guide-conflict-bar');
+                                    if (bar) bar.remove();
+                                    bar = document.createElement('div');
+                                    bar.className = 'guide-conflict-bar';
+                                    bar.style.cssText = 'margin-top:6px; background:#FFF4E5; border:1px solid #F59E0B; color:#92400E; padding:8px; border-radius:6px; display:flex; gap:8px; align-items:center; font-size:0.85rem;';
+                                    bar.innerHTML = `<span style="flex:1;">Guide already assigned on ${c.day_date} for Trip #${String(c.trip_id).padStart(3,'0')} (${c.tour_code||'N/A'}) - ${c.customer_name}.</span>
+                                                     <button type="button" class="allow btn" style="background:#10b981;color:#fff;border:none;border-radius:4px;padding:4px 8px;">Allow</button>
+                                                     <button type="button" class="cancel btn" style="background:#ef4444;color:#fff;border:none;border-radius:4px;padding:4px 8px;">Cancel</button>`;
+                                    holder.appendChild(bar);
+                                    const allowBtn = bar.querySelector('.allow');
+                                    const cancelBtn = bar.querySelector('.cancel');
+                                    allowBtn.addEventListener('click', ()=>{ bar.remove(); this.dataset.prev = newVal; showToast('Overlap allowed for this guide.','info'); });
+                                    cancelBtn.addEventListener('click', ()=>{ this.value = prevVal; bar.remove(); showToast('Selection reverted due to conflict.','error'); });
+                                    return; // wait for user choice
                                 }
-                            }
+                                this.dataset.prev = newVal;
+                            } catch(e){ this.dataset.prev = newVal; }
                         });
                     }
                     
@@ -1744,68 +1768,91 @@
             };
 
             // Propagate Day 1 room quantities to all other days automatically
+            // Debounced autosave after room propagation
+            let autoSaveTimer = null;
+            const scheduleAutoSave = () => {
+                if (autoSaveTimer) clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(async () => {
+                    try {
+                        const currentData = getCurrentFormData(currentItineraryDays);
+                        const payload = currentData.map(d => ({
+                            id: d.id,
+                            guide_id: d.guide_id || null,
+                            vehicle_id: d.vehicle_id || null,
+                            hotel_id: d.hotel_id || null,
+                            room_type_data: d.room_quantities ? JSON.stringify(d.room_quantities) : JSON.stringify({double:0,twin:0,single:0,triple:0}),
+                            guide_informed: d.guide_informed ? 1 : 0,
+                            vehicle_informed: d.vehicle_informed ? 1 : 0,
+                            hotel_informed: d.hotel_informed ? 1 : 0,
+                            notes: d.notes || '',
+                            services_provided: d.services_provided || ''
+                        }));
+                        await fetch(`${API_URL}?action=updateItinerary`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ itinerary_days: payload }) });
+                    } catch (e) {
+                        // Silent fail; user can still press Save
+                    }
+                }, 600);
+            };
+
             const setupRoomTypePropagation = () => {
-                const firstDayWrapper = document.querySelector('.day-content-wrapper[data-day-number="1"]');
-                if (!firstDayWrapper) return;
-                
-                // Get all room quantity inputs from day 1
-                const firstDayInputs = {
-                    double: firstDayWrapper.querySelector('input[name$="_rooms_double"]'),
-                    twin: firstDayWrapper.querySelector('input[name$="_rooms_twin"]'),
-                    single: firstDayWrapper.querySelector('input[name$="_rooms_single"]'),
-                    triple: firstDayWrapper.querySelector('input[name$="_rooms_triple"]')
-                };
-                
-                // Function to propagate room quantities from day 1 to all other days
-                const propagateRoomQuantities = () => {
+                const getDayWrapper = (n) => document.querySelector(`.day-content-wrapper[data-day-number="${n}"]`);
+                const wrappers = [1,2,3].map(getDayWrapper).filter(Boolean);
+                if (wrappers.length === 0) return;
+
+                const getInputs = (wrapper) => ({
+                    double: wrapper.querySelector('input[name$="_rooms_double"]'),
+                    twin: wrapper.querySelector('input[name$="_rooms_twin"]'),
+                    single: wrapper.querySelector('input[name$="_rooms_single"]'),
+                    triple: wrapper.querySelector('input[name$="_rooms_triple"]')
+                });
+
+                const propagateFrom = (fromDayNum) => {
+                    const fromWrapper = getDayWrapper(fromDayNum);
+                    if (!fromWrapper) return;
+                    const fromInputs = getInputs(fromWrapper);
                     const roomQuantities = {
-                        double: parseInt(firstDayInputs.double?.value || 0),
-                        twin: parseInt(firstDayInputs.twin?.value || 0),
-                        single: parseInt(firstDayInputs.single?.value || 0),
-                        triple: parseInt(firstDayInputs.triple?.value || 0)
+                        double: parseInt(fromInputs.double?.value || 0),
+                        twin: parseInt(fromInputs.twin?.value || 0),
+                        single: parseInt(fromInputs.single?.value || 0),
+                        triple: parseInt(fromInputs.triple?.value || 0)
                     };
-                    
-                    // Apply to all other days (skip day 1)
-                    const allDayWrappers = document.querySelectorAll('.day-content-wrapper:not([data-day-number="1"])');
-                    allDayWrappers.forEach(dayWrapper => {
-                        const dayInputs = {
-                            double: dayWrapper.querySelector('input[name$="_rooms_double"]'),
-                            twin: dayWrapper.querySelector('input[name$="_rooms_twin"]'),
-                            single: dayWrapper.querySelector('input[name$="_rooms_single"]'),
-                            triple: dayWrapper.querySelector('input[name$="_rooms_triple"]')
-                        };
-                        
-                        // Set values for each room type
-                        Object.keys(roomQuantities).forEach(roomType => {
-                            if (dayInputs[roomType]) {
-                                dayInputs[roomType].value = roomQuantities[roomType];
-                            }
+                    // Apply to all subsequent days that have a hotel group
+                    const allDayWrappers = document.querySelectorAll('.day-content-wrapper');
+                    allDayWrappers.forEach(w => {
+                        const n = parseInt(w.dataset.dayNumber, 10);
+                        if (n <= fromDayNum) return;
+                        const hotelGroup = w.querySelector('.hotel-group');
+                        if (!hotelGroup) return; // skip days without hotel UI
+                        const dayInputs = getInputs(w);
+                        Object.keys(roomQuantities).forEach(rt => {
+                            if (dayInputs[rt]) dayInputs[rt].value = roomQuantities[rt];
                         });
                     });
-                    
-                    // Update summary if in summary mode
-                    if (summaryToggleBtn.dataset.viewMode === 'summary') {
-                        renderSummaryCards(currentItineraryDays);
-                    }
-                    
-                    // Update missing hotel indicators
+                    if (summaryToggleBtn.dataset.viewMode === 'summary') renderSummaryCards(currentItineraryDays);
                     setTimeout(updateMissingHotelIndicators, 50);
+                    scheduleAutoSave();
                 };
-                
-                // Add event listeners to all day 1 room quantity inputs
-                Object.values(firstDayInputs).forEach(input => {
-                    if (input) {
-                        input.addEventListener('input', propagateRoomQuantities);
-                        input.addEventListener('change', propagateRoomQuantities);
-                    }
+
+                // Attach listeners for first three days
+                [1,2,3].forEach(n => {
+                    const w = getDayWrapper(n);
+                    if (!w) return;
+                    const inputs = getInputs(w);
+                    Object.values(inputs).forEach(inp => {
+                        if (inp) {
+                            inp.addEventListener('input', () => propagateFrom(n));
+                            inp.addEventListener('change', () => propagateFrom(n));
+                        }
+                    });
                 });
-                
-                // Initial propagation if day 1 already has values
-                const hasValues = Object.values(firstDayInputs).some(input => 
-                    input && parseInt(input.value || 0) > 0
-                );
-                if (hasValues) {
-                    propagateRoomQuantities();
+
+                // Initial propagation preference: day1 > day2 > day3
+                for (const n of [1,2,3]) {
+                    const w = getDayWrapper(n);
+                    if (!w) continue;
+                    const inputs = getInputs(w);
+                    const hasValues = Object.values(inputs).some(i => i && parseInt(i.value||0) > 0);
+                    if (hasValues) { propagateFrom(n); break; }
                 }
             };
             
@@ -1815,19 +1862,26 @@
                 
                 dayButtons.forEach(button => {
                     const dayId = button.dataset.dayId;
-                    if (!dayId) return;
-                    
-                    // Check if hotel is assigned for this day
-                    const hotelSelect = document.querySelector(`[name="day_${dayId}_hotel_id"]`);
-                    const hasHotel = hotelSelect && hotelSelect.value && hotelSelect.value !== '';
-                    
-                    // Remove existing indicator
-                    const existingIndicator = button.querySelector('.missing-hotel-indicator');
-                    if (existingIndicator) {
-                        existingIndicator.remove();
+                    let dayNumber = parseInt(button.dataset.dayNumber || '0', 10);
+                    if ((!dayNumber || isNaN(dayNumber)) && dayId) {
+                        const wrapper = document.querySelector(`.day-content-wrapper[data-day-id=\"${dayId}\"]`);
+                        if (wrapper) dayNumber = parseInt(wrapper.dataset.dayNumber || '0', 10);
                     }
                     
-                    // Add red dot if hotel is missing
+                    // If package does not require hotel for this day, don't show indicator
+                    const req = packageRequirements.find(r => r.day_number === dayNumber);
+                    const requiresHotel = !!(req && req.hotel_id);
+                    
+                    // Remove existing indicator first
+                    const existingIndicator = button.querySelector('.missing-hotel-indicator');
+                    if (existingIndicator) existingIndicator.remove();
+                    
+                    if (!requiresHotel) return;
+                    
+                    // Check if hotel is assigned for this required day
+                    const hotelSelect = document.querySelector(`[name=\"day_${dayId}_hotel_id\"]`);
+                    const hasHotel = hotelSelect && hotelSelect.value && hotelSelect.value !== '';
+                    
                     if (!hasHotel) {
                         const indicator = document.createElement('div');
                         indicator.className = 'missing-hotel-indicator';
@@ -2213,9 +2267,13 @@
                     console.log(`Day ${i+1}: hotel_id="${day.hotel_id}" (type: ${typeof day.hotel_id})`);
                 });
                 
-                // Check for missing hotel assignments
-                const missingHotels = currentData.filter(day => !day.hotel_id || day.hotel_id === '' || day.hotel_id === '0' || day.hotel_id === 0);
-                const missingRooms = currentData.filter(day => day.hotel_id && day.hotel_id !== '' && day.hotel_id !== '0' && day.hotel_id !== 0 && !day.has_rooms);
+                // Check for missing hotel assignments (only for days where package requires a hotel)
+                const requiresHotel = (dayNumber) => {
+                    const req = packageRequirements.find(r => r.day_number === dayNumber);
+                    return !!(req && req.hotel_id);
+                };
+                const missingHotels = currentData.filter((day, idx) => requiresHotel(idx + 1) && (!day.hotel_id || day.hotel_id === '' || day.hotel_id === '0' || day.hotel_id === 0));
+                const missingRooms = currentData.filter((day, idx) => requiresHotel(idx + 1) && day.hotel_id && day.hotel_id !== '' && day.hotel_id !== '0' && day.hotel_id !== 0 && !day.has_rooms);
                 
                 if (missingHotels.length > 0 || missingRooms.length > 0) {
                     openEmailStatusPanel();
@@ -2495,62 +2553,14 @@
                 }
             };
             
-            // Function to check for guide conflicts
-            const checkGuideConflicts = async (currentData) => {
-                const conflicts = [];
-                
-                for (const dayData of currentData) {
-                    if (dayData.guide_id) {
-                        try {
-                            const response = await fetch(`${API_URL}?action=checkGuideAvailability&guide_id=${dayData.guide_id}&day_date=${dayData.day_date}&trip_id=${tripId}`);
-                            const result = await response.json();
-                            
-                            if (!result.available && result.conflicts.length > 0) {
-                                const guideName = allGuides.find(g => g.id == dayData.guide_id)?.name || 'Unknown Guide';
-                                const dayDate = new Date(dayData.day_date + 'T00:00:00').toLocaleDateString('en-US', { 
-                                    weekday: 'long', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                });
-                                
-                                conflicts.push({
-                                    day: dayDate,
-                                    guide: guideName,
-                                    conflictDetails: result.conflicts[0] // Take first conflict for display
-                                });
-                            }
-                        } catch (error) {
-                            console.error('Error checking guide availability:', error);
-                        }
-                    }
-                }
-                
-                return conflicts;
-            };
-            
             itineraryForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 saveBtn.disabled = true;
-
+                
                 const currentData = getCurrentFormData(currentItineraryDays);
                 const activeDayBeforeSave = document.querySelector('.tab-button.active')?.dataset.dayNumber;
-                
-                // Check for guide conflicts before saving
-                const conflicts = await checkGuideConflicts(currentData);
-                if (conflicts.length > 0) {
-                    let conflictMessage = 'Guide conflicts detected:\n\n';
-                    conflicts.forEach(conflict => {
-                        conflictMessage += `• ${conflict.guide} is already assigned on ${conflict.day} to trip "${conflict.conflictDetails.customer_name}" (${conflict.conflictDetails.tour_code})\n`;
-                    });
-                    conflictMessage += '\nPlease resolve these conflicts before saving.';
-                    
-                    alert(conflictMessage);
-                    saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Save Changes</span>';
-                    saveBtn.disabled = false;
-                    return;
-                }
 
                 const itinerary_days_data = currentData.map(d => ({
                     id: d.id,

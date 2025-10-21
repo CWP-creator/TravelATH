@@ -224,7 +224,7 @@ try {
 		$emailBodyHtml = "
 			<p>Dear " . htmlspecialchars($guideName) . ",</p>
 			<p>You have been assigned as a guide for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>
-			<p><strong>Trip Duration:</strong> " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "</p>
+<p><strong>Trip Duration:</strong> " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "</p>
 			<p>Please find your duty schedule below:</p>
 			<table style='width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: left;'>
 				<thead style='background-color: #f2f2f2;'>
@@ -242,7 +242,7 @@ try {
 			<br>
 			<p>Best regards,<br>Trip Coordination Team</p>
 		";
-		$altBodyText = "Dear " . htmlspecialchars($guideName) . ",\n\nYou have been assigned as a guide for our guest(s), " . htmlspecialchars($customerName) . ", under the tour code " . htmlspecialchars($tourCode) . ".\n\nTrip Duration: " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "\n\nPlease find your duty schedule below:\n\n" . implode("\n", $altTextLines) . "\n\nPlease confirm your availability and prepare accordingly for the assigned duties.\n\nThank you for your service.\n\nBest regards,\nTrip Coordination Team";
+$altBodyText = "Dear " . htmlspecialchars($guideName) . ",\n\nYou have been assigned as a guide for our guest(s), " . htmlspecialchars($customerName) . ", under the tour code " . htmlspecialchars($tourCode) . ".\n\nTrip Duration: " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "\n\nPlease find your duty schedule below:\n\n" . implode("\n", $altTextLines) . "\n\nPlease confirm your availability and prepare accordingly for the assigned duties.\n\nThank you for your service.\n\nBest regards,\nTrip Coordination Team";
 
 		$rangeText = $formatRanges($group['day_numbers']);
 		$sentOk = false;
