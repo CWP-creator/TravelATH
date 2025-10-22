@@ -1096,7 +1096,7 @@
                 </div>
 
 
-                <div class="section-card">
+                <div class="section-card" id="travelDetailsCard">
                     <h4><i class="fas fa-plane-arrival"></i> Travel Details</h4>
                     <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
@@ -1114,7 +1114,7 @@
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" id="arrivalGroupsCard">
                     <h4><i class="fas fa-users"></i> Arrival Groups</h4>
                     <div id="arrivalGroupsContainer"></div>
                     <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
@@ -2115,6 +2115,7 @@
                 // Reset arrivals state
                 tripArrivalsState = [];
                 renderArrivalGroups();
+                updateCompanyMode();
 
                 openModal('tripModal');
             });
@@ -2735,7 +2736,7 @@
                         </div>
                         <div class="requirement-section">
                             <h5>Logistics</h5>
-                            <div class="form-group"><label>Pickup</label><input type="text" data-k="pickup_location" value="${a.pickup_location||''}"></div>
+                            <div class=\"form-group\"><label>Name list</label><textarea rows=\"4\" data-k=\"pickup_location\" placeholder=\"One name per line\">${a.pickup_location||''}</textarea></div>
                             <div class="form-group"><label>Drop Hotel</label><select data-k="drop_hotel_id">${getHotelOptionsHTML(a.drop_hotel_id||'')}</select></div>
                             <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(a.vehicle_id||'')}</select></div>
                             <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(a.guide_id||'')}</select></div>
@@ -2755,6 +2756,7 @@
                             let v = (el.type==='checkbox') ? el.checked : el.value;
                             if (k==='pax_count') v = parseInt(v||0);
                             tripArrivalsState[idx][k] = v;
+                            if (k==='arrival_date') syncArrivalDateFromGroups();
                         });
                     });
                     row.querySelector('[data-role="remove"]').addEventListener('click', ()=>{
@@ -2764,12 +2766,43 @@
                 });
             }
             async function fetchArrivalsForTrip(tripId){
-                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); } }catch(e){ /* ignore */ }
+                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); } }catch(e){ /* ignore */ }
             }
             async function saveArrivalsForTrip(tripId){
                 try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), arrivals: tripArrivalsState }) }); }catch(e){ /* ignore */ }
             }
-            const btnAddArrival = document.getElementById('btnAddArrival'); if (btnAddArrival){ btnAddArrival.addEventListener('click', ()=>{ tripArrivalsState.push({ arrival_date:'', arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }); renderArrivalGroups(); }); }
+            const btnAddArrival = document.getElementById('btnAddArrival'); if (btnAddArrival){ btnAddArrival.addEventListener('click', ()=>{ tripArrivalsState.push({ arrival_date:'', arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }); renderArrivalGroups(); syncArrivalDateFromGroups(); }); }
+
+            function syncArrivalDateFromGroups(){
+                // Set the hidden arrival_date field to earliest group date
+                const input = document.getElementById('arrival_date'); if (!input) return;
+                const dates = tripArrivalsState.map(a=>a.arrival_date).filter(Boolean).sort();
+                if (dates.length){ input.value = dates[0]; calculateDepartureDate(); }
+            }
+            function switchCustomerNameToTextarea(isGroup){
+                const el = document.getElementById('customer_name');
+                if (!el) return;
+                const parent = el.parentElement;
+                if (isGroup && el.tagName.toLowerCase() !== 'textarea'){
+                    const ta = document.createElement('textarea');
+                    ta.id = 'customer_name'; ta.name = 'customer_name'; ta.rows = 3; ta.placeholder = 'Enter multiple names, one per line'; ta.value = el.value || '';
+                    parent.replaceChild(ta, el);
+                } else if (!isGroup && el.tagName.toLowerCase() !== 'input'){
+                    const inp = document.createElement('input');
+                    inp.type = 'text'; inp.id = 'customer_name'; inp.name = 'customer_name'; inp.required = true; inp.value = el.value || '';
+                    parent.replaceChild(inp, el);
+                }
+            }
+            function updateCompanyMode(){
+                const company = (document.getElementById('company')?.value)||'';
+                const isIndividual = (company === 'Individual');
+                const travel = document.getElementById('travelDetailsCard');
+                const arrivals = document.getElementById('arrivalGroupsCard');
+                if (travel) travel.style.display = isIndividual ? '' : 'none';
+                if (arrivals) arrivals.style.display = isIndividual ? 'none' : '';
+                switchCustomerNameToTextarea(!isIndividual);
+            }
+            document.getElementById('company')?.addEventListener('change', ()=>{ updateCompanyMode(); });
 
             function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip';
@@ -2794,7 +2827,8 @@
                 document.getElementById('departure_flight').value = (trip.departure_flight || '');
                 document.getElementById('status').value = trip.status;
                 document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
-                // Load arrivals
+                updateCompanyMode();
+                // Load arrivals (kept hidden for Individual)
                 tripArrivalsState = [];
                 renderArrivalGroups();
                 fetchArrivalsForTrip(trip.id);
