@@ -136,6 +136,9 @@ switch ($action) {
     case 'getVehicleRecords':
         getVehicleRecords($conn);
         break;
+    case 'getDayRoster':
+        getDayRoster($conn);
+        break;
     case 'checkGuideConflict':
         checkGuideConflict($conn);
         break;
@@ -216,6 +219,7 @@ function addTrip($conn) {
     $departure_date = isset($_POST['departure_date']) ? trim($_POST['departure_date']) : null;
     $departure_time = isset($_POST['departure_time']) ? trim($_POST['departure_time']) : null;
     $departure_flight = isset($_POST['departure_flight']) ? trim($_POST['departure_flight']) : null;
+    $total_pax = isset($_POST['total_pax']) && $_POST['total_pax'] !== '' ? intval($_POST['total_pax']) : null;
 
     // Derive trip start/end from arrival/departure if not provided
     if (empty($start_date)) { $start_date = $arrival_date; }
@@ -290,6 +294,7 @@ function addTrip($conn) {
             'departure_date' => $departure_date,
             'departure_time' => $departure_time,
             'departure_flight' => $departure_flight,
+            'total_pax' => $total_pax,
         ];
         foreach ($optionalMap as $col => $val) {
             if (isset($cols[$col])) { $fields[$col] = $val; }
@@ -302,7 +307,7 @@ function addTrip($conn) {
         $values = [];
         foreach ($columns as $col) {
             $placeholders[] = '?';
-            if ($col === 'trip_package_id') { $types .= 'i'; $values[] = (int)$fields[$col]; }
+            if ($col === 'trip_package_id' || $col === 'total_pax') { $types .= 'i'; $values[] = (int)$fields[$col]; }
             elseif ($col === 'total_price') { $types .= 'd'; $values[] = (float)$fields[$col]; }
             else { $types .= 's'; $values[] = $fields[$col]; }
         }
@@ -453,6 +458,7 @@ function updateTrip($conn) {
     $departure_date = isset($_POST['departure_date']) ? trim($_POST['departure_date']) : null;
     $departure_time = isset($_POST['departure_time']) ? trim($_POST['departure_time']) : null;
     $departure_flight = isset($_POST['departure_flight']) ? trim($_POST['departure_flight']) : null;
+    $total_pax = isset($_POST['total_pax']) && $_POST['total_pax'] !== '' ? intval($_POST['total_pax']) : null;
 
     // Derive trip start/end from arrival/departure if not provided
     if (empty($start_date)) { $start_date = $arrival_date; }
@@ -496,6 +502,7 @@ function updateTrip($conn) {
         'departure_date' => $departure_date,
         'departure_time' => $departure_time,
         'departure_flight' => $departure_flight,
+        'total_pax' => $total_pax,
     ];
     foreach ($optionalMap as $col => $val) { if (isset($cols[$col])) { $fields[$col] = $val; } }
 
@@ -511,7 +518,7 @@ function updateTrip($conn) {
     $values = [];
     foreach ($fields as $key => $val) {
         $setParts[] = "$key = ?";
-        if ($key === 'trip_package_id') { $types .= 'i'; $values[] = (int)$val; }
+        if ($key === 'trip_package_id' || $key === 'total_pax') { $types .= 'i'; $values[] = (int)$val; }
         else { $types .= 's'; $values[] = $val; }
     }
     $types .= 'i';
@@ -1743,6 +1750,127 @@ function getVehicleRecords($conn) {
     } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+function getDayRoster($conn){
+    try {
+        // Detect informed flags and vehicle plate
+        $hasHotelInf = false; $cH = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'hotel_informed'"); if ($cH && $cH->num_rows>0) $hasHotelInf = true;
+        $hasGuideInf = false; $cG = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'guide_informed'"); if ($cG && $cG->num_rows>0) $hasGuideInf = true;
+        $hasVehInf = false; $cV = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'vehicle_informed'"); if ($cV && $cV->num_rows>0) $hasVehInf = true;
+        $hasPlate = false; $pc = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'"); if ($pc && $pc->num_rows>0) $hasPlate = true;
+
+        $month = isset($_GET['month']) ? trim($_GET['month']) : '';
+        $date = isset($_GET['date']) ? trim($_GET['date']) : '';
+
+        // Determine period start/end
+        if ($date !== '') {
+            $periodStart = new DateTime($date);
+            $periodEnd = new DateTime($date);
+        } else {
+            if ($month === '' || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+                $month = date('Y-m');
+            }
+            $periodStart = new DateTime($month . '-01');
+            $periodEnd = clone $periodStart; $periodEnd->modify('last day of this month');
+        }
+        $startStr = $periodStart->format('Y-m-d');
+        $endStr = $periodEnd->format('Y-m-d');
+
+        // Fetch trips overlapping this period
+        $sqlTrips = "SELECT id, customer_name, tour_code, status, start_date, end_date FROM trips WHERE start_date <= ? AND end_date >= ? ORDER BY id";
+        $stTrips = $conn->prepare($sqlTrips); if (!$stTrips) throw new Exception('DB prepare failed: '.$conn->error);
+        $stTrips->bind_param('ss', $endStr, $startStr); $stTrips->execute(); $rsTrips = $stTrips->get_result();
+        $trips = [];
+        while ($t = $rsTrips->fetch_assoc()) { $trips[] = $t; }
+        $stTrips->close();
+
+        if (empty($trips)) { echo json_encode(['status'=>'success','data'=>[]]); return; }
+
+        // Fetch itinerary assignments within period for all trips
+        $cols = [
+            'id.trip_id',
+            'id.day_date',
+            'id.notes',
+            'id.services_provided',
+            'h.name as hotel_name',
+            'g.name as guide_name',
+            'g.language as guide_language',
+            'v.vehicle_name'
+        ];
+        $cols[] = $hasPlate ? 'v.number_plate as number_plate' : "'' as number_plate";
+        $cols[] = $hasHotelInf ? 'id.hotel_informed as hotel_informed' : '0 as hotel_informed';
+        $cols[] = $hasGuideInf ? 'id.guide_informed as guide_informed' : '0 as guide_informed';
+        $cols[] = $hasVehInf ? 'id.vehicle_informed as vehicle_informed' : '0 as vehicle_informed';
+
+        $sqlId = "SELECT ".implode(', ', $cols)." 
+                  FROM itinerary_days id
+                  LEFT JOIN hotels h ON h.id = id.hotel_id
+                  LEFT JOIN guides g ON g.id = id.guide_id
+                  LEFT JOIN vehicles v ON v.id = id.vehicle_id
+                  WHERE id.day_date BETWEEN ? AND ?";
+        $stId = $conn->prepare($sqlId); if (!$stId) throw new Exception('DB prepare failed: '.$conn->error);
+        $stId->bind_param('ss', $startStr, $endStr); $stId->execute(); $rsId = $stId->get_result();
+        $ass = [];
+        while ($r = $rsId->fetch_assoc()) {
+            $tid = (int)$r['trip_id']; $dd = $r['day_date'];
+            if (!isset($ass[$tid])) $ass[$tid] = [];
+            $ass[$tid][$dd] = $r;
+        }
+        $stId->close();
+
+        // Build diary-style rows for each day per trip in overlap
+        $rows = [];
+        foreach ($trips as $t) {
+            $tid = (int)$t['id'];
+            $tStart = new DateTime($t['start_date']);
+            $tEnd = new DateTime($t['end_date']);
+            // clamp to period
+            $d = $tStart > $periodStart ? clone $tStart : clone $periodStart;
+            $endD = $tEnd < $periodEnd ? clone $tEnd : clone $periodEnd;
+            while ($d <= $endD) {
+                $ds = $d->format('Y-m-d');
+                $row = [
+                    'day_date' => $ds,
+                    'trip_id' => $tid,
+                    'guest_name' => $t['customer_name'],
+                    'tour_code' => $t['tour_code'],
+                    'status' => $t['status'],
+                    'notes' => '',
+                    'services_provided' => '',
+                    'hotel_name' => null,
+                    'guide_name' => null,
+                    'guide_language' => null,
+                    'vehicle_name' => null,
+                    'number_plate' => '' ,
+                    'hotel_informed' => 0,
+                    'guide_informed' => 0,
+                    'vehicle_informed' => 0,
+                ];
+                if (isset($ass[$tid]) && isset($ass[$tid][$ds])) {
+                    $a = $ass[$tid][$ds];
+                    $row['notes'] = $a['notes'] ?? '';
+                    $row['services_provided'] = $a['services_provided'] ?? '';
+                    $row['hotel_name'] = $a['hotel_name'] ?? null;
+                    $row['guide_name'] = $a['guide_name'] ?? null;
+                    $row['guide_language'] = $a['guide_language'] ?? null;
+                    $row['vehicle_name'] = $a['vehicle_name'] ?? null;
+                    $row['number_plate'] = $a['number_plate'] ?? '';
+                    $row['hotel_informed'] = intval($a['hotel_informed'] ?? 0);
+                    $row['guide_informed'] = intval($a['guide_informed'] ?? 0);
+                    $row['vehicle_informed'] = intval($a['vehicle_informed'] ?? 0);
+                }
+                $rows[] = $row;
+                $d->modify('+1 day');
+            }
+        }
+        // Sort by date, then tour_code
+        usort($rows, function($a,$b){ $c = strcmp($a['day_date'],$b['day_date']); if ($c!==0) return $c; return strcmp((string)$a['tour_code'], (string)$b['tour_code']); });
+        echo json_encode(['status'=>'success','data'=>$rows]);
+    } catch (Exception $e){
+        http_response_code(500);
+        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
     }
 }
 

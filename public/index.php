@@ -743,6 +743,7 @@
                     <li><a data-section="hotelrecords"><i class="fas fa-calendar-check fa-fw"></i> <span class="link-text">Hotel Records</span></a></li>
                     <li><a data-section="guiderecords"><i class="fas fa-user-check fa-fw"></i> <span class="link-text">Guide Records</span></a></li>
                     <li><a data-section="vehiclerecords"><i class="fas fa-truck fa-fw"></i> <span class="link-text">Vehicle Records</span></a></li>
+                    <li><a data-section="dayroster"><i class="fas fa-calendar-day fa-fw"></i> <span class="link-text">Day Roster</span></a></li>
                 </ul>
             </li>
         </ul>
@@ -956,6 +957,18 @@
                 </div>
             </section>
 
+            <section id="dayrosterSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header" style="align-items:center; gap:10px;">
+                        <h2>Day Roster</h2>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="month" id="dayRosterMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                        </div>
+                    </div>
+                    <div id="dayRosterContainer" class="hotel-records-container"></div>
+                </div>
+            </section>
+
             <section id="hotelrecordsSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
@@ -1027,6 +1040,10 @@
                         <div class="form-group">
                             <label for="customer_name">Guest/Group Name</label>
                             <input type="text" id="customer_name" name="customer_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="total_pax">Total No. of Pax</label>
+                            <input type="number" id="total_pax" name="total_pax" min="0" placeholder="e.g., 4">
                         </div>
                         <div class="form-group">
                             <label for="country">Country</label>
@@ -1110,6 +1127,9 @@
         <div class="modal-content" style="max-width: 800px;">
             <span class="close-btn" data-modal="packageModal">&times;</span>
             <h2 id="packageModalTitle">Add Package</h2>
+            <div id="packageDuplicateBanner" style="display:none; background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:10px; border-radius:6px; margin:8px 0;">
+                Note: This package code was duplicated. Please review and update the Package Code before saving.
+            </div>
             <form id="packageForm">
                 <input type="hidden" id="packageId" name="id">
                 
@@ -1479,6 +1499,9 @@
                             break;
                         case 'vehiclerecords':
                             fetchVehicleRecords();
+                            break;
+                        case 'dayroster':
+                            fetchDayRoster();
                             break;
                         case 'vehicles':
                             fetchVehicles();
@@ -2090,6 +2113,7 @@
                 document.getElementById('packageId').value = '';
                 document.getElementById('packageModalTitle').textContent = 'Add Package';
                 document.getElementById('day_requirements_container').innerHTML = '';
+                const dupBanner = document.getElementById('packageDuplicateBanner'); if (dupBanner) dupBanner.style.display = 'none';
                 openModal('packageModal');
             });
 
@@ -2669,6 +2693,8 @@
                 document.getElementById('fileIdGroup').style.display = 'block';
                 document.getElementById('company').value = (trip.company || '');
                 document.getElementById('customer_name').value = trip.customer_name;
+                const totalPaxEl = document.getElementById('total_pax');
+                if (totalPaxEl) { totalPaxEl.value = (trip.total_pax != null ? trip.total_pax : ''); }
                 const countryEl = document.getElementById('country');
                 if (countryEl && countryEl.tagName.toLowerCase()==='select') countryEl.value = (trip.country || ''); else document.getElementById('country').value = (trip.country || '');
                 document.getElementById('tour_code').value = trip.tour_code || '';
@@ -2809,7 +2835,7 @@
                         });
 
                         const baseCode = (pkg.code && String(pkg.code).trim() !== '') ? String(pkg.code).trim() : ('PKG' + pkg.id);
-                        let attempt = 0; let maxAttempts = 20; let success = false; let lastErr = '';
+                        let attempt = 0; let maxAttempts = 20; let success = false; let lastErr = ''; let newId = null;
                         while (attempt < maxAttempts && !success) {
                             attempt++;
                             const suffix = (attempt === 1) ? '-COPY' : `-COPY${attempt}`;
@@ -2817,12 +2843,22 @@
                             const payload = { name: pkg.name, code: newCode, No_of_Days: pkg.No_of_Days, description: pkg.description || '', day_requirements };
                             const createResp = await fetch(`${API_URL}?action=addTripPackage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
                             const createJson = await createResp.json();
-                            if (createJson.status === 'success') { success = true; break; }
+                            if (createJson.status === 'success') { success = true; newId = (createJson.data && createJson.data.id) ? createJson.data.id : null; break; }
                             lastErr = createJson.message || 'Unknown error';
                             if (!/code/i.test(lastErr)) { break; }
                         }
-                        if (success) { showToast('Package duplicated. Name is duplicate; please rename.', 'warning'); await fetchPackages(); }
-                        else { showToast(`Failed to duplicate package: ${lastErr}`, 'error'); }
+                        if (success) {
+                            showToast('Package duplicated. Code duplicated; please update.', 'warning');
+                            await fetchPackages();
+                            const newPkg = packagesData.find(p => String(p.id) === String(newId));
+                            if (newPkg) {
+                                await openPackageEditModal(newPkg);
+                                const banner = document.getElementById('packageDuplicateBanner'); if (banner) banner.style.display = 'block';
+                                const codeInput = document.getElementById('package_code'); if (codeInput) { codeInput.focus(); codeInput.select(); }
+                            }
+                        } else {
+                            showToast(`Failed to duplicate package: ${lastErr}`, 'error');
+                        }
                     } catch (err) { showToast('Duplication failed: '+ err.message, 'error'); }
                 }
 
@@ -2992,6 +3028,66 @@
             document.getElementById('filterStatus').addEventListener('change', filterHotelRecords);
             document.getElementById('filterMonth').addEventListener('change', filterHotelRecords);
             
+            // Day Roster
+            const renderDayRoster = (rows) => {
+                const container = document.getElementById('dayRosterContainer');
+                container.innerHTML = '';
+                if (!rows || rows.length === 0) {
+                    container.innerHTML = '<div class="no-records">No entries found for the selected period.</div>';
+                    return;
+                }
+                // Group by date
+                const grouped = rows.reduce((acc, r) => { (acc[r.day_date] = acc[r.day_date] || []).push(r); return acc; }, {});
+                Object.keys(grouped).sort().forEach(date => {
+                    const group = document.createElement('div'); group.className = 'hotel-group';
+                    const header = document.createElement('div'); header.className = 'hotel-header';
+                    header.innerHTML = `<i class="fas fa-calendar-day"></i> ${date} <span style="margin-left:auto; opacity:0.9;">${grouped[date].length} file(s)</span>`;
+                    const list = document.createElement('div'); list.className = 'hotel-bookings';
+                    grouped[date].sort((a,b)=> (a.tour_code||'').localeCompare(b.tour_code||''));
+                    grouped[date].forEach(r => {
+                        const item = document.createElement('div'); item.className = 'booking-item';
+                        const hotel = r.hotel_name ? `<span><i class=\"fas fa-hotel\"></i> ${r.hotel_name}</span>` : '';
+                        const guide = r.guide_name ? `<span><i class=\"fas fa-user\"></i> ${r.guide_name}${r.guide_language?` (${r.guide_language})`:''}</span>` : '';
+                        const vehicle = r.vehicle_name ? `<span><i class=\"fas fa-car\"></i> ${r.vehicle_name}${r.number_plate?` (${r.number_plate})`:''}</span>` : '';
+                        const services = (r.services_provided||'').trim()? `<span><i class=\"fas fa-utensils\"></i> ${r.services_provided}</span>`: '';
+                        const informedPills = [
+                          r.hotel_informed==1? '<span class="status" style="background:#dcfce7;color:#166534">Hotel Informed</span>':'',
+                          r.guide_informed==1? '<span class="status" style="background:#dcfce7;color:#166534">Guide Informed</span>':'',
+                          r.vehicle_informed==1? '<span class="status" style="background:#dcfce7;color:#166534">Vehicle Informed</span>':''
+                        ].filter(Boolean).join(' ');
+                        item.innerHTML = `
+                          <div class="booking-main">
+                            <div class="booking-title">#${String(r.trip_id).padStart(3,'0')} • ${r.guest_name} ${r.tour_code? '| Tour: ' + r.tour_code : ''}</div>
+                            <div class="booking-details">${hotel} ${guide} ${vehicle} ${services}</div>
+                          </div>
+                          <div class="booking-meta">
+                            ${informedPills}
+                            <span class="status status-${r.status}">${r.status}</span>
+                            <div class="booking-actions"><a href="Itinerary.php?trip_id=${r.trip_id}" title="Open Itinerary"><i class="fas fa-route"></i></a></div>
+                          </div>`;
+                        // Notes row
+                        if ((r.notes||'').trim()){
+                          const notes = document.createElement('div');
+                          notes.style.cssText = 'margin:8px 0 0 0; font-size:0.9rem; color:#374151;';
+                          notes.innerHTML = `<i class="fas fa-sticky-note"></i> ${r.notes}`;
+                          item.querySelector('.booking-main').appendChild(notes);
+                        }
+                        list.appendChild(item);
+                    });
+                    group.appendChild(header); group.appendChild(list); container.appendChild(group);
+                });
+            };
+            const fetchDayRoster = async () => {
+                try {
+                    const month = document.getElementById('dayRosterMonth').value;
+                    const url = month ? `${API_URL}?action=getDayRoster&month=${month}` : `${API_URL}?action=getDayRoster`;
+                    const resp = await fetch(url);
+                    const json = await resp.json();
+                    if (json.status === 'success') renderDayRoster(json.data);
+                    else showToast(json.message || 'Failed to load day roster','error');
+                } catch (e) { showToast('Failed to load day roster','error'); }
+            };
+
             // Filter functions for guide records
             const filterGuideRecords = () => {
                 const statusFilter = document.getElementById('guideFilterStatus').value;
@@ -3018,12 +3114,21 @@
             document.getElementById('guideFilterStatus').addEventListener('change', filterGuideRecords);
             document.getElementById('guideFilterMonth').addEventListener('change', filterGuideRecords);
 
+            // Day roster filters
+            const drMonth = document.getElementById('dayRosterMonth');
+            if (drMonth){
+              const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+              drMonth.value = ym;
+              drMonth.addEventListener('change', fetchDayRoster);
+            }
+
             // Initial Data Load
             fetchTrips();
             fetchPackages();
             fetchVehicles();
             fetchGuides();
             fetchHotels();
+            
         });
     </script>
 </body>
