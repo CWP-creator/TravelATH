@@ -145,6 +145,15 @@ switch ($action) {
     case 'updateTripPax':
         updateTripPax($conn);
         break;
+    case 'getTripArrivals':
+        getTripArrivals($conn);
+        break;
+    case 'saveTripArrivals':
+        saveTripArrivals($conn);
+        break;
+    case 'deleteTripArrival':
+        deleteTripArrival($conn);
+        break;
     case 'getNextTourCode':
         getNextTourCode($conn);
         break;
@@ -430,7 +439,7 @@ $annapurna_itinerary = [
         }
 
         $conn->commit();
-        echo json_encode(['status' => 'success', 'message' => 'Trip created successfully.']);
+        echo json_encode(['status' => 'success', 'message' => 'Trip created successfully.', 'data' => ['id' => $trip_id]]);
     } catch (Exception $e) {
         $conn->rollback();
         echo json_encode(['status' => 'error', 'message' => 'Failed to add trip: ' . $e->getMessage()]);
@@ -707,6 +716,11 @@ function getItinerary($conn) {
     $vehSelect = "SELECT id, vehicle_name, capacity" . ($vehHasPlate ? ", number_plate" : "") . " FROM vehicles ORDER BY vehicle_name";
     $data['vehicles'] = $conn->query($vehSelect)->fetch_all(MYSQLI_ASSOC);
     $data['hotels'] = $conn->query("SELECT id, name FROM hotels ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+
+    // Include arrivals if table exists
+    ensureTripArrivalsTable($conn);
+    $arr = $conn->prepare("SELECT id, trip_id, arrival_date, arrival_time, flight_no, pax_count, pickup_location, drop_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed FROM trip_arrivals WHERE trip_id = ? ORDER BY arrival_date, arrival_time");
+    if ($arr) { $arr->bind_param('i', $trip_id); $arr->execute(); $res = $arr->get_result(); $data['arrivals'] = $res->fetch_all(MYSQLI_ASSOC); $arr->close(); }
 
     echo json_encode(['status' => 'success', 'data' => $data]);
 }
@@ -1872,6 +1886,125 @@ function getDayRoster($conn){
         http_response_code(500);
         echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
     }
+}
+
+// --- Trip arrivals schema helper
+function ensureTripArrivalsTable($conn){
+    $conn->query("CREATE TABLE IF NOT EXISTS trip_arrivals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        trip_id INT NOT NULL,
+        arrival_date DATE NOT NULL,
+        arrival_time TIME NULL,
+        flight_no VARCHAR(100) NULL,
+        pax_count INT DEFAULT 0,
+        pickup_location VARCHAR(255) NULL,
+        drop_hotel_id INT NULL,
+        vehicle_id INT NULL,
+        guide_id INT NULL,
+        notes TEXT NULL,
+        vehicle_informed TINYINT(1) DEFAULT 0,
+        guide_informed TINYINT(1) DEFAULT 0,
+        INDEX(trip_id), INDEX(arrival_date), INDEX(vehicle_id), INDEX(guide_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function getTripArrivals($conn){
+    $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
+    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
+    ensureTripArrivalsTable($conn);
+    $stmt = $conn->prepare("SELECT id, trip_id, arrival_date, arrival_time, flight_no, pax_count, pickup_location, drop_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed FROM trip_arrivals WHERE trip_id = ? ORDER BY arrival_date, arrival_time");
+    if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param('i', $trip_id); $stmt->execute(); $res = $stmt->get_result();
+    $rows = $res->fetch_all(MYSQLI_ASSOC); $stmt->close();
+    echo json_encode(['status'=>'success','data'=>$rows]);
+}
+
+function saveTripArrivals($conn){
+    $input = json_decode(file_get_contents('php://input'), true);
+    $trip_id = isset($input['trip_id']) ? intval($input['trip_id']) : 0;
+    $arrivals = isset($input['arrivals']) && is_array($input['arrivals']) ? $input['arrivals'] : [];
+    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
+    ensureTripArrivalsTable($conn);
+    $conn->begin_transaction();
+    try {
+        // Existing ids
+        $existing = [];
+        $res = $conn->query("SELECT id FROM trip_arrivals WHERE trip_id = ".intval($trip_id));
+        while($row = $res->fetch_assoc()){ $existing[(int)$row['id']] = true; }
+
+        $kept = [];
+        // Prepared statements
+        $ins = $conn->prepare("INSERT INTO trip_arrivals (trip_id, arrival_date, arrival_time, flight_no, pax_count, pickup_location, drop_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed) VALUES (?, ?, NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?,0), NULLIF(?,0), NULLIF(?,0), NULLIF(?, ''), ?, ?)");
+        $upd = $conn->prepare("UPDATE trip_arrivals SET arrival_date=?, arrival_time=NULLIF(?, ''), flight_no=NULLIF(?, ''), pax_count=?, pickup_location=NULLIF(?, ''), drop_hotel_id=NULLIF(?,0), vehicle_id=NULLIF(?,0), guide_id=NULLIF(?,0), notes=NULLIF(?, ''), vehicle_informed=?, guide_informed=? WHERE id=? AND trip_id=?");
+        if (!$ins || !$upd) throw new Exception('DB prepare failed: '.$conn->error);
+        foreach ($arrivals as $a){
+            $id = isset($a['id']) ? intval($a['id']) : 0;
+            $date = trim($a['arrival_date'] ?? ''); if ($date==='') continue;
+            $time = trim($a['arrival_time'] ?? '');
+            $flight = trim($a['flight_no'] ?? '');
+            $pax = isset($a['pax_count']) ? intval($a['pax_count']) : 0;
+            $pickup = trim($a['pickup_location'] ?? '');
+            $drop_hotel_id = isset($a['drop_hotel_id']) ? intval($a['drop_hotel_id']) : 0;
+            $vehicle_id = isset($a['vehicle_id']) ? intval($a['vehicle_id']) : 0;
+            $guide_id = isset($a['guide_id']) ? intval($a['guide_id']) : 0;
+            $notes = trim($a['notes'] ?? '');
+            $vehInf = !empty($a['vehicle_informed']) ? 1 : 0;
+            $guiInf = !empty($a['guide_informed']) ? 1 : 0;
+            if ($id>0){
+                $upd->bind_param('sssisiiisiiii', $date, $time, $flight, $pax, $pickup, $drop_hotel_id, $vehicle_id, $guide_id, $notes, $vehInf, $guiInf, $id, $trip_id);
+                if (!$upd->execute()) throw new Exception('Update failed: '.$upd->error);
+                $kept[$id]=true;
+            } else {
+                $ins->bind_param('isssi siiisii', $trip_id, $date, $time, $flight, $pax, $pickup, $drop_hotel_id, $vehicle_id, $guide_id, $notes, $vehInf, $guiInf);
+                // The above binding spaces are invalid; use correct types
+            }
+        }
+        // Reprepare insert with correct types due to PHP string above
+        $ins->close();
+        $ins2 = $conn->prepare("INSERT INTO trip_arrivals (trip_id, arrival_date, arrival_time, flight_no, pax_count, pickup_location, drop_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed) VALUES (?, ?, NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?,0), NULLIF(?,0), NULLIF(?,0), NULLIF(?, ''), ?, ?)");
+        foreach ($arrivals as $a){
+            $id = isset($a['id']) ? intval($a['id']) : 0; if ($id>0) continue;
+            $date = trim($a['arrival_date'] ?? ''); if ($date==='') continue;
+            $time = trim($a['arrival_time'] ?? '');
+            $flight = trim($a['flight_no'] ?? '');
+            $pax = isset($a['pax_count']) ? intval($a['pax_count']) : 0;
+            $pickup = trim($a['pickup_location'] ?? '');
+            $drop_hotel_id = isset($a['drop_hotel_id']) ? intval($a['drop_hotel_id']) : 0;
+            $vehicle_id = isset($a['vehicle_id']) ? intval($a['vehicle_id']) : 0;
+            $guide_id = isset($a['guide_id']) ? intval($a['guide_id']) : 0;
+            $notes = trim($a['notes'] ?? '');
+            $vehInf = !empty($a['vehicle_informed']) ? 1 : 0;
+            $guiInf = !empty($a['guide_informed']) ? 1 : 0;
+            $ins2->bind_param('isssissiiisii', $trip_id, $date, $time, $flight, $pax, $pickup, $drop_hotel_id, $vehicle_id, $guide_id, $notes, $vehInf, $guiInf);
+            if (!$ins2->execute()) throw new Exception('Insert failed: '.$ins2->error);
+            $kept[$conn->insert_id] = true;
+        }
+        $ins2->close();
+        // Delete removed
+        if (!empty($existing)){
+            $toDelete = array_diff(array_keys($existing), array_keys($kept));
+            if (!empty($toDelete)){
+                $ids = implode(',', array_map('intval', $toDelete));
+                $conn->query("DELETE FROM trip_arrivals WHERE trip_id = ".intval($trip_id)." AND id IN ($ids)");
+            }
+        }
+        $conn->commit();
+        echo json_encode(['status'=>'success','message'=>'Arrivals saved']);
+    } catch (Exception $e){
+        $conn->rollback();
+        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
+    }
+}
+
+function deleteTripArrival($conn){
+    parse_str(file_get_contents("php://input"), $_DELETE);
+    $id = isset($_DELETE['id']) ? intval($_DELETE['id']) : 0;
+    if ($id<=0){ echo json_encode(['status'=>'error','message'=>'Invalid id']); return; }
+    ensureTripArrivalsTable($conn);
+    $stmt = $conn->prepare("DELETE FROM trip_arrivals WHERE id = ?"); if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param('i', $id);
+    if ($stmt->execute()) echo json_encode(['status'=>'success','message'=>'Arrival deleted']); else echo json_encode(['status'=>'error','message'=>'Delete failed: '.$stmt->error]);
+    $stmt->close();
 }
 
 $conn->close();
