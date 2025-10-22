@@ -361,6 +361,20 @@
         .form-group input, .form-group select, .form-group textarea {
             width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box;
         }
+        /* Counters for couples/singles */
+        .counter-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0;padding:8px 10px;border:1px solid var(--border-color);background:#fff;border-radius:6px;}
+        .counter-label{font-weight:600;color:var(--text-color);}
+        .counter{display:inline-flex;align-items:center;gap:8px;}
+        .counter-value{min-width:28px;text-align:center;font-weight:700;}
+        .counter-btn{background:#1e40af;color:#fff;border:none;border-radius:4px;width:30px;height:28px;cursor:pointer;}
+        .counter-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+        /* Arrival drawer */
+        .arrival-drawer{ position: fixed; right: 30px; top: 110px; width: 560px; max-width: 92vw; height: 72vh; background:#fff; border:1px solid var(--border-color); border-radius:10px; box-shadow: var(--shadow); transform: translateX(110%); transition: transform .3s ease; z-index: 1100; display:flex; flex-direction:column; }
+        .arrival-drawer.open{ transform: translateX(0); }
+        .arrival-drawer .header{ padding:10px 12px; display:flex; align-items:center; justify-content:space-between; background:#f7f7f9; border-bottom:1px solid var(--border-color); font-weight:700; }
+        .arrival-drawer .body{ padding:10px 12px; overflow:auto; }
+
         .form-buttons {
             display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
         }
@@ -1024,36 +1038,9 @@
                     <input type="text" id="tripIdDisplay" readonly style="font-weight: bold; background-color: #f8f9fa;">
                 </div>
 
+                <div id="tripStep1">
                 <div class="section-card">
-                    <h4><i class="fas fa-user"></i> Guest Info</h4>
-                    <div class="form-group">
-                        <label for="company">Company</label>
-                        <select id="company" name="company">
-                            <option value="">Select Company</option>
-                            <option value="Individual">Individual</option>
-                            <option value="ASI">ASI</option>
-                            <option value="Booking">Booking</option>
-                        </select>
-                    </div>
-
-                        <div class="form-grid">
-                        <div class="form-group">
-                            <label for="customer_name">Guest/Group Name</label>
-                            <input type="text" id="customer_name" name="customer_name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="total_pax">Total No. of Pax</label>
-                            <input type="number" id="total_pax" name="total_pax" min="0" placeholder="e.g., 4">
-                        </div>
-                        <div class="form-group">
-                            <label for="country">Country</label>
-                            <select id="country" name="country"></select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <h4><i class="fas fa-plane-arrival"></i> Travel Details</h4>
+                    <h4><i class="fas fa-suitcase-rolling"></i> Tour Details</h4>
                     <div class="form-group">
                         <label for="trip_package_id">Tour Name (Package)</label>
                         <select id="trip_package_id" name="trip_package_id" required>
@@ -1073,6 +1060,16 @@
                                 <option value="Active">Active</option>
                                 <option value="Completed">Completed</option>
                             </select>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date</label>
+                            <input type="date" id="end_date" name="end_date" required>
                         </div>
                     </div>
 
@@ -1095,37 +1092,93 @@
                     </details>
                 </div>
 
+                <div class="section-card">
+                    <h4><i class="fas fa-user"></i> Guest Details</h4>
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <select id="company" name="company">
+                            <option value="">Select Company</option>
+                            <option value="Individual">Individual</option>
+                            <option value="ASI">ASI</option>
+                            <option value="Booking">Booking</option>
+                        </select>
+                    </div>
 
+                    <div class="form-group">
+                        <div class="counter-row">
+                            <span class="counter-label">No. of Couples</span>
+                            <div class="counter">
+                                <button type="button" class="counter-btn" data-target="couples_count" data-delta="-1">-</button>
+                                <span class="counter-value" data-for="couples_count">0</span>
+                                <button type="button" class="counter-btn" data-target="couples_count" data-delta="1">+</button>
+                            </div>
+                        </div>
+                        <input type="number" id="couples_count" name="couples_count" min="0" value="0" style="display:none;">
+                    </div>
+                    <div class="form-group">
+                        <div class="counter-row">
+                            <span class="counter-label">No. of Singles</span>
+                            <div class="counter">
+                                <button type="button" class="counter-btn" data-target="singles_count" data-delta="-1">-</button>
+                                <span class="counter-value" data-for="singles_count">0</span>
+                                <button type="button" class="counter-btn" data-target="singles_count" data-delta="1">+</button>
+                            </div>
+                        </div>
+                        <input type="number" id="singles_count" name="singles_count" min="0" value="0" style="display:none;">
+                    </div>
+
+                    <div class="form-group" style="margin-top:10px;">
+                        <label for="country">Country</label>
+                        <select id="country" name="country"></select>
+                    </div>
+
+                    <div id="guestNamesContainer" class="form-group" style="margin-top:10px;">
+                        <label>Guest Names</label>
+                        <div id="guestNamesInner"></div>
+                    </div>
+                </div>
+                </div> <!-- end step 1 -->
+
+                <div id="tripStep2">
                 <div class="section-card" id="travelDetailsCard">
                     <h4><i class="fas fa-plane-arrival"></i> Travel Details</h4>
-                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
-                            <h5 style="margin:0 0 6px 0; color: var(--text-light);">Arrival</h5>
+
+                    <div class="form-group">
+                        <label>Arrival Mode</label>
+                        <select id="arrival_mode">
+                            <option value="single">Single Arrival</option>
+                            <option value="multi">Multiple Arrivals</option>
+                        </select>
+                    </div>
+
+                    <div id="singleArrivalSection" class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
+                        <h5 style="margin:0 0 6px 0; color: var(--text-light);">Single Arrival</h5>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
                             <div class="form-group"><label for="arrival_date">Date</label><input type="date" id="arrival_date" name="arrival_date"></div>
-<div class="form-group"><label for="arrival_time">Time (optional)</label><input type="time" id="arrival_time" name="arrival_time"></div>
+                            <div class="form-group"><label for="arrival_time">Time (optional)</label><input type="time" id="arrival_time" name="arrival_time"></div>
                             <div class="form-group"><label for="arrival_flight">Flight (optional)</label><input type="text" id="arrival_flight" name="arrival_flight" placeholder="e.g. XY123"></div>
                         </div>
-                        <div class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
-                            <h5 style="margin:0 0 6px 0; color: var(--text-light);">Departure</h5>
-                            <div class="form-group"><label for="departure_date">Date</label><input type="date" id="departure_date" name="departure_date"></div>
-<div class="form-group"><label for="departure_time">Time (optional)</label><input type="time" id="departure_time" name="departure_time"></div>
-                            <div class="form-group"><label for="departure_flight">Flight (optional)</label><input type="text" id="departure_flight" name="departure_flight" placeholder="e.g. XY456"></div>
+                    </div>
+
+                    <div id="multiArrivalSection" style="display:none;">
+                        <div id="namesPoolContainer" class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff; width:100%;">
+                            <h5 style="margin:0 0 8px 0; color: var(--text-light);">Unassigned Guests</h5>
+                            <div id="namesPool" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;"></div>
                         </div>
+                        <div style="display:flex; justify-content:flex-end; margin:10px 0;">
+                            <button type="button" id="btnAddArrivalGroup" class="btn-add"><i class="fas fa-plus"></i> Arrival Group</button>
+                        </div>
+                        <div id="arrivalGroupsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:10px;"></div>
                     </div>
-                </div>
 
-                <div class="section-card" id="arrivalGroupsCard">
-                    <h4><i class="fas fa-users"></i> Arrival Groups</h4>
-                    <div id="arrivalGroupsContainer"></div>
-                    <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
-                        <button type="button" id="btnAddArrival" class="btn-add"><i class="fas fa-plus"></i> Add Arrival</button>
-                        <small style="color:#6b7280;">Use this to record multiple flights/arrival times for the same file.</small>
-                    </div>
                 </div>
+                </div> <!-- end step 2 -->
 
-                <div class="form-buttons">
+                <div class="form-buttons" id="tripFormButtons">
                     <button type="button" class="btn-cancel btn" data-modal="tripModal">Cancel</button>
-                    <button type="submit" class="btn-save btn">Save Trip</button>
+                    <button type="button" id="btnStepBack" class="btn btn-cancel" style="display:none;">Back</button>
+                    <button type="button" id="btnStepNext" class="btn btn-save" style="background:#3b82f6;">Next</button>
+                    <button type="submit" id="btnStepSave" class="btn-save btn" style="display:none;">Save Trip</button>
                 </div>
             </form>
         </div>
@@ -2042,6 +2095,16 @@
                       document.getElementById('modalTitle').textContent = 'New Trip • ' + j.data.tour_code;
                     }
                   }catch(e){ /* ignore */ }
+                  try{
+                    const rq = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkgId}&_=${Date.now()}`);
+                    const jr = await rq.json();
+                    if (jr.status==='success'){
+                      const d1 = (jr.data||[]).find(r=> String(r.day_number)==='1' && r.hotel_id);
+                      firstDayHotelId = d1 && d1.hotel_id ? String(d1.hotel_id) : null;
+                      renderArrivalGroups();
+                      calculateEndFromStart();
+                    }
+                  }catch(e){ firstDayHotelId = null; }
                 }
             });
 
@@ -2055,7 +2118,7 @@
                 const rawDays = parseInt(selectedOption?.dataset?.days ?? '0', 10);
                 const arrivalVal = arrivalInput.value;
 
-                if (!arrivalVal) { departureInput.value = ''; return; }
+                if (!arrivalVal) { departureInput.value = ''; const ed = document.getElementById('end_date'); if (ed) ed.value = ''; return; }
 
                 const start = new Date(arrivalVal + 'T00:00:00');
                 const end = new Date(start.getTime());
@@ -2065,13 +2128,161 @@
                 const year = end.getFullYear();
                 const month = String(end.getMonth() + 1).padStart(2, '0');
                 const day = String(end.getDate()).padStart(2, '0');
-                departureInput.value = `${year}-${month}-${day}`;
+                const endStr = `${year}-${month}-${day}`;
+                departureInput.value = endStr;
+                const ed = document.getElementById('end_date'); if (ed) ed.value = endStr;
+                const sd = document.getElementById('start_date'); if (sd && arrivalInput.value) sd.value = arrivalInput.value;
+            };
+            const calculateEndFromStart = () => {
+                const sd = document.getElementById('start_date')?.value||'';
+                const pkgSel = document.getElementById('trip_package_id');
+                const days = parseInt(pkgSel?.options[pkgSel.selectedIndex]?.dataset?.days||'0',10) || 0;
+                if (!sd || days<=0) return;
+                const end = new Date(sd + 'T00:00:00'); end.setDate(end.getDate()+days-1);
+                const y=end.getFullYear(), m=String(end.getMonth()+1).padStart(2,'0'), d=String(end.getDate()).padStart(2,'0');
+                const endStr = `${y}-${m}-${d}`;
+                const ed = document.getElementById('end_date'); if (ed) ed.value = endStr;
+                const dep = document.getElementById('departure_date'); if (dep) dep.value = endStr;
             };
 
             const arrivalDateEl = document.getElementById('arrival_date');
             if (arrivalDateEl) {
                 arrivalDateEl.addEventListener('change', calculateDepartureDate);
             }
+            const startDateEl = document.getElementById('start_date');
+            if (startDateEl) {
+                startDateEl.addEventListener('change', ()=>{
+                    const a = document.getElementById('arrival_date'); if (a) { a.value = startDateEl.value; calculateDepartureDate(); }
+                    calculateEndFromStart();
+                });
+            }
+            const endDateEl = document.getElementById('end_date');
+            if (endDateEl) {
+                endDateEl.addEventListener('change', ()=>{
+                    const d = document.getElementById('departure_date'); if (d) d.value = endDateEl.value;
+                });
+            }
+            
+            // --- Guest counts and names ---
+            let guestState = { couples_count: 0, singles_count: 0, couples: [], singles: [] };
+            function updateTotalPax(){
+                const cc = parseInt(document.getElementById('couples_count')?.value||0, 10) || 0;
+                const sc = parseInt(document.getElementById('singles_count')?.value||0, 10) || 0;
+                const total = (cc*2) + sc;
+                const tp = document.getElementById('total_pax'); if (tp) tp.value = String(total);
+            }
+            function updateCounterDisplays(){
+                const cc = document.getElementById('couples_count');
+                const sc = document.getElementById('singles_count');
+                const ccSpan = document.querySelector('[data-for="couples_count"]'); if (ccSpan) ccSpan.textContent = String(cc ? cc.value : 0);
+                const scSpan = document.querySelector('[data-for="singles_count"]'); if (scSpan) scSpan.textContent = String(sc ? sc.value : 0);
+            }
+            function renderGuestNameInputs(){
+                const inner = document.getElementById('guestNamesInner'); if (!inner) return;
+                const cc = parseInt(document.getElementById('couples_count')?.value||0, 10) || 0;
+                const sc = parseInt(document.getElementById('singles_count')?.value||0, 10) || 0;
+                // preserve existing values
+                const curCouples = [];
+                inner.querySelectorAll('[data-role="couple-row"]').forEach(row=>{
+                    const a = row.querySelector('input[data-k="name1"]').value;
+                    const b = row.querySelector('input[data-k="name2"]').value;
+                    curCouples.push([a,b]);
+                });
+                const curSingles = [];
+                inner.querySelectorAll('[data-role="single-row"]').forEach(row=>{
+                    const a = row.querySelector('input[data-k="name1"]').value; curSingles.push(a);
+                });
+                guestState.couples = curCouples; guestState.singles = curSingles;
+                inner.innerHTML = '';
+                // Couples section
+                const cWrap = document.createElement('div');
+                cWrap.innerHTML = '<strong>Couples</strong>';
+                for (let i=0;i<cc;i++){
+                    const row = document.createElement('div'); row.setAttribute('data-role','couple-row'); row.style.cssText='display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0;';
+                    const v1 = guestState.couples[i]?.[0] || '';
+                    const v2 = guestState.couples[i]?.[1] || '';
+                    row.innerHTML = `<input type="text" data-k="name1" placeholder="Name A (${i+1})" value="${v1}"><input type="text" data-k="name2" placeholder="Name B (${i+1})" value="${v2}">`;
+                    cWrap.appendChild(row);
+                }
+                inner.appendChild(cWrap);
+                // Singles section
+                const sWrap = document.createElement('div');
+                sWrap.style.marginTop = '10px';
+                sWrap.innerHTML = '<strong>Singles</strong>';
+                for (let j=0;j<sc;j++){
+                    const row = document.createElement('div'); row.setAttribute('data-role','single-row'); row.style.cssText='margin:6px 0;';
+                    const v = guestState.singles[j] || '';
+                    row.innerHTML = `<input type="text" data-k="name1" placeholder="Name ${j+1}" value="${v}">`;
+                    sWrap.appendChild(row);
+                }
+                inner.appendChild(sWrap);
+                // Update pool as names change
+                inner.querySelectorAll('input[data-k]').forEach(inp=>{
+                    inp.addEventListener('input', ()=>{ updateNamesPool(); });
+                });
+                updateNamesPool();
+            }
+            function collectGuestData(){
+                const inner = document.getElementById('guestNamesInner'); if (!inner) return { couples: [], singles: [] };
+                const couples = []; const singles = [];
+                inner.querySelectorAll('[data-role="couple-row"]').forEach(row=>{
+                    const a = row.querySelector('input[data-k="name1"]').value.trim();
+                    const b = row.querySelector('input[data-k="name2"]').value.trim();
+                    couples.push([a,b]);
+                });
+                inner.querySelectorAll('[data-role="single-row"]').forEach(row=>{
+                    const a = row.querySelector('input[data-k="name1"]').value.trim(); singles.push(a);
+                });
+                return { couples, singles };
+            }
+            async function fetchGuestsForTrip(tripId){
+                try{
+                    const r = await fetch(`${API_URL}?action=getTripGuests&trip_id=${tripId}&_=${Date.now()}`);
+                    const j = await r.json();
+                    if (j.status==='success' && j.data){
+                        const cc = j.data.couples?.length||0; const sc = j.data.singles?.length||0;
+                        const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
+                        if (ccEl) ccEl.value = cc; if (scEl) scEl.value = sc; updateCounterDisplays(); updateTotalPax();
+                        renderGuestNameInputs();
+                        // Fill values
+                        const inner = document.getElementById('guestNamesInner'); if (inner){
+                            inner.querySelectorAll('[data-role="couple-row"]').forEach((row, idx)=>{
+                                const a = j.data.couples[idx]?.[0]||''; const b=j.data.couples[idx]?.[1]||'';
+                                row.querySelector('input[data-k="name1"]').value = a; row.querySelector('input[data-k="name2"]').value = b;
+                            });
+                            inner.querySelectorAll('[data-role="single-row"]').forEach((row, idx)=>{
+                                const a = j.data.singles[idx]||''; row.querySelector('input[data-k="name1"]').value = a;
+                            });
+                        }
+                    }
+                }catch(e){ /* ignore */ }
+            }
+            async function saveGuestsForTrip(tripId){
+                const data = collectGuestData();
+                try{
+                    const resp = await fetch(`${API_URL}?action=saveTripGuests`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), couples: data.couples, singles: data.singles }) });
+                    const j = await resp.json().catch(()=>null);
+                    if (!j || j.status!=='success'){
+                        showToast((j&&j.message)||'Failed to save guest names','error');
+                    }
+                }catch(e){ showToast('Failed to save guest names','error'); }
+            }
+            document.getElementById('couples_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
+            document.getElementById('singles_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
+            document.addEventListener('click', function(e){
+                const btn = e.target.closest('.counter-btn');
+                if (!btn) return;
+                const id = btn.getAttribute('data-target');
+                const delta = parseInt(btn.getAttribute('data-delta')||'0',10);
+                const input = document.getElementById(id);
+                if (!input) return;
+                const current = parseInt(input.value||'0',10) || 0;
+                const next = Math.max(0, current + delta);
+                input.value = String(next);
+                updateCounterDisplays();
+                renderGuestNameInputs();
+                updateTotalPax();
+            });
             
             // --- Modal Handling ---
             const openModal = (modalId) => {
@@ -2115,7 +2326,11 @@
                 // Reset arrivals state
                 tripArrivalsState = [];
                 renderArrivalGroups();
+                // Reset guest state
+                const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
+                if (ccEl) ccEl.value = 0; if (scEl) scEl.value = 0; updateCounterDisplays(); updateTotalPax(); renderGuestNameInputs();
                 updateCompanyMode();
+                setTripStep(1);
 
                 openModal('tripModal');
             });
@@ -2290,6 +2505,25 @@
                 const isUpdate = !!document.getElementById('tripIdHidden').value;
                 const action = isUpdate ? 'updateTrip' : 'addTrip';
                 const formData = new FormData(this);
+                // Ensure dates exist
+                try {
+                    let sd = formData.get('start_date');
+                    let ed = formData.get('end_date');
+                    const arrInput = document.getElementById('arrival_date');
+                    const pkgSel = document.getElementById('trip_package_id');
+                    const pkgDays = parseInt(pkgSel?.options[pkgSel.selectedIndex]?.dataset?.days||'0',10) || 0;
+                    // Earliest group date
+                    const grpDates = tripArrivalsState.map(a=>a.arrival_date).filter(Boolean).sort();
+                    const earliest = grpDates.length ? grpDates[0] : (arrInput?.value||'');
+                    if (!sd && earliest){ formData.set('start_date', earliest); sd = earliest; }
+                    if (!ed){
+                        if (sd && pkgDays>0){
+                            const d = new Date(sd + 'T00:00:00'); d.setDate(d.getDate() + Math.max(1,pkgDays) - 1);
+                            const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+                            formData.set('end_date', `${y}-${m}-${da}`);
+                        } else if (sd){ formData.set('end_date', sd); }
+                    }
+                } catch(_){}
                 try {
                     const resp = await fetch(`${API_URL}?action=${action}`, { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body: formData });
                     const text = await resp.text();
@@ -2299,7 +2533,16 @@
                     let tripId = document.getElementById('tripIdHidden').value;
                     if (!isUpdate) { tripId = (result.data && result.data.id) ? String(result.data.id) : ''; }
                     if (tripId){
+                        // If multi mode, save groups; if single, build one group from single inputs
+                        const modeSel = document.getElementById('arrival_mode');
+                        if (modeSel && modeSel.value==='single'){
+                            const names = getAllGuestNames();
+                            const pax = names.length;
+                            const one = [{ arrival_date: document.getElementById('arrival_date')?.value||'', arrival_time: document.getElementById('arrival_time')?.value||'', flight_no: document.getElementById('arrival_flight')?.value||'', pax_count: pax, pickup_location: names.join('\n'), drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }];
+                            tripArrivalsState = one;
+                        }
                         await saveArrivalsForTrip(tripId);
+                        await saveGuestsForTrip(tripId);
                     }
                     showToast(result.message,'success');
                     closeModal('tripModal');
@@ -2714,103 +2957,223 @@
 
 
             let tripArrivalsState = [];
+            let namesPoolVisible = true;
+            let firstDayHotelId = null;
+            let itineraryDaysCache = [];
+            let selectedArrivalIndex = null;
             function getHotelOptionsHTML(selected){ return ['<option value="">--</option>'].concat((hotelsData||[]).map(h=>`<option value="${h.id}" ${String(selected)===String(h.id)?'selected':''}>${h.name}</option>`)).join(''); }
             function getVehicleOptionsHTML(selected){ return ['<option value="">--</option>'].concat((vehiclesData||[]).map(v=>`<option value="${v.id}" ${String(selected)===String(v.id)?'selected':''}>${v.vehicle_name}${v.number_plate?` (${v.number_plate})`:''}</option>`)).join(''); }
             function getGuideOptionsHTML(selected){ return ['<option value="">--</option>'].concat((guidesData||[]).map(g=>`<option value="${g.id}" ${String(selected)===String(g.id)?'selected':''}>${g.name}${g.language?` (${g.language})`:''}</option>`)).join(''); }
+            function getAllGuestUnits(){
+                const units = [];
+                // Couples
+                document.querySelectorAll('#guestNamesInner [data-role="couple-row"]').forEach((row, idx)=>{
+                    const a = (row.querySelector('input[data-k="name1"]').value||'').trim();
+                    const b = (row.querySelector('input[data-k="name2"]').value||'').trim();
+                    if (a || b) units.push({ type:'couple', members: [a,b].filter(Boolean), label: [a,b].filter(Boolean).join(' & ') + ' (Couple)' });
+                });
+                // Singles
+                document.querySelectorAll('#guestNamesInner [data-role="single-row"]').forEach((row, idx)=>{
+                    const s = (row.querySelector('input[data-k="name1"]').value||'').trim();
+                    if (s) units.push({ type:'single', members:[s], label:s });
+                });
+                return units;
+            }
+            function getAllGuestNames(){
+                return getAllGuestUnits().flatMap(u => u.members);
+            }
+            function unassignedUnits(){
+                const assigned = new Set();
+                tripArrivalsState.forEach(g=>{
+                    (g.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach(n=>assigned.add(n));
+                });
+                // Hide unit if ANY of its members is already assigned
+                return getAllGuestUnits().filter(u=> u.members.every(n=> !assigned.has(n)) );
+            }
+            function updateNamesPool(){
+                const pool = document.getElementById('namesPool'); if (!pool) return;
+                const units = unassignedUnits();
+                pool.innerHTML = '';
+                // Hide entire block if none left
+                const poolWrap = document.getElementById('namesPoolContainer');
+                if (poolWrap) poolWrap.style.display = units.length ? 'block' : 'none';
+                units.forEach(u=>{
+                    const chip = document.createElement('div');
+                    chip.textContent = u.label; chip.style.cssText = 'padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#f9fafb; cursor:pointer; user-select:none;';
+                    chip.addEventListener('click', ()=>{
+                        if (selectedArrivalIndex===null) selectedArrivalIndex = 0;
+                        if (selectedArrivalIndex===null || !tripArrivalsState[selectedArrivalIndex]) return;
+                        const g = tripArrivalsState[selectedArrivalIndex];
+                        const cur = Array.isArray(g.pickup_list) ? [...g.pickup_list] : (g.pickup_location||'').split(/\r?\n/).filter(Boolean);
+                        u.members.forEach(n=> { if (!cur.includes(n)) cur.push(n); });
+                        g.pickup_list = cur;
+                        g.pickup_location = cur.join('\n');
+                        g.pax_count = cur.length;
+                        renderArrivalGroups(); updateNamesPool();
+                    });
+                    pool.appendChild(chip);
+                });
+                document.getElementById('namesPoolContainer').style.display = units.length>0 ? 'block' : 'none';
+            }
+            function addArrivalGroup(){
+                tripArrivalsState.push({ arrival_date:'', arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', pickup_list:[], drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 });
+                selectedArrivalIndex = tripArrivalsState.length - 1;
+                renderArrivalGroups(); updateNamesPool();
+            }
             function renderArrivalGroups(){
                 const c = document.getElementById('arrivalGroupsContainer'); if (!c) return; c.innerHTML='';
-                if (!tripArrivalsState.length){ c.innerHTML = '<div style="color:#6b7280;">No arrivals added.</div>'; return; }
+                if (!tripArrivalsState.length){ c.innerHTML = '<div style="color:#6b7280;">No arrivals added.</div>'; updateNamesPool(); return; }
                 tripArrivalsState.forEach((a, idx) => {
-                    const row = document.createElement('div');
-                    row.className = 'requirement-grid';
-                    row.style.gridTemplateColumns = '1fr 1fr 1fr';
-                    row.style.gap = '10px';
-                    row.style.marginBottom = '8px';
-                    row.innerHTML = `
-                        <div class="requirement-section">
-                            <h5>When/Flight</h5>
+                    // Default date to trip start date
+                    const startVal = document.getElementById('start_date')?.value||'';
+                    if (!a.arrival_date && startVal) a.arrival_date = startVal;
+                    // Default drop hotel to nearest to Day 1
+                    if (!a.drop_hotel_id || String(a.drop_hotel_id)===''){ a.drop_hotel_id = computeDefaultDropHotelId(a.arrival_date) || firstDayHotelId || ''; }
+                    const card = document.createElement('div');
+                    card.className = 'requirement-section' + (selectedArrivalIndex===idx? ' selected-arrival' : '');
+                    card.style.marginBottom = '10px';
+                    card.style.borderWidth = (selectedArrivalIndex===idx? '2px':'1px');
+                    card.style.borderColor = (selectedArrivalIndex===idx? '#2563eb':'var(--border-color)');
+                    const title = `Arrival A${idx+1}`;
+                    const assignedNames = Array.isArray(a.pickup_list) ? a.pickup_list : (a.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+                    a.pickup_list = assignedNames; a.pickup_location = assignedNames.join('\n');
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+                            <h5 style="margin:0; color: var(--text-light);">${title}</h5>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="btn btn-secondary" data-role="toggle-pool"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
+                            </div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
                             <div class="form-group"><label>Date</label><input type="date" data-k="arrival_date" value="${a.arrival_date||''}"></div>
                             <div class="form-group"><label>Time</label><input type="time" data-k="arrival_time" value="${a.arrival_time||''}"></div>
                             <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${a.flight_no||''}"></div>
-                            <div class="form-group"><label>Pax</label><input type="number" min="0" data-k="pax_count" value="${a.pax_count||0}"></div>
                         </div>
-                        <div class="requirement-section">
-                            <h5>Logistics</h5>
-                            <div class=\"form-group\"><label>Name list</label><textarea rows=\"4\" data-k=\"pickup_location\" placeholder=\"One name per line\">${a.pickup_location||''}</textarea></div>
+                        <div class=\"form-group\"><label>Assign Guests</label>
+                            <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">
+                                ${assignedNames.length? assignedNames.map(n=>`<span class=\\\"chip\\\" data-name=\\\"${n}\\\" style=\\\"padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;\\\">${n}<button type=\\\"button\\\" data-role=\\\"unassign\\\" data-name=\\\"${n}\\\" style=\\\"border:none; background:transparent; color:#6b7280; cursor:pointer;\\\">×</button></span>`).join('') : '<div style=\"text-align:center; color:#9ca3af;\">Click a name on the left to add here</div>'}
+                            </div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
                             <div class="form-group"><label>Drop Hotel</label><select data-k="drop_hotel_id">${getHotelOptionsHTML(a.drop_hotel_id||'')}</select></div>
                             <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(a.vehicle_id||'')}</select></div>
                             <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(a.guide_id||'')}</select></div>
                         </div>
-                        <div class="requirement-section">
-                            <h5>Notes</h5>
-                            <div class="form-group"><textarea rows="5" data-k="notes" placeholder="Instructions, special requests...">${a.notes||''}</textarea></div>
-                            <div style="display:flex; gap:8px; align-items:center;">
-                                <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${a.vehicle_informed? 'checked':''}> Vehicle informed</label>
-                                <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${a.guide_informed? 'checked':''}> Guide informed</label>
-                            </div>
-                            <button type="button" class="btn btn-cancel" data-role="remove" style="margin-top:8px;">Remove</button>
-                        </div>`;
-                    row.querySelectorAll('[data-k]').forEach(el=>{
+                        <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${a.notes||''}</textarea></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${a.vehicle_informed? 'checked':''}> Vehicle informed</label>
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${a.guide_informed? 'checked':''}> Guide informed</label>
+                        </div>
+                    `;
+                    card.querySelectorAll('[data-k]').forEach(el=>{
                         el.addEventListener('change', ()=>{
                             const k = el.getAttribute('data-k');
                             let v = (el.type==='checkbox') ? el.checked : el.value;
-                            if (k==='pax_count') v = parseInt(v||0);
+                            // Vehicle overlap check on same date
+                            if (k==='vehicle_id'){
+                                const date = (tripArrivalsState[idx].arrival_date||'');
+                                if (v){
+                                    const conflictIdx = tripArrivalsState.findIndex((g,i)=> i!==idx && g.arrival_date===date && String(g.vehicle_id||'')===String(v));
+                                    if (conflictIdx!==-1){
+                                        if (!confirm(`This vehicle is already assigned to Arrival A${conflictIdx+1} on ${date}. Allow overlap?`)){
+                                            // revert
+                                            el.value = tripArrivalsState[idx].vehicle_id || '';
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
                             tripArrivalsState[idx][k] = v;
                             if (k==='arrival_date') syncArrivalDateFromGroups();
                         });
                     });
-                    row.querySelector('[data-role="remove"]').addEventListener('click', ()=>{
-                        tripArrivalsState.splice(idx,1); renderArrivalGroups();
+                    const drop = card.querySelector('[data-role="drop"]');
+                    const choose = ()=>{ selectedArrivalIndex = idx; const cont = document.getElementById('arrivalGroupsContainer'); if (cont) cont.scrollTop = 0; renderArrivalGroups(); updateNamesPool(); };
+                    if (drop){ drop.addEventListener('click', choose); }
+                    card.addEventListener('click', (ev)=>{ if (ev.target.closest('[data-role="unassign"]')) return; choose(); });
+                    card.addEventListener('click', (e)=>{
+                        const un = e.target.closest('[data-role="unassign"]');
+                        if (un){ e.preventDefault(); const name = un.getAttribute('data-name'); const cur = (Array.isArray(tripArrivalsState[idx].pickup_list)? tripArrivalsState[idx].pickup_list : (tripArrivalsState[idx].pickup_location||'').split(/\r?\n/).filter(Boolean)).filter(n=>n!==name); tripArrivalsState[idx].pickup_list = cur; tripArrivalsState[idx].pickup_location = cur.join('\n'); tripArrivalsState[idx].pax_count = cur.length; renderArrivalGroups(); updateNamesPool(); return; }
+                        const rm = e.target.closest('[data-role="remove"]'); if (rm){ tripArrivalsState.splice(idx,1); selectedArrivalIndex = Math.max(0, Math.min((selectedArrivalIndex||0)- (selectedArrivalIndex>idx?1:0), tripArrivalsState.length-1)); renderArrivalGroups(); updateNamesPool(); }
                     });
-                    c.appendChild(row);
+                    c.appendChild(card);
                 });
+                updateNamesPool();
             }
             async function fetchArrivalsForTrip(tripId){
-                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); } }catch(e){ /* ignore */ }
+                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); updateNamesPool(); } }catch(e){ /* ignore */ }
             }
             async function saveArrivalsForTrip(tripId){
                 try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), arrivals: tripArrivalsState }) }); }catch(e){ /* ignore */ }
             }
-            const btnAddArrival = document.getElementById('btnAddArrival'); if (btnAddArrival){ btnAddArrival.addEventListener('click', ()=>{ tripArrivalsState.push({ arrival_date:'', arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }); renderArrivalGroups(); syncArrivalDateFromGroups(); }); }
+            const btnAddArrivalGroup = document.getElementById('btnAddArrivalGroup'); if (btnAddArrivalGroup){ btnAddArrivalGroup.addEventListener('click', ()=>{ addArrivalGroup(); syncArrivalDateFromGroups(); }); }
 
             function syncArrivalDateFromGroups(){
-                // Set the hidden arrival_date field to earliest group date
+                // Set the hidden arrival_date field to earliest group date (for single/multi cohesion)
                 const input = document.getElementById('arrival_date'); if (!input) return;
                 const dates = tripArrivalsState.map(a=>a.arrival_date).filter(Boolean).sort();
                 if (dates.length){ input.value = dates[0]; calculateDepartureDate(); }
             }
-            function switchCustomerNameToTextarea(isGroup){
-                const el = document.getElementById('customer_name');
-                if (!el) return;
-                const parent = el.parentElement;
-                if (isGroup && el.tagName.toLowerCase() !== 'textarea'){
-                    const ta = document.createElement('textarea');
-                    ta.id = 'customer_name'; ta.name = 'customer_name'; ta.rows = 3; ta.placeholder = 'Enter multiple names, one per line'; ta.value = el.value || '';
-                    parent.replaceChild(ta, el);
-                } else if (!isGroup && el.tagName.toLowerCase() !== 'input'){
-                    const inp = document.createElement('input');
-                    inp.type = 'text'; inp.id = 'customer_name'; inp.name = 'customer_name'; inp.required = true; inp.value = el.value || '';
-                    parent.replaceChild(inp, el);
-                }
+            function computeDefaultDropHotelId(dateStr){
+                if (!itineraryDaysCache || !itineraryDaysCache.length) return firstDayHotelId || '';
+                // find exact date, else next available after date
+                let exact = itineraryDaysCache.find(d=> d.day_date===dateStr && d.hotel_id);
+                if (exact && exact.hotel_id) return String(exact.hotel_id);
+                // next after
+                const sorted = [...itineraryDaysCache].filter(d=> d.hotel_id).sort((a,b)=> a.day_date.localeCompare(b.day_date));
+                for (const d of sorted){ if (d.day_date>=dateStr) return String(d.hotel_id); }
+                // fallback first with hotel
+                return String((sorted[0]&&sorted[0].hotel_id) || firstDayHotelId || '');
             }
+            // Arrival mode toggle
+            (function(){
+                const mode = document.getElementById('arrival_mode');
+                const secSingle = document.getElementById('singleArrivalSection');
+                const secMulti = document.getElementById('multiArrivalSection');
+                if (mode){
+                    mode.addEventListener('change', ()=>{
+                        const v = mode.value;
+                        if (v==='single'){
+                            secSingle.style.display='block'; secMulti.style.display='none';
+                        } else {
+                            secSingle.style.display='none'; secMulti.style.display='block';
+                            updateNamesPool();
+                        }
+                    });
+                }
+            })();
             function updateCompanyMode(){
-                const company = (document.getElementById('company')?.value)||'';
-                const isIndividual = (company === 'Individual');
                 const travel = document.getElementById('travelDetailsCard');
-                const arrivals = document.getElementById('arrivalGroupsCard');
-                if (travel) travel.style.display = isIndividual ? '' : 'none';
-                if (arrivals) arrivals.style.display = isIndividual ? 'none' : '';
-                switchCustomerNameToTextarea(!isIndividual);
+                if (travel) travel.style.display = '';
+                // Set selected group to first for assignment convenience
+                if (tripArrivalsState.length && selectedArrivalIndex===null){ selectedArrivalIndex = 0; renderArrivalGroups(); updateNamesPool(); }
             }
             document.getElementById('company')?.addEventListener('change', ()=>{ updateCompanyMode(); });
+            // Stepper
+            let tripCurrentStep = 1;
+            function setTripStep(n){
+                tripCurrentStep = n;
+                const s1 = document.getElementById('tripStep1');
+                const s2 = document.getElementById('tripStep2');
+                if (s1) s1.style.display = (n===1)?'':'none';
+                if (s2) s2.style.display = (n===2)?'':'none';
+                const back = document.getElementById('btnStepBack');
+                const next = document.getElementById('btnStepNext');
+                const save = document.getElementById('btnStepSave');
+                if (back) back.style.display = (n===2)?'':'none';
+                if (next) next.style.display = (n===1)?'':'none';
+                if (save) save.style.display = (n===2)?'':'none';
+            }
+            document.getElementById('btnStepNext')?.addEventListener('click', ()=> setTripStep(2));
+            document.getElementById('btnStepBack')?.addEventListener('click', ()=> setTripStep(1));
 
-            function populateTripForm(trip){
+            async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip';
                 document.getElementById('tripIdHidden').value = trip.id;
                 document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
                 document.getElementById('fileIdGroup').style.display = 'block';
                 document.getElementById('company').value = (trip.company || '');
-                document.getElementById('customer_name').value = trip.customer_name;
                 const totalPaxEl = document.getElementById('total_pax');
                 if (totalPaxEl) { totalPaxEl.value = (trip.total_pax != null ? trip.total_pax : ''); }
                 const countryEl = document.getElementById('country');
@@ -2819,19 +3182,41 @@
                 document.getElementById('passport_no').value = (trip.passport_no || '');
                 document.getElementById('address').value = (trip.address || '');
                 document.getElementById('trip_package_id').value = trip.trip_package_id;
+                // Dates
+                document.getElementById('start_date').value = (trip.start_date || '');
+                document.getElementById('end_date').value = (trip.end_date || '');
                 document.getElementById('arrival_date').value = (trip.arrival_date || '');
                 document.getElementById('arrival_time').value = (trip.arrival_time || '');
                 document.getElementById('arrival_flight').value = (trip.arrival_flight || '');
-                document.getElementById('departure_date').value = (trip.departure_date || '');
-                document.getElementById('departure_time').value = (trip.departure_time || '');
-                document.getElementById('departure_flight').value = (trip.departure_flight || '');
+                const depD = document.getElementById('departure_date'); if (depD) depD.value = (trip.departure_date || '');
+                const depT = document.getElementById('departure_time'); if (depT) depT.value = (trip.departure_time || '');
+                const depF = document.getElementById('departure_flight'); if (depF) depF.value = (trip.departure_flight || '');
                 document.getElementById('status').value = trip.status;
+                // Pax breakdown (optional columns)
+                const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
+                if (ccEl && typeof trip.couples_count !== 'undefined') ccEl.value = trip.couples_count ?? 0;
+                if (scEl && typeof trip.singles_count !== 'undefined') scEl.value = trip.singles_count ?? 0;
+                updateTotalPax(); renderGuestNameInputs();
                 document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
                 updateCompanyMode();
+                setTripStep(1);
                 // Load arrivals (kept hidden for Individual)
                 tripArrivalsState = [];
                 renderArrivalGroups();
                 fetchArrivalsForTrip(trip.id);
+                // Determine Day 1 hotel from itinerary
+                try{
+                    const r = await fetch(`${API_URL}?action=getItinerary&trip_id=${trip.id}&_=${Date.now()}`);
+                    const j = await r.json();
+                    if (j.status==='success'){
+                        itineraryDaysCache = j.data.itinerary_days||[];
+                        const d = itineraryDaysCache[0];
+                        firstDayHotelId = d && d.hotel_id ? String(d.hotel_id) : null;
+                        renderArrivalGroups();
+                    }
+                }catch(e){ firstDayHotelId = null; itineraryDaysCache = []; }
+                // Load guests
+                fetchGuestsForTrip(trip.id);
             }
 
             function openTripModalForPackage(pkgId){
