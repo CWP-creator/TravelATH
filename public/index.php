@@ -336,9 +336,12 @@
             background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s;
         }
         /* Wider, compact Trip modal */
-#tripModal .modal-content { max-width: 700px; padding: 16px; }
+#tripModal .modal-content { max-width: 700px; padding: 16px; max-height: 80vh; overflow: auto; display: flex; flex-direction: column; }
+#tripModal .modal-content form { display: flex; flex-direction: column; }
+#tripModal .modal-content form > *:last-child.form-buttons { margin-top: auto; }
         #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
         #tripModal .section-card { padding: 12px; margin-bottom: 10px; }
+        #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 6px; }
         #tripModal .form-group { margin-bottom: 10px; }
         #tripModal .form-group label { margin-bottom: 3px; }
         #tripModal .form-group input, #tripModal .form-group select { padding: 8px; }
@@ -376,7 +379,9 @@
         .arrival-drawer .body{ padding:10px 12px; overflow:auto; }
 
         .form-buttons {
-            display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+            position: sticky; bottom: 0; z-index: 2;
+            background: #fff; padding: 10px 0; margin-top: 12px;
+            display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color);
         }
         button, .btn {
             padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: background-color 0.3s ease;
@@ -754,10 +759,11 @@
                     <i class="fas fa-chevron-down toggle-arrow"></i>
                 </a>
                 <ul class="nav-submenu" id="reportsSubmenu">
+                    <li><a data-section="insights"><i class="fas fa-plane fa-fw"></i> <span class="link-text">Arrival & Departure</span></a></li>
                     <li><a data-section="hotelrecords"><i class="fas fa-calendar-check fa-fw"></i> <span class="link-text">Hotel Records</span></a></li>
                     <li><a data-section="guiderecords"><i class="fas fa-user-check fa-fw"></i> <span class="link-text">Guide Records</span></a></li>
                     <li><a data-section="vehiclerecords"><i class="fas fa-truck fa-fw"></i> <span class="link-text">Vehicle Records</span></a></li>
-                    <li><a data-section="dayroster"><i class="fas fa-calendar-day fa-fw"></i> <span class="link-text">Day Roster</span></a></li>
+                    <li><a data-section="dayroster"><i class="fas fa-calendar-day fa-fw"></i> <span class="link-text">Duty Roster</span></a></li>
                 </ul>
             </li>
         </ul>
@@ -962,6 +968,21 @@
                 </div>
             </section>
 
+            <section id="insightsSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header" style="align-items:center; gap:10px;">
+                        <h2>Arrival & Departure Insights</h2>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="month" id="insightsMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                        </div>
+                    </div>
+                    <div id="insightsContainer">
+                        <div id="arrivalInsightsContainer" class="hotel-records-container" style="margin-bottom:16px;"></div>
+                        <div id="departureInsightsContainer" class="hotel-records-container"></div>
+                    </div>
+                </div>
+            </section>
+
             <section id="vehiclerecordsSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
@@ -1153,8 +1174,8 @@
 
                     <div id="singleArrivalSection" class="requirement-section" style="border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
                         <h5 style="margin:0 0 6px 0; color: var(--text-light);">Single Arrival</h5>
-                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
-                            <div class="form-group"><label for="arrival_date">Date</label><input type="date" id="arrival_date" name="arrival_date"></div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:end;">
+                            <div class="form-group"><label for="arrival_date">Date <small style="color:#6b7280;">(day)</small></label><div style="display:flex; gap:8px; align-items:center;"><input type="date" id="arrival_date" name="arrival_date"><span id="arrivalDayBadge" style="min-width:32px; text-align:center; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; background:#f9fafb; color:#111827; font-weight:700;">--</span></div></div>
                             <div class="form-group"><label for="arrival_time">Time (optional)</label><input type="time" id="arrival_time" name="arrival_time"></div>
                             <div class="form-group"><label for="arrival_flight">Flight (optional)</label><input type="text" id="arrival_flight" name="arrival_flight" placeholder="e.g. XY123"></div>
                         </div>
@@ -1165,6 +1186,17 @@
                             <h5 style="margin:0 0 8px 0; color: var(--text-light);">Unassigned Guests</h5>
                             <div id="namesPool" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;"></div>
                         </div>
+                    </div>
+
+                    <div id="departureMirrorSection" class="requirement-section" style="margin-top:10px; border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
+                        <h5 style="margin:0 0 6px 0; color: var(--text-light);">Departure</h5>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:end;">
+                            <div class="form-group"><label for="departure_date">Date <small style="color:#6b7280;">(day)</small></label><div style="display:flex; gap:8px; align-items:center;"><input type="date" id="departure_date" name="departure_date"><span id="departureDayBadge" style="min-width:32px; text-align:center; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; background:#f9fafb; color:#111827; font-weight:700;">--</span></div></div>
+                            <div class="form-group"><label for="departure_time">Time (optional)</label><input type="time" id="departure_time" name="departure_time"></div>
+                            <div class="form-group"><label for="departure_flight">Flight (optional)</label><input type="text" id="departure_flight" name="departure_flight" placeholder="e.g. XY456"></div>
+                        </div>
+                        <label style="display:flex; gap:8px; align-items:center; margin-top:8px;"><input type="checkbox" id="sameAsArrivalCheckbox"> Use same groups as Arrival (sets date to End Date)</label>
+                    </div>
                         <div style="display:flex; justify-content:flex-end; margin:10px 0;">
                             <button type="button" id="btnAddArrivalGroup" class="btn-add"><i class="fas fa-plus"></i> Arrival Group</button>
                         </div>
@@ -1174,12 +1206,12 @@
                 </div>
                 </div> <!-- end step 2 -->
 
-                <div class="form-buttons" id="tripFormButtons">
-                    <button type="button" class="btn-cancel btn" data-modal="tripModal">Cancel</button>
-                    <button type="button" id="btnStepBack" class="btn btn-cancel" style="display:none;">Back</button>
-                    <button type="button" id="btnStepNext" class="btn btn-save" style="background:#3b82f6;">Next</button>
-                    <button type="submit" id="btnStepSave" class="btn-save btn" style="display:none;">Save Trip</button>
+                <div class="form-buttons">
+                    <button type="button" id="btnStepBack" class="btn" style="background:#aaa;">Back</button>
+                    <button type="button" id="btnStepNext" class="btn btn-save">Next</button>
+                    <button type="submit" id="btnStepSave" class="btn btn-save">Save Trip</button>
                 </div>
+
             </form>
         </div>
     </div>
@@ -1546,6 +1578,9 @@
                         case 'trips':
                             renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
                             break;
+                        case 'insights':
+                            fetchInsights();
+                            break;
                         case 'packages':
                             fetchPackages();
                             break;
@@ -1574,6 +1609,10 @@
                 });
             });
             
+            // Month inputs default to current
+            const nowMonth = new Date().toISOString().slice(0,7);
+            const insM = document.getElementById('insightsMonth'); if (insM) { insM.value = nowMonth; insM.addEventListener('change', fetchInsights); }
+
             // Initialize sidebar - expand Entry section by default
             const entryToggle = document.querySelector('[data-toggle="entry"]');
             const entrySubmenu = document.getElementById('entrySubmenu');
@@ -1594,7 +1633,7 @@
                 document.getElementById('totalCustomers').textContent = uniqueCustomers;
             };
 
-            const fetchTrips = async () => {
+            async function fetchTrips() {
                 try {
                     const response = await fetch(`${API_URL}?action=getTrips`);
                     const result = await response.json();
@@ -1611,7 +1650,7 @@
                 }
             };
             
-            const fetchPackages = async () => {
+            async function fetchPackages() {
                 try {
                     const response = await fetch(`${API_URL}?action=getTripPackages`);
                     const result = await response.json();
@@ -1630,7 +1669,7 @@
                 }
             };
 
-            const fetchHotels = async () => {
+            async function fetchHotels() {
                 try {
                     const response = await fetch(`${API_URL}?action=getHotels`);
                     const result = await response.json();
@@ -1643,7 +1682,7 @@
                 }
             };
 
-            const fetchVehicles = async () => {
+            async function fetchVehicles() {
                 try {
                     const response = await fetch(`${API_URL}?action=getVehicles`);
                     const result = await response.json();
@@ -1657,7 +1696,7 @@
                 }
             };
 
-            const fetchGuides = async () => {
+            async function fetchGuides() {
                 try {
                     const response = await fetch(`${API_URL}?action=getGuides`);
                     const result = await response.json();
@@ -1671,7 +1710,7 @@
                 }
             };
 
-            const fetchHotelRecords = async () => {
+            async function fetchHotelRecords() {
                 try {
                     const response = await fetch(`${API_URL}?action=getHotelRecords`);
                     const result = await response.json();
@@ -1686,7 +1725,22 @@
                 }
             };
             
-            const fetchVehicleRecords = async () => {
+            async function fetchInsights() {
+                try {
+                    const m = document.getElementById('insightsMonth');
+                    const month = m && m.value ? m.value : new Date().toISOString().slice(0,7);
+                    const [arrRes, depRes] = await Promise.all([
+                        fetch(`${API_URL}?action=getArrivalInsights&month=${encodeURIComponent(month)}`),
+                        fetch(`${API_URL}?action=getDepartureInsights&month=${encodeURIComponent(month)}`)
+                    ]);
+                    const arrJs = await arrRes.json();
+                    const depJs = await depRes.json();
+                    if (arrJs.status==='success') renderArrivalInsights(arrJs.data); else showToast(arrJs.message||'Arrival insights error','error');
+                    if (depJs.status==='success') renderDepartureInsights(depJs.data); else showToast(depJs.message||'Departure insights error','error');
+                } catch(e){ showToast('Error fetching insights','error'); }
+            };
+
+            async function fetchVehicleRecords() {
                 try {
                     const response = await fetch(`${API_URL}?action=getVehicleRecords`);
                     const result = await response.json();
@@ -1700,7 +1754,7 @@
                 }
             };
 
-            const fetchGuideRecords = async () => {
+            async function fetchGuideRecords() {
                 try {
                     const response = await fetch(`${API_URL}?action=getGuideRecords`);
                     const result = await response.json();
@@ -1716,7 +1770,65 @@
             };
 
             // --- UI Rendering ---
-            const renderTrips = (trips, tbody) => {
+            function renderArrivalInsights(rows){
+                const c = document.getElementById('arrivalInsightsContainer'); if (!c) return; c.innerHTML='';
+                if (!rows || rows.length===0){ c.innerHTML = '<div class="no-records">No arrivals found for this period.</div>'; return; }
+                // Group by date
+                const byDate = rows.reduce((acc,r)=>{ const d=r.arrival_date; (acc[d]=acc[d]||[]).push(r); return acc; },{});
+                Object.keys(byDate).sort().forEach(date=>{
+                    const group = document.createElement('div'); group.className='hotel-group';
+                    const head = document.createElement('div'); head.className='hotel-header'; head.style.background='#e6f4ea'; head.style.color='#166534'; head.innerHTML = `<i class="fas fa-plane-arrival"></i> ${date} <span style="margin-left:auto;">${byDate[date].length} arrival(s)</span>`; group.appendChild(head);
+                    const body = document.createElement('div'); body.className='hotel-bookings';
+                    byDate[date].forEach((r,idx)=>{
+                        const item = document.createElement('div'); item.className='booking-item';
+                        const plate = r.number_plate ? ` (${r.number_plate})` : '';
+                        item.innerHTML = `
+                            <div class="booking-main">
+                                <div class="booking-title">[A${idx+1}] ${r.customer_name} — ${r.tour_code||''}</div>
+                                <div class="booking-details">
+                                    <span><i class="far fa-clock"></i> ${r.arrival_time||'—'}</span>
+                                    <span><i class="fas fa-plane"></i> ${r.flight_no||'—'}</span>
+                                    <span><i class="fas fa-users"></i> Pax: ${r.pax_count||'—'}</span>
+                                    <span><i class="fas fa-map-marker-alt"></i> Pickup: ${r.pickup_location||'—'}</span>
+                                    <span><i class="fas fa-hotel"></i> Drop: ${r.drop_hotel_name||'—'}</span>
+                                    <span><i class="fas fa-car"></i> ${r.vehicle_name? (r.vehicle_name+plate) : '—'}</span>
+                                    <span><i class="fas fa-user-tie"></i> ${r.guide_name||'—'}</span>
+                                </div>
+                            </div>`;
+                        body.appendChild(item);
+                    });
+                    group.appendChild(body); c.appendChild(group);
+                });
+            }
+
+            function renderDepartureInsights(rows){
+                const c = document.getElementById('departureInsightsContainer'); if (!c) return; c.innerHTML='';
+                if (!rows || rows.length===0){ c.innerHTML = '<div class="no-records">No departures found for this period.</div>'; return; }
+                // Group by date
+                const byDate = rows.reduce((acc,r)=>{ const d=r.departure_date; (acc[d]=acc[d]||[]).push(r); return acc; },{});
+                Object.keys(byDate).sort().forEach(date=>{
+                    const group = document.createElement('div'); group.className='hotel-group';
+                    const head = document.createElement('div'); head.className='hotel-header'; head.style.background='#eef2ff'; head.style.color='#1e40af'; head.innerHTML = `<i class="fas fa-plane-departure"></i> ${date} <span style="margin-left:auto;">${byDate[date].length} departure(s)</span>`; group.appendChild(head);
+                    const body = document.createElement('div'); body.className='hotel-bookings';
+                    byDate[date].forEach((r,idx)=>{
+                        const item = document.createElement('div'); item.className='booking-item';
+                        item.innerHTML = `
+                            <div class="booking-main">
+                                <div class="booking-title">${r.customer_name} — ${r.tour_code||''}</div>
+                                <div class="booking-details">
+                                    <span><i class="far fa-clock"></i> ${r.departure_time||'—'}</span>
+                                    <span><i class="fas fa-plane"></i> ${r.departure_flight||'—'}</span>
+                                    <span><i class="fas fa-users"></i> Pax: ${r.total_pax||'—'}</span>
+                                </div>
+                            </div>`;
+                        body.appendChild(item);
+                    });
+                    group.appendChild(body); c.appendChild(group);
+                });
+            }
+
+            // --- UI Rendering ---
+            function renderTrips(trips, tbody) {
                 tbody.innerHTML = '';
                 if (!trips || trips.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
@@ -1747,7 +1859,7 @@
                 });
             };
 
-                const renderPackages = (packages) => {
+                function renderPackages(packages) {
                 const tbody = document.querySelector('#packagesTable tbody');
                 tbody.innerHTML = '';
                 if (!packages || packages.length === 0) {
@@ -1773,7 +1885,7 @@
                 });
             };
 
-            const renderHotels = (hotels) => {
+            function renderHotels(hotels) {
                 const tbody = document.querySelector('#hotelsTable tbody');
                 tbody.innerHTML = '';
                 if (!hotels || hotels.length === 0) {
@@ -1805,7 +1917,7 @@
                 });
             };
 
-            const renderVehicles = (vehicles) => {
+            function renderVehicles(vehicles) {
                 const tbody = document.querySelector('#vehiclesTable tbody');
                 tbody.innerHTML = '';
                 if (!vehicles || vehicles.length === 0) {
@@ -1832,7 +1944,7 @@
                 });
             };
             
-            const renderGuides = (guides) => {
+            function renderGuides(guides) {
                 const tbody = document.querySelector('#guidesTable tbody');
                 tbody.innerHTML = '';
                 if (!guides || guides.length === 0) {
@@ -1860,7 +1972,7 @@
                 });
             };
             
-            const renderHotelRecords = (records) => {
+            function renderHotelRecords(records) {
                 const container = document.querySelector('#hotelRecordsContainer');
                 container.innerHTML = '';
                 
@@ -1955,7 +2067,7 @@
                 });
             };
             
-            const renderVehicleRecords = (records) => {
+            function renderVehicleRecords(records) {
                 const container = document.querySelector('#vehicleRecordsContainer');
                 container.innerHTML = '';
                 if (!records || records.length === 0) {
@@ -1993,7 +2105,7 @@
                     });
                     groupEl.appendChild(header); groupEl.appendChild(list); container.appendChild(groupEl);
                 });
-            };
+            }
 
             const renderGuideRecords = (records) => {
                 const container = document.querySelector('#guideRecordsContainer');
@@ -2145,9 +2257,11 @@
                 const dep = document.getElementById('departure_date'); if (dep) dep.value = endStr;
             };
 
+            function updateDayBadge(inputId, badgeId){ const el = document.getElementById(inputId); const b = document.getElementById(badgeId); if (!el || !b) return; const v = el.value; if (!v){ b.textContent='--'; return; } const d = new Date(v+'T00:00:00'); b.textContent = String(d.getDate()).padStart(2,'0'); }
             const arrivalDateEl = document.getElementById('arrival_date');
             if (arrivalDateEl) {
-                arrivalDateEl.addEventListener('change', calculateDepartureDate);
+                arrivalDateEl.addEventListener('change', ()=>{ calculateDepartureDate(); updateDayBadge('arrival_date','arrivalDayBadge'); });
+                updateDayBadge('arrival_date','arrivalDayBadge');
             }
             const startDateEl = document.getElementById('start_date');
             if (startDateEl) {
@@ -3175,11 +3289,11 @@
                 const back = document.getElementById('btnStepBack');
                 const next = document.getElementById('btnStepNext');
                 const save = document.getElementById('btnStepSave');
-                if (back) back.style.display = (n===2)?'':'none';
-                if (next) next.style.display = (n===1)?'':'none';
+                if (back) back.style.display = (n>1)?'':'none';
+                if (next) next.style.display = (n<2)?'':'none';
                 if (save) save.style.display = (n===2)?'':'none';
             }
-            document.getElementById('btnStepNext')?.addEventListener('click', ()=> setTripStep(2));
+document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const next = Math.min(2, (tripCurrentStep||1)+1); setTripStep(next); updateDayBadge('arrival_date','arrivalDayBadge'); });
             document.getElementById('btnStepBack')?.addEventListener('click', ()=> setTripStep(1));
 
             async function populateTripForm(trip){
