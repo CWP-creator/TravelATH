@@ -2153,6 +2153,11 @@
             if (startDateEl) {
                 startDateEl.addEventListener('change', ()=>{
                     const a = document.getElementById('arrival_date'); if (a) { a.value = startDateEl.value; calculateDepartureDate(); }
+                    // Keep all arrival groups at start_date + 1
+                    const newDate = dayAfterStart();
+                    tripArrivalsState = (tripArrivalsState||[]).map(g=> ({...g, arrival_date: newDate}));
+                    renderArrivalGroups();
+                    updateNamesPool();
                     calculateEndFromStart();
                 });
             }
@@ -3015,8 +3020,13 @@
                 });
                 document.getElementById('namesPoolContainer').style.display = units.length>0 ? 'block' : 'none';
             }
+            function dayAfterStart(){
+                const sd = document.getElementById('start_date')?.value||'';
+                if (!sd) return '';
+                const d = new Date(sd + 'T00:00:00'); d.setDate(d.getDate()+1); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`;
+            }
             function addArrivalGroup(){
-                tripArrivalsState.push({ arrival_date:'', arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', pickup_list:[], drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 });
+                tripArrivalsState.push({ arrival_date: dayAfterStart(), arrival_time:'', flight_no:'', pax_count:0, pickup_location:'', pickup_list:[], drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 });
                 selectedArrivalIndex = tripArrivalsState.length - 1;
                 renderArrivalGroups(); updateNamesPool();
             }
@@ -3038,7 +3048,7 @@
                     const assignedNames = Array.isArray(a.pickup_list) ? a.pickup_list : (a.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
                     a.pickup_list = assignedNames; a.pickup_location = assignedNames.join('\n');
                     card.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;" data-role="header">
                             <h5 style="margin:0; color: var(--text-light);">${title}</h5>
                             <div style="display:flex; gap:6px;">
                                 <button type="button" class="btn btn-secondary" data-role="toggle-pool"><i class="fas fa-plus"></i></button>
@@ -3091,7 +3101,8 @@
                     const drop = card.querySelector('[data-role="drop"]');
                     const choose = ()=>{ selectedArrivalIndex = idx; const cont = document.getElementById('arrivalGroupsContainer'); if (cont) cont.scrollTop = 0; renderArrivalGroups(); updateNamesPool(); };
                     if (drop){ drop.addEventListener('click', choose); }
-                    card.addEventListener('click', (ev)=>{ if (ev.target.closest('[data-role="unassign"]')) return; choose(); });
+                    const header = card.querySelector('[data-role="header"]');
+                    if (header){ header.addEventListener('click', choose); }
                     card.addEventListener('click', (e)=>{
                         const un = e.target.closest('[data-role="unassign"]');
                         if (un){ e.preventDefault(); const name = un.getAttribute('data-name'); const cur = (Array.isArray(tripArrivalsState[idx].pickup_list)? tripArrivalsState[idx].pickup_list : (tripArrivalsState[idx].pickup_location||'').split(/\r?\n/).filter(Boolean)).filter(n=>n!==name); tripArrivalsState[idx].pickup_list = cur; tripArrivalsState[idx].pickup_location = cur.join('\n'); tripArrivalsState[idx].pax_count = cur.length; renderArrivalGroups(); updateNamesPool(); return; }
@@ -3102,7 +3113,10 @@
                 updateNamesPool();
             }
             async function fetchArrivalsForTrip(tripId){
-                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); updateNamesPool(); } }catch(e){ /* ignore */ }
+                try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); updateNamesPool();
+                    // Infer arrival mode from number of groups
+                    const modeSel = document.getElementById('arrival_mode'); if (modeSel){ modeSel.value = (tripArrivalsState.length>1)? 'multi' : 'single'; modeSel.dispatchEvent(new Event('change')); }
+                } }catch(e){ /* ignore */ }
             }
             async function saveArrivalsForTrip(tripId){
                 try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), arrivals: tripArrivalsState }) }); }catch(e){ /* ignore */ }
@@ -3556,6 +3570,9 @@
                         const item = document.createElement('div'); item.className = 'booking-item';
                         const hotel = r.hotel_name ? `<span><i class=\"fas fa-hotel\"></i> ${r.hotel_name}</span>` : '';
                         const guide = r.guide_name ? `<span><i class=\"fas fa-user\"></i> ${r.guide_name}${r.guide_language?` (${r.guide_language})`:''}</span>` : '';
+                        const arrText = (r.arrival_vehicle_summary||'').trim();
+                        const arrCount = arrText ? arrText.split(',').length : 0;
+                        const arrivals = arrText ? `<span><i class=\"fas fa-plane-arrival\"></i> ${arrText} ${arrCount>1? `<span class=\"status\" style=\"background:#e0f2fe;color:#075985\">${arrCount} arrivals</span>` : ''}</span>` : '';
                         const vehicle = r.vehicle_name ? `<span><i class=\"fas fa-car\"></i> ${r.vehicle_name}${r.number_plate?` (${r.number_plate})`:''}</span>` : '';
                         const services = (r.services_provided||'').trim()? `<span><i class=\"fas fa-utensils\"></i> ${r.services_provided}</span>`: '';
                         const informedPills = [
@@ -3566,7 +3583,7 @@
                         item.innerHTML = `
                           <div class="booking-main">
                             <div class="booking-title">#${String(r.trip_id).padStart(3,'0')} • ${r.guest_name} ${r.tour_code? '| Tour: ' + r.tour_code : ''}</div>
-                            <div class="booking-details">${hotel} ${guide} ${vehicle} ${services}</div>
+                            <div class=\"booking-details\">${hotel} ${guide} ${vehicle} ${arrivals} ${services}</div>
                           </div>
                           <div class="booking-meta">
                             ${informedPills}

@@ -405,6 +405,21 @@
         .custom-select select {
             min-height: 32px;
         }
+        /* Readonly fake select for arrival vehicles */
+        .fake-select {
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--border-light);
+            padding: 8px 10px;
+        }
+        .fake-select .fake-option { padding: 4px 0; font-size: 0.85rem; }
+        .fake-select .fake-option.header { 
+            color: var(--text-secondary); 
+            font-weight: 600; 
+            border-bottom: 1px dashed var(--border); 
+            margin-bottom: 4px; 
+            padding-bottom: 4px; 
+        }
         
         /* Searchable Select Styles */
         .searchable-select {
@@ -1088,6 +1103,7 @@
             let packageHotels = [];
             let packageRequirements = [];
             let roomTypes = [];
+            let arrivalsByDate = {};
 
             function showToast(message, type = 'success') {
                 const toast = document.getElementById('toast') || createToastElement();
@@ -1323,12 +1339,25 @@
                     }
 
                     console.log('API response received:', result);
-                    const { trip, itinerary_days, guides, vehicles, hotels } = result.data;
+                    const { trip, itinerary_days, guides, vehicles, hotels, arrivals } = result.data;
                     
                     allGuides = guides;
                     allVehicles = vehicles;
                     allHotels = hotels;
                     currentItineraryDays = itinerary_days;
+                    // Build arrivals by date map for display with group codes A1, A2...
+                    arrivalsByDate = {};
+                    (arrivals||[]).forEach(a=>{
+                        const d = a.arrival_date;
+                        if (!arrivalsByDate[d]) arrivalsByDate[d] = [];
+                        const idx = arrivalsByDate[d].length; // 0-based
+                        const group = `A${idx+1}`;
+                        const v = vehicles.find(vv=> String(vv.id)===String(a.vehicle_id));
+                        let name = v? (v.vehicle_name||'Vehicle') : 'Vehicle';
+                        if (v && v.number_plate) name += ` (${v.number_plate})`;
+                        if (a.arrival_time) name += ` @ ${a.arrival_time}`;
+                        arrivalsByDate[d].push({ group, label: name });
+                    });
                     console.log('Data loaded - hotels:', allHotels.length, 'guides:', allGuides.length, 'vehicles:', allVehicles.length);
                     
                     if (trip.trip_package_id) {
@@ -1539,11 +1568,57 @@
                     // Hotel always spans full width on its own row
                     const hotelSpanClass = 'style="grid-column: 1 / -1;"';
 
+                    const arrivalsTodayObjs = (arrivalsByDate[day.day_date]||[]);
+                    // Build arrival vehicles optgroup for the day vehicle dropdown (read-only entries)
+                    let arrivalsOptGroup = '';
+                    let arrivalSummaryOption = '';
+                    const hasArrivalsToday = arrivalsTodayObjs.length > 0;
+                    if (hasArrivalsToday){
+                        arrivalsOptGroup = '<optgroup label="Arrival Vehicles">' + arrivalsTodayObjs.map(o=> `<option value="" disabled>[${o.group}] ${o.label}</option>`).join('') + '</optgroup>';
+                        // We will not render the dropdown at all for arrival days; keep vars for fallback
+                        if (!day.vehicle_id){
+                            const header = `<option value=\"\" disabled selected>Arrival Vehicles</option>`;
+                            const lines = arrivalsTodayObjs.map(o=>`<option value=\"\" disabled>[${o.group}] ${o.label}</option>`).join('');
+                            arrivalSummaryOption = header + lines;
+                        }
+                    }
+
+                    // Build vehicle block: dropdown for normal days, read-only fake select for arrival days
+                    let vehicleBlockHTML = '';
+                    const vehicleLabelSuffix = hasArrivalsToday ? ' (Arrival)' : `${vehicleTypeLabel}`;
+                    if (showVehicle){
+                        if (hasArrivalsToday){
+                            const items = arrivalsTodayObjs.map(o=>`<div class=\"fake-option\">[${o.group}] ${o.label}</div>`).join('');
+                            vehicleBlockHTML = `
+                            <div class=\"form-group\"> 
+                                <div class=\"form-group-controls\"> 
+                                    <label><i class=\"fas fa-car\"></i> Vehicle${vehicleLabelSuffix}</label>
+                                    <div class=\"fake-select\">
+                                        <div class=\"fake-option header\">Arrival Vehicles</div>
+                                        ${items}
+                                    </div>
+                                    ${createInformedSwitch(day.id, 'vehicle', day.vehicle_informed)}
+                                </div>
+                            </div>`;
+                        } else {
+                            vehicleBlockHTML = `
+                            <div class=\"form-group\"> 
+                                <div class=\"form-group-controls\"> 
+                                    <label for=\"day_${day.id}_vehicle_id\"><i class=\"fas fa-car\"></i> Vehicle${vehicleLabelSuffix}</label>
+                                    <div class=\"custom-select\"> 
+                                        <select id=\"day_${day.id}_vehicle_id\" name=\"day_${day.id}_vehicle_id\">${vehicleOptions}${arrivalsOptGroup}</select>
+                                    </div>
+                                    ${createInformedSwitch(day.id, 'vehicle', day.vehicle_informed)}
+                                </div>
+                            </div>`;
+                        }
+                    }
+
                     dayContentWrapper.innerHTML = `
-                        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;">
+                        <div style=\"font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;\">
                             Day ${dayCounter} – ${dateString}
                         </div>
-                        <div class="assignments-grid">
+                        <div class=\"assignments-grid\">
                             ${showGuide ? `
                             <div class="form-group">
                                 <div class="form-group-controls">
@@ -1555,17 +1630,7 @@
                                 </div>
                             </div>
                             ` : ''}
-                            ${showVehicle ? `
-                            <div class="form-group">
-                                <div class="form-group-controls">
-                                    <label for="day_${day.id}_vehicle_id"><i class="fas fa-car"></i> Vehicle${vehicleTypeLabel}</label>
-                                    <div class="custom-select">
-                                        <select id="day_${day.id}_vehicle_id" name="day_${day.id}_vehicle_id">${vehicleOptions}</select>
-                                    </div>
-                                    ${createInformedSwitch(day.id, 'vehicle', day.vehicle_informed)}
-                                </div>
-                            </div>
-                            ` : ''}
+                            ${vehicleBlockHTML}
                             ${showHotelGroup ? `
                             <div class="hotel-group" ${hotelSpanClass}>
                                 <div class="hotel-fields">

@@ -1864,6 +1864,11 @@ function getDayRoster($conn){
         }
         $stId->close();
 
+        // Preload arrival vehicles within the period
+        $arrivalsMap = [];
+        $qA = $conn->prepare("SELECT ta.trip_id, ta.arrival_date, ta.arrival_time, v.vehicle_name, v.number_plate FROM trip_arrivals ta LEFT JOIN vehicles v ON v.id = ta.vehicle_id WHERE ta.arrival_date BETWEEN ? AND ?");
+        if ($qA) { $qA->bind_param('ss', $startStr, $endStr); $qA->execute(); $rA=$qA->get_result(); while($row=$rA->fetch_assoc()){ $tid=(int)$row['trip_id']; $d=$row['arrival_date']; if(!isset($arrivalsMap[$tid]))$arrivalsMap[$tid]=[]; if(!isset($arrivalsMap[$tid][$d]))$arrivalsMap[$tid][$d]=[]; $label=$row['vehicle_name']; if ($hasPlate && !empty($row['number_plate'])) $label .= ' ('.$row['number_plate'].')'; if (!empty($row['arrival_time'])) $label .= ' @ '.$row['arrival_time']; $arrivalsMap[$tid][$d][]=$label; } $qA->close(); }
+
         // Build diary-style rows for each day per trip in overlap
         $rows = [];
         foreach ($trips as $t) {
@@ -1904,6 +1909,12 @@ function getDayRoster($conn){
                     $row['hotel_informed'] = intval($a['hotel_informed'] ?? 0);
                     $row['guide_informed'] = intval($a['guide_informed'] ?? 0);
                     $row['vehicle_informed'] = intval($a['vehicle_informed'] ?? 0);
+                }
+                // Add arrival vehicle summary if any
+                if (isset($arrivalsMap[$tid]) && isset($arrivalsMap[$tid][$ds]) && count($arrivalsMap[$tid][$ds])>0){
+                    $row['arrival_vehicle_summary'] = implode(', ', $arrivalsMap[$tid][$ds]);
+                } else {
+                    $row['arrival_vehicle_summary'] = '';
                 }
                 $rows[] = $row;
                 $d->modify('+1 day');
