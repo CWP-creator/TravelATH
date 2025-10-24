@@ -1161,13 +1161,20 @@
 
                 <div class="section-card">
                     <h4><i class="fas fa-user"></i> Guest Details</h4>
-                    <div class="form-group">
+                <div class="form-group">
                         <label for="company">Company</label>
                         <select id="company" name="company">
                             <option value="">Select Company</option>
                             <option value="Individual">Individual</option>
                             <option value="ASI">ASI</option>
                             <option value="Booking">Booking</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking_status">Booking Status</label>
+                        <select id="booking_status" name="booking_status">
+                            <option value="Booking">Booking</option>
+                            <option value="Pre-Booking">Pre-Booking</option>
                         </select>
                     </div>
 
@@ -1734,11 +1741,11 @@
                     const response = await fetch(`${API_URL}?action=getTripPackages`);
                     const result = await response.json();
                     if (result.status === 'success') {
-                        packagesData = result.data;
+                        packagesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderPackages(packagesData);
                         const select = document.getElementById('trip_package_id');
                         select.innerHTML = '<option value="">Select Package</option>';
-                        result.data.forEach(pkg => {
+                        packagesData.forEach(pkg => {
                             const days = pkg.No_of_Days ? ` (${pkg.No_of_Days} Days)` : '';
                             select.innerHTML += `<option value="${pkg.id}" data-description="${pkg.description || ''}" data-days="${pkg.No_of_Days || ''}">${pkg.name}${days}</option>`;
                         });
@@ -1753,8 +1760,8 @@
                     const response = await fetch(`${API_URL}?action=getHotels`);
                     const result = await response.json();
                     if (result.status === 'success') {
-                        hotelsData = result.data;
-                        renderHotels(result.data);
+                        hotelsData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                        renderHotels(hotelsData);
                     }
                 } catch (error) {
                     showToast('Error fetching hotels.', 'error');
@@ -1766,9 +1773,9 @@
                     const response = await fetch(`${API_URL}?action=getVehicles`);
                     const result = await response.json();
                     if (result.status === 'success') {
-                        vehiclesData = result.data;
-                        renderVehicles(result.data);
-                        document.getElementById('vehicleCount').textContent = result.data.length;
+                        vehiclesData = [...result.data].sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
+                        renderVehicles(vehiclesData);
+                        document.getElementById('vehicleCount').textContent = vehiclesData.length;
                     }
                 } catch (error) {
                     showToast('Error fetching vehicles.', 'error');
@@ -1780,9 +1787,9 @@
                     const response = await fetch(`${API_URL}?action=getGuides`);
                     const result = await response.json();
                     if (result.status === 'success') {
-                        guidesData = result.data;
-                        renderGuides(result.data);
-                        document.getElementById('guideCount').textContent = result.data.length;
+                        guidesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                        renderGuides(guidesData);
+                        document.getElementById('guideCount').textContent = guidesData.length;
                     }
                 } catch (error) {
                     showToast('Error fetching guides.', 'error');
@@ -1955,6 +1962,7 @@
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No packages found.</td></tr>';
                     return;
                 }
+                const packages = [...packages].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                 packages.forEach(pkg => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -1981,6 +1989,7 @@
                     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hotels found.</td></tr>';
                     return;
                 }
+                const hotels = [...hotels].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                 hotels.forEach(hotel => {
                     const row = document.createElement('tr');
                     if (hotel.availability) {
@@ -2013,6 +2022,7 @@
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No vehicles found.</td></tr>';
                     return;
                 }
+                const vehicles = [...vehicles].sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
                 vehicles.forEach(vehicle => {
                     const row = document.createElement('tr');
                     if (vehicle.availability) {
@@ -2040,6 +2050,7 @@
                     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No guides found.</td></tr>';
                     return;
                 }
+                const guides = [...guides].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                 guides.forEach(guide => {
                     const row = document.createElement('tr');
                     if (guide.availability_status) {
@@ -2376,6 +2387,28 @@
             
             // --- Guest counts and names ---
             let guestState = { couples_count: 0, singles_count: 0, couples: [], singles: [] };
+            function applyPrebookingTemplate(){
+                const bs = document.getElementById('booking_status');
+                if (!bs || bs.value !== 'Pre-Booking') return;
+                const ccEl = document.getElementById('couples_count');
+                const scEl = document.getElementById('singles_count');
+                if (ccEl) ccEl.value = 5; if (scEl) scEl.value = 4;
+                updateCounterDisplays();
+                renderGuestNameInputs();
+                // Fill default names: Couples A-E (A1,A2 ... E1,E2), Singles S1..S4
+                const inner = document.getElementById('guestNamesInner'); if (!inner) return;
+                const letters = ['A','B','C','D','E'];
+                const coupleRows = inner.querySelectorAll('[data-role="couple-row"]');
+                coupleRows.forEach((row, idx)=>{
+                    const L = letters[idx] || String.fromCharCode(65+idx);
+                    const a = row.querySelector('input[data-k="name1"]'); const b = row.querySelector('input[data-k="name2"]');
+                    if (a) a.value = `${L}1`; if (b) b.value = `${L}2`;
+                });
+                const singleRows = inner.querySelectorAll('[data-role="single-row"]');
+                singleRows.forEach((row, idx)=>{ const a = row.querySelector('input[data-k="name1"]'); if (a) a.value = `S${idx+1}`; });
+                updateNamesPool();
+                updateTotalPax();
+            }
             function updateTotalPax(){
                 const cc = parseInt(document.getElementById('couples_count')?.value||0, 10) || 0;
                 const sc = parseInt(document.getElementById('singles_count')?.value||0, 10) || 0;
@@ -2480,6 +2513,7 @@
             }
             document.getElementById('couples_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
             document.getElementById('singles_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
+            document.getElementById('booking_status')?.addEventListener('change', ()=>{ if (document.getElementById('booking_status').value === 'Pre-Booking') applyPrebookingTemplate(); });
             document.addEventListener('click', function(e){
                 const btn = e.target.closest('.counter-btn');
                 if (!btn) return;
@@ -2528,6 +2562,7 @@
 
             document.getElementById('addTripBtn').addEventListener('click', () => {
                 document.getElementById('tripForm').reset();
+                const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 document.getElementById('tripIdHidden').value = '';
                 document.getElementById('tripIdDisplay').value = '';
                 document.getElementById('fileIdGroup').style.display = 'none';
@@ -3661,6 +3696,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
                 document.getElementById('fileIdGroup').style.display = 'block';
                 document.getElementById('company').value = (trip.company || '');
+                const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 const totalPaxEl = document.getElementById('total_pax');
                 if (totalPaxEl) { totalPaxEl.value = (trip.total_pax != null ? trip.total_pax : ''); }
                 const countryEl = document.getElementById('country');
