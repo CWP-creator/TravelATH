@@ -336,17 +336,51 @@
             background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s;
         }
         /* Wider, compact Trip modal */
-#tripModal .modal-content { max-width: 700px; padding: 16px; max-height: 80vh; overflow: auto; display: flex; flex-direction: column; }
+#tripModal .modal-content { 
+            max-width: 750px; padding: 20px; max-height: 85vh; overflow: auto; 
+            display: flex; flex-direction: column; border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
 #tripModal .modal-content form { display: flex; flex-direction: column; }
 #tripModal .modal-content form > *:last-child.form-buttons { margin-top: auto; }
-        #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-        #tripModal .section-card { padding: 12px; margin-bottom: 10px; }
-        #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 6px; }
-        #tripModal .form-group { margin-bottom: 10px; }
-        #tripModal .form-group label { margin-bottom: 3px; }
-        #tripModal .form-group input, #tripModal .form-group select { padding: 8px; }
-        #tripModal details { background: #ffffff; border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px 10px; }
-        #tripModal details summary { cursor: pointer; font-weight: 600; color: var(--text-light); }
+        #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+        #tripModal .section-card { 
+            padding: 16px; margin-bottom: 12px; 
+            background: #f8fafc; border: 1px solid #e2e8f0; 
+            border-radius: 8px; transition: all 0.2s ease;
+        }
+        #tripModal .section-card:hover {
+            background: #f1f5f9; border-color: #cbd5e1;
+        }
+        #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 8px; }
+        #tripModal .form-group { margin-bottom: 16px; }
+        #tripModal .form-group label { 
+            margin-bottom: 6px; font-weight: 600; color: #374151;
+            display: block; font-size: 14px;
+        }
+        #tripModal .form-group input, #tripModal .form-group select { 
+            padding: 10px 12px; border: 1px solid #d1d5db; 
+            border-radius: 6px; font-size: 14px; transition: all 0.2s ease;
+            background: white;
+        }
+        #tripModal .form-group input:focus, #tripModal .form-group select:focus {
+            outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        #tripModal details { 
+            background: #ffffff; border: 1px solid #e5e7eb; 
+            border-radius: 8px; padding: 12px 16px; margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+        #tripModal details:hover {
+            border-color: #d1d5db; background: #f9fafb;
+        }
+        #tripModal details summary { 
+            cursor: pointer; font-weight: 600; color: #374151; 
+            font-size: 14px; padding: 4px 0;
+        }
+        #tripModal h2 {
+            color: #1f2937; margin-bottom: 20px; font-size: 24px; font-weight: 700;
+        }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { transform: translateY(-50px); } to { transform: translateY(0); } }
         .close-btn {
@@ -380,14 +414,50 @@
 
         .form-buttons {
             position: sticky; bottom: 0; z-index: 2;
-            background: #fff; padding: 10px 0; margin-top: 12px;
-            display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color);
+            background: #fff; padding: 15px 0; margin-top: 20px;
+            display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-color);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .form-buttons .btn-group-left {
+            display: flex; gap: 12px;
+        }
+        .form-buttons .btn-group-right {
+            display: flex; gap: 12px;
         }
         button, .btn {
-            padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: background-color 0.3s ease;
+            padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; 
+            color: white; font-weight: 600; font-size: 14px; 
+            transition: all 0.3s ease; min-width: 80px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-save { background-color: var(--success-color); }
-        .btn-cancel { background-color: #aaa; }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-save { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .btn-save:hover { background: linear-gradient(135deg, #059669, #047857); }
+        .btn-primary { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .btn-secondary { 
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+        .btn-secondary:hover { background: linear-gradient(135deg, #4b5563, #374151); }
+        .btn-cancel { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .btn-cancel:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); }
 
         .form-grid {
             display: grid;
@@ -1207,8 +1277,9 @@
                 </div> <!-- end step 2 -->
 
                 <div class="form-buttons">
-                    <button type="button" id="btnStepBack" class="btn" style="background:#aaa;">Back</button>
-                    <button type="button" id="btnStepNext" class="btn btn-save">Next</button>
+                    <button type="button" id="btnStepCancel" class="btn btn-cancel" data-modal="tripModal">Cancel</button>
+                    <button type="button" id="btnStepBack" class="btn btn-secondary">Back</button>
+                    <button type="button" id="btnStepNext" class="btn btn-primary">Next</button>
                     <button type="submit" id="btnStepSave" class="btn btn-save">Save Trip</button>
                 </div>
 
@@ -3286,15 +3357,30 @@
                 const s2 = document.getElementById('tripStep2');
                 if (s1) s1.style.display = (n===1)?'':'none';
                 if (s2) s2.style.display = (n===2)?'':'none';
+                const cancel = document.getElementById('btnStepCancel');
                 const back = document.getElementById('btnStepBack');
                 const next = document.getElementById('btnStepNext');
                 const save = document.getElementById('btnStepSave');
-                if (back) back.style.display = (n>1)?'':'none';
-                if (next) next.style.display = (n<2)?'':'none';
-                if (save) save.style.display = (n===2)?'':'none';
+                
+                // Cancel button is always visible
+                if (cancel) cancel.style.display = 'inline-block';
+                
+                // Back button only on step 2
+                if (back) back.style.display = (n>1)?'inline-block':'none';
+                
+                // Next button only on step 1
+                if (next) next.style.display = (n<2)?'inline-block':'none';
+                
+                // Save button only on step 2
+                if (save) save.style.display = (n===2)?'inline-block':'none';
             }
 document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const next = Math.min(2, (tripCurrentStep||1)+1); setTripStep(next); updateDayBadge('arrival_date','arrivalDayBadge'); });
             document.getElementById('btnStepBack')?.addEventListener('click', ()=> setTripStep(1));
+            document.getElementById('btnStepCancel')?.addEventListener('click', ()=> {
+                closeModal('tripModal');
+                // Reset form to step 1 when canceling
+                setTripStep(1);
+            });
 
             async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip';
