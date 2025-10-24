@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Agency Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-    <style>
+<style>
         :root {
             --primary-color: #4A90E2;
             --background-color: #f0f2f5;
@@ -336,15 +336,26 @@
             background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s;
         }
         /* Wider, compact Trip modal */
-#tripModal .modal-content { max-width: 700px; padding: 16px; max-height: 80vh; overflow: auto; display: flex; flex-direction: column; }
-#tripModal .modal-content form { display: flex; flex-direction: column; }
-#tripModal .modal-content form > *:last-child.form-buttons { margin-top: auto; }
-        #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-        #tripModal .section-card { padding: 12px; margin-bottom: 10px; }
-        #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 6px; }
-        #tripModal .form-group { margin-bottom: 10px; }
-        #tripModal .form-group label { margin-bottom: 3px; }
-        #tripModal .form-group input, #tripModal .form-group select { padding: 8px; }
+        #tripModal .modal-content { 
+            max-width: 700px; 
+            padding: 25px; 
+            max-height: 80vh; 
+            overflow: auto; 
+            position: relative;
+        }
+        #tripModal .modal-content form { display: flex; flex-direction: column; }
+        /* Ensure all steps render within modal width */
+        #tripModal #tripStep1, #tripModal #tripStep2, #tripModal #tripStep3 { width: 100%; }
+        #tripModal .section-card { width: 100%; box-sizing: border-box; }
+        #tripModal #departureDetailsCard h4 { display:flex; align-items:center; gap:8px; }
+        #tripModal #departureGroupsContainer { grid-template-columns: repeat(2, minmax(320px, 1fr)); }
+        /* #tripModal .modal-content form > *:last-child.form-buttons { margin-top: auto; } -- REMOVED */
+        #tripModal .form-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+        #tripModal .section-card { padding: 15px; margin-bottom: 15px; }
+        #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 15px; }
+        #tripModal .form-group { margin-bottom: 15px; }
+        #tripModal .form-group label { margin-bottom: 5px; }
+        #tripModal .form-group input, #tripModal .form-group select { padding: 10px; }
         #tripModal details { background: #ffffff; border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px 10px; }
         #tripModal details summary { cursor: pointer; font-weight: 600; color: var(--text-light); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -379,9 +390,44 @@
         .arrival-drawer .body{ padding:10px 12px; overflow:auto; }
 
         .form-buttons {
-            position: sticky; bottom: 0; z-index: 2;
-            background: #fff; padding: 10px 0; margin-top: 12px;
-            display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color);
+            /* position: sticky; bottom: 0; z-index: 2; -- REMOVED */
+            background: #fff; 
+            padding-top: 15px; 
+            margin-top: 20px;
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 10px; 
+            border-top: 1px solid var(--border-color);
+        }
+        /* Inline controls inside the trip form */
+        .form-inline-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0 16px;
+        }
+        .icon-btn {
+            background: #fff;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-btn:hover { background: #f3f4f6; }
+        .save-btn {
+            background: var(--success-color);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         button, .btn {
             padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: background-color 0.3s ease;
@@ -525,7 +571,7 @@
             visibility: visible; opacity: 1;
         }
         .toast.success { background-color: var(--success-color); }
-.toast.error { background-color: var(--error-color); }
+        .toast.error { background-color: var(--error-color); }
         .toast.info { background-color: #3b82f6; }
         .toast.warning { background-color: var(--warning-color); }
 
@@ -1158,6 +1204,18 @@
                         <div id="guestNamesInner"></div>
                     </div>
                 </div>
+                <div id="controlsStep1" class="form-inline-controls">
+                    <button type="button" id="btnStepBack1" class="icon-btn" title="Back" aria-label="Back">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button type="submit" id="btnStepSave1" class="save-btn" title="Save Trip">
+                        <i class="fas fa-save"></i>
+                        <span>Save</span>
+                    </button>
+                    <button type="button" id="btnStepNext1" class="icon-btn" title="Next" aria-label="Next">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
                 </div> <!-- end step 1 -->
 
                 <div id="tripStep2">
@@ -1188,29 +1246,64 @@
                         </div>
                     </div>
 
-                    <div id="departureMirrorSection" class="requirement-section" style="margin-top:10px; border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff;">
-                        <h5 style="margin:0 0 6px 0; color: var(--text-light);">Departure</h5>
-                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:end;">
-                            <div class="form-group"><label for="departure_date">Date <small style="color:#6b7280;">(day)</small></label><div style="display:flex; gap:8px; align-items:center;"><input type="date" id="departure_date" name="departure_date"><span id="departureDayBadge" style="min-width:32px; text-align:center; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; background:#f9fafb; color:#111827; font-weight:700;">--</span></div></div>
-                            <div class="form-group"><label for="departure_time">Time (optional)</label><input type="time" id="departure_time" name="departure_time"></div>
-                            <div class="form-group"><label for="departure_flight">Flight (optional)</label><input type="text" id="departure_flight" name="departure_flight" placeholder="e.g. XY456"></div>
-                        </div>
-                        <label style="display:flex; gap:8px; align-items:center; margin-top:8px;"><input type="checkbox" id="sameAsArrivalCheckbox"> Use same groups as Arrival (sets date to End Date)</label>
-                    </div>
                         <div style="display:flex; justify-content:flex-end; margin:10px 0;">
                             <button type="button" id="btnAddArrivalGroup" class="btn-add"><i class="fas fa-plus"></i> Arrival Group</button>
                         </div>
-                        <div id="arrivalGroupsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:10px;"></div>
+                        <div id="arrivalGroupsContainer" style="display:grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap:10px;"></div>
                     </div>
 
+                <div id="controlsStep2" class="form-inline-controls">
+                    <button type="button" id="btnStepBack2" class="icon-btn" title="Back" aria-label="Back">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button type="submit" id="btnStepSave2" class="save-btn" title="Save Trip">
+                        <i class="fas fa-save"></i>
+                        <span>Save</span>
+                    </button>
+                    <button type="button" id="btnStepNext2" class="icon-btn" title="Next" aria-label="Next">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                </div>
+                                <div id="tripStep3" style="display:none;">
+                    <div class="section-card" id="departureDetailsCard">
+                        <h4><i class="fas fa-plane-departure"></i> Departure Details</h4>
+                        <div class="dep-controls" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0;">
+                            <label for="sameAsArrivalDepCheckbox" style="display:flex; gap:8px; align-items:center; margin:0; font-weight:600; color: var(--text-color);">
+                                <input type="checkbox" id="sameAsArrivalDepCheckbox">
+                                <span>Use same groups as Arrival</span>
+                            </label>
+                            <button type="button" id="btnAddDepartureGroup" class="btn-add"><i class="fas fa-plus"></i> Departure Group</button>
+                        </div>
+                        <div class="form-group" id="depSingleControls" style="display:none;">
+                            <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:end;">
+                                <div class="form-group"><label for="departure_date">Date <small style="color:#6b7280;">(day)</small></label><div style="display:flex; gap:8px; align-items:center;"><input type="date" id="departure_date" name="departure_date"><span id="departureDayBadge" style="min-width:32px; text-align:center; padding:4px 6px; border:1px solid var(--border-color); border-radius:6px; background:#f9fafb; color:#111827; font-weight:700;">--</span></div></div>
+                                <div class="form-group"><label for="departure_time">Time (optional)</label><input type="time" id="departure_time" name="departure_time"></div>
+                                <div class="form-group"><label for="departure_flight">Flight (optional)</label><input type="text" id="departure_flight" name="departure_flight" placeholder="e.g. XY456"></div>
+                            </div>
+                        </div>
+                        <div id="depNamesPoolContainer" class="requirement-section" style="display:none; border:1px dashed var(--border-color); border-radius:8px; padding:10px; background:#fff; width:100%;">
+                            <h5 style="margin:0 0 8px 0; color: var(--text-light);">Unassigned Guests</h5>
+                            <div id="depNamesPool" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;"></div>
+                        </div>
+                        <div id="departureGroupsContainer" style="display:grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap:10px;"></div>
+                    </div>
                 </div>
                 </div> <!-- end step 2 -->
 
-                <div class="form-buttons">
-                    <button type="button" id="btnStepBack" class="btn" style="background:#aaa;">Back</button>
-                    <button type="button" id="btnStepNext" class="btn btn-save">Next</button>
-                    <button type="submit" id="btnStepSave" class="btn btn-save">Save Trip</button>
+ <!-- end step 3 -->
+
+                <div id="controlsStep3" class="form-inline-controls" style="display:none;">
+                    <button type="button" id="btnStepBack3" class="icon-btn" title="Back" aria-label="Back">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button type="submit" id="btnStepSave3" class="save-btn" title="Save Trip">
+                        <i class="fas fa-save"></i>
+                        <span>Save</span>
+                    </button>
                 </div>
+
 
             </form>
         </div>
@@ -1812,13 +1905,17 @@
                     const body = document.createElement('div'); body.className='hotel-bookings';
                     byDate[date].forEach((r,idx)=>{
                         const item = document.createElement('div'); item.className='booking-item';
+                        const plate = r.number_plate ? ` (${r.number_plate})` : '';
                         item.innerHTML = `
                             <div class="booking-main">
-                                <div class="booking-title">${r.customer_name} — ${r.tour_code||''}</div>
+                                <div class="booking-title">[D${idx+1}] ${r.customer_name} — ${r.tour_code||''}</div>
                                 <div class="booking-details">
                                     <span><i class="far fa-clock"></i> ${r.departure_time||'—'}</span>
-                                    <span><i class="fas fa-plane"></i> ${r.departure_flight||'—'}</span>
-                                    <span><i class="fas fa-users"></i> Pax: ${r.total_pax||'—'}</span>
+                                    <span><i class="fas fa-plane"></i> ${r.flight_no||'—'}</span>
+                                    <span><i class="fas fa-users"></i> Pax: ${r.pax_count||'—'}</span>
+                                    <span><i class="fas fa-hotel"></i> From: ${r.pickup_hotel_name||'—'}</span>
+                                    <span><i class="fas fa-car"></i> ${r.vehicle_name? (r.vehicle_name+plate) : '—'}</span>
+                                    <span><i class="fas fa-user-tie"></i> ${r.guide_name||'—'}</span>
                                 </div>
                             </div>`;
                         body.appendChild(item);
@@ -2196,17 +2293,20 @@
                     descriptionContainer.style.display = 'none';
                 }
                 calculateDepartureDate();
-                // Auto-generate Tour File No from package code
+                // Auto-generate Tour File No from package code (only for new trip)
+                const isEditing = !!document.getElementById('tripIdHidden').value;
                 const pkgId = this.value;
                 if (pkgId){
-                  try{
-                    const r = await fetch(`${API_URL}?action=getNextTourCode&trip_package_id=${pkgId}&_=${Date.now()}`);
-                    const j = await r.json();
-                    if (j.status==='success' && j.data && j.data.tour_code){
-                      document.getElementById('tour_code').value = j.data.tour_code;
-                      document.getElementById('modalTitle').textContent = 'New Trip • ' + j.data.tour_code;
-                    }
-                  }catch(e){ /* ignore */ }
+                  if (!isEditing){
+                    try{
+                      const r = await fetch(`${API_URL}?action=getNextTourCode&trip_package_id=${pkgId}&_=${Date.now()}`);
+                      const j = await r.json();
+                      if (j.status==='success' && j.data && j.data.tour_code){
+                        document.getElementById('tour_code').value = j.data.tour_code;
+                        document.getElementById('modalTitle').textContent = 'New Trip • ' + j.data.tour_code;
+                      }
+                    }catch(e){ /* ignore */ }
+                  }
                   try{
                     const rq = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkgId}&_=${Date.now()}`);
                     const jr = await rq.json();
@@ -2337,9 +2437,9 @@
                 inner.appendChild(sWrap);
                 // Update pool as names change
                 inner.querySelectorAll('input[data-k]').forEach(inp=>{
-                    inp.addEventListener('input', ()=>{ updateNamesPool(); });
+                    inp.addEventListener('input', ()=>{ updateNamesPool(); updateDepNamesPool(); });
                 });
-                updateNamesPool();
+                updateNamesPool(); updateDepNamesPool();
             }
             function collectGuestData(){
                 const inner = document.getElementById('guestNamesInner'); if (!inner) return { couples: [], singles: [] };
@@ -2445,6 +2545,8 @@
                 // Reset arrivals state
                 tripArrivalsState = [];
                 renderArrivalGroups();
+                tripDeparturesState = [];
+                renderDepartureGroups();
                 // Reset guest state
                 const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
                 if (ccEl) ccEl.value = 0; if (scEl) scEl.value = 0; updateCounterDisplays(); updateTotalPax(); renderGuestNameInputs();
@@ -2661,6 +2763,7 @@
                             tripArrivalsState = one;
                         }
                         await saveArrivalsForTrip(tripId);
+                        await saveDeparturesForTrip(tripId);
                         await saveGuestsForTrip(tripId);
                     }
                     showToast(result.message,'success');
@@ -3076,10 +3179,12 @@
 
 
             let tripArrivalsState = [];
+            let tripDeparturesState = [];
             let namesPoolVisible = true;
             let firstDayHotelId = null;
             let itineraryDaysCache = [];
             let selectedArrivalIndex = null;
+            let selectedDepartureIndex = null;
             function getHotelOptionsHTML(selected){ return ['<option value="">--</option>'].concat((hotelsData||[]).map(h=>`<option value="${h.id}" ${String(selected)===String(h.id)?'selected':''}>${h.name}</option>`)).join(''); }
             function getVehicleOptionsHTML(selected){ return ['<option value="">--</option>'].concat((vehiclesData||[]).map(v=>`<option value="${v.id}" ${String(selected)===String(v.id)?'selected':''}>${v.vehicle_name}${v.number_plate?` (${v.number_plate})`:''}</option>`)).join(''); }
             function getGuideOptionsHTML(selected){ return ['<option value="">--</option>'].concat((guidesData||[]).map(g=>`<option value="${g.id}" ${String(selected)===String(g.id)?'selected':''}>${g.name}${g.language?` (${g.language})`:''}</option>`)).join(''); }
@@ -3128,11 +3233,41 @@
                         g.pickup_list = cur;
                         g.pickup_location = cur.join('\n');
                         g.pax_count = cur.length;
-                        renderArrivalGroups(); updateNamesPool();
+                        renderArrivalGroups(); updateNamesPool(); updateDepNamesPool();
                     });
                     pool.appendChild(chip);
                 });
                 document.getElementById('namesPoolContainer').style.display = units.length>0 ? 'block' : 'none';
+            }
+            function unassignedUnitsForDeparture(){
+                const assigned = new Set();
+                tripDeparturesState.forEach(g=>{
+                    (g.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach(n=>assigned.add(n));
+                });
+                return getAllGuestUnits().filter(u=> u.members.every(n=> !assigned.has(n)) );
+            }
+            function updateDepNamesPool(){
+                const pool = document.getElementById('depNamesPool'); const wrap = document.getElementById('depNamesPoolContainer');
+                if (!pool || !wrap) return;
+                const units = unassignedUnitsForDeparture();
+                pool.innerHTML = '';
+                wrap.style.display = units.length ? 'block' : 'none';
+                units.forEach(u=>{
+                    const chip = document.createElement('div');
+                    chip.textContent = u.label; chip.style.cssText = 'padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#f9fafb; cursor:pointer; user-select:none;';
+                    chip.addEventListener('click', ()=>{
+                        if (selectedDepartureIndex===null) selectedDepartureIndex = 0;
+                        if (selectedDepartureIndex===null || !tripDeparturesState[selectedDepartureIndex]) return;
+                        const g = tripDeparturesState[selectedDepartureIndex];
+                        const cur = Array.isArray(g.pickup_list) ? [...g.pickup_list] : (g.pickup_location||'').split(/\r?\n/).filter(Boolean);
+                        u.members.forEach(n=> { if (!cur.includes(n)) cur.push(n); });
+                        g.pickup_list = cur;
+                        g.pickup_location = cur.join('\n');
+                        g.pax_count = cur.length;
+                        renderDepartureGroups(); updateDepNamesPool();
+                    });
+                    pool.appendChild(chip);
+                });
             }
             function dayAfterStart(){
                 const sd = document.getElementById('start_date')?.value||'';
@@ -3176,7 +3311,7 @@
                         </div>
                         <div class=\"form-group\"><label>Assign Guests</label>
                             <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">
-                                ${assignedNames.length? assignedNames.map(n=>`<span class=\\\"chip\\\" data-name=\\\"${n}\\\" style=\\\"padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;\\\">${n}<button type=\\\"button\\\" data-role=\\\"unassign\\\" data-name=\\\"${n}\\\" style=\\\"border:none; background:transparent; color:#6b7280; cursor:pointer;\\\">×</button></span>`).join('') : '<div style=\"text-align:center; color:#9ca3af;\">Click a name on the left to add here</div>'}
+${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="${n}" style="padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;">${n}<button type="button" data-role="unassign" data-name="${n}" style="border:none; background:transparent; color:#6b7280; cursor:pointer;">×</button></span>`).join('') : '<div style="text-align:center; color:#9ca3af;">Click a name on the left to add here</div>'}
                             </div>
                         </div>
                         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
@@ -3190,6 +3325,11 @@
                             <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${a.guide_informed? 'checked':''}> Guide informed</label>
                         </div>
                     `;
+                    // Normalize any malformed data-role attributes in chips due to escaped quotes
+                    card.querySelectorAll('[data-role]').forEach(function(el){
+                        var v = el.getAttribute('data-role');
+                        if (v && v.indexOf('unassign') !== -1) el.setAttribute('data-role','unassign');
+                    });
                     card.querySelectorAll('[data-k]').forEach(el=>{
                         el.addEventListener('change', ()=>{
                             const k = el.getAttribute('data-k');
@@ -3203,6 +3343,19 @@
                                         if (!confirm(`This vehicle is already assigned to Arrival A${conflictIdx+1} on ${date}. Allow overlap?`)){
                                             // revert
                                             el.value = tripArrivalsState[idx].vehicle_id || '';
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            // Guide overlap check on same date across arrival groups
+                            if (k==='guide_id'){
+                                const date = (tripArrivalsState[idx].arrival_date||'');
+                                if (v){
+                                    const conflictIdx = tripArrivalsState.findIndex((g,i)=> i!==idx && g.arrival_date===date && String(g.guide_id||'')===String(v));
+                                    if (conflictIdx!==-1){
+                                        if (!confirm(`This guide is already assigned to Arrival A${conflictIdx+1} on ${date}. Allow overlap?`)){
+                                            el.value = tripArrivalsState[idx].guide_id || '';
                                             return;
                                         }
                                     }
@@ -3226,6 +3379,121 @@
                 });
                 updateNamesPool();
             }
+            function renderDepartureGroups(){
+                const c = document.getElementById('departureGroupsContainer'); if (!c) return; c.innerHTML='';
+                if (!tripDeparturesState.length){ c.innerHTML = '<div style="color:#6b7280;">No departures added.</div>'; return; }
+                tripDeparturesState.forEach((d, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'requirement-section' + (selectedDepartureIndex===idx? ' selected-arrival' : '');
+                    card.style.marginBottom = '10px';
+                    card.style.borderWidth = (selectedDepartureIndex===idx? '2px':'1px');
+                    card.style.borderColor = (selectedDepartureIndex===idx? '#1e40af':'var(--border-color)');
+                    const title = `Departure D${idx+1}`;
+                    const assignedNames = Array.isArray(d.pickup_list) ? d.pickup_list : (d.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+                    d.pickup_list = assignedNames; d.pickup_location = assignedNames.join('\n');
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;" data-role="header">
+                            <h5 style="margin:0; color: var(--text-light);">${title}</h5>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
+                            </div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
+                            <div class="form-group"><label>Date</label><input type="date" data-k="departure_date" value="${d.departure_date||''}"></div>
+                            <div class="form-group"><label>Time</label><input type="time" data-k="departure_time" value="${d.departure_time||''}"></div>
+                            <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${d.flight_no||''}"></div>
+                        </div>
+                        <div class=\"form-group\"><label>Assign Guests</label>
+                            <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">\r
+                                ${assignedNames.length ? assignedNames.map(n => `<span class=\"chip\" data-name=\"${n}\" style=\"padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;\">${n}<button type=\"button\" data-role=\"unassign\" data-name=\"${n}\" style=\"border:none; background:transparent; color:#6b7280; cursor:pointer;\">×</button></span>`).join('') : '<div style=\"text-align:center; color:#9ca3af;\">Click a name above to add here</div>'}
+                            </div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                            <div class="form-group"><label>From Hotel</label><select data-k="pickup_hotel_id">${getHotelOptionsHTML(d.pickup_hotel_id||'')}</select></div>
+                            <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(d.vehicle_id||'')}</select></div>
+                            <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(d.guide_id||'')}</select></div>
+                        </div>
+                        <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${d.notes||''}</textarea></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${d.vehicle_informed? 'checked':''}> Vehicle informed</label>
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${d.guide_informed? 'checked':''}> Guide informed</label>
+                        </div>
+                    `;
+                    card.querySelectorAll('[data-k]').forEach(el=>{
+                        el.addEventListener('change', ()=>{
+                            const k = el.getAttribute('data-k');
+                            const v = (el.type==='checkbox') ? el.checked : el.value;
+                            // Departure vehicle overlap on same date across groups
+                            if (k==='vehicle_id'){
+                                const date = (tripDeparturesState[idx].departure_date||'');
+                                if (v){
+                                    const conflictIdx = tripDeparturesState.findIndex((g,i)=> i!==idx && g.departure_date===date && String(g.vehicle_id||'')===String(v));
+                                    if (conflictIdx!==-1){
+                                        if (!confirm(`This vehicle is already assigned to Departure D${conflictIdx+1} on ${date}. Allow overlap?`)){
+                                            el.value = tripDeparturesState[idx].vehicle_id || '';
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            // Departure guide overlap on same date across groups
+                            if (k==='guide_id'){
+                                const date = (tripDeparturesState[idx].departure_date||'');
+                                if (v){
+                                    const conflictIdx = tripDeparturesState.findIndex((g,i)=> i!==idx && g.departure_date===date && String(g.guide_id||'')===String(v));
+                                    if (conflictIdx!==-1){
+                                        if (!confirm(`This guide is already assigned to Departure D${conflictIdx+1} on ${date}. Allow overlap?`)){
+                                            el.value = tripDeparturesState[idx].guide_id || '';
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            tripDeparturesState[idx][k] = v;
+                        });
+                    });
+                    const drop = card.querySelector('[data-role="drop"]');
+                    const choose = ()=>{ selectedDepartureIndex = idx; const cont = document.getElementById('departureGroupsContainer'); if (cont) cont.scrollTop = 0; renderDepartureGroups(); };
+                    if (drop){ drop.addEventListener('click', choose); }
+                    const header = card.querySelector('[data-role="header"]'); if (header){ header.addEventListener('click', choose); }
+                    card.addEventListener('click', (e)=>{
+                        const un = e.target.closest('[data-role="unassign"]');
+                        if (un){ e.preventDefault(); const name = un.getAttribute('data-name'); const cur = (Array.isArray(tripDeparturesState[idx].pickup_list)? tripDeparturesState[idx].pickup_list : (tripDeparturesState[idx].pickup_location||'').split(/\r?\n/).filter(Boolean)).filter(n=>n!==name); tripDeparturesState[idx].pickup_list = cur; tripDeparturesState[idx].pickup_location = cur.join('\n'); tripDeparturesState[idx].pax_count = cur.length; renderDepartureGroups(); return; }
+                        const rm = e.target.closest('[data-role="remove"]'); if (rm){ tripDeparturesState.splice(idx,1); selectedDepartureIndex = Math.max(0, Math.min((selectedDepartureIndex||0)- (selectedDepartureIndex>idx?1:0), tripDeparturesState.length-1)); renderDepartureGroups(); }
+                    });
+                    c.appendChild(card);
+                });
+                updateDepNamesPool();
+            }
+            function cloneDeparturesFromArrivals(){
+                const end = document.getElementById('end_date')?.value||'';
+                const hotelId = computeDefaultPickupHotelIdForDeparture();
+                tripDeparturesState = tripArrivalsState.map(a=>({
+                    departure_date: end,
+                    departure_time: '',
+                    flight_no: '',
+                    pax_count: (Array.isArray(a.pickup_list)? a.pickup_list.length : (a.pickup_location||'').split(/\r?\n/).filter(Boolean).length),
+                    pickup_location: (Array.isArray(a.pickup_list)? a.pickup_list.join('\n') : (a.pickup_location||'')),
+                    pickup_list: (Array.isArray(a.pickup_list)? [...a.pickup_list] : (a.pickup_location||'').split(/\r?\n/).filter(Boolean)),
+                    pickup_hotel_id: hotelId,
+                    vehicle_id: '',
+                    guide_id: '',
+                    notes: '',
+                    vehicle_informed: 0,
+                    guide_informed: 0
+                }));
+                renderDepartureGroups();
+                updateDepNamesPool();
+            }
+            document.getElementById('sameAsArrivalDepCheckbox')?.addEventListener('change', (e)=>{
+                if (e.target.checked){ cloneDeparturesFromArrivals(); }
+            });
+            document.getElementById('btnAddDepartureGroup')?.addEventListener('click', ()=>{
+                tripDeparturesState.push({ departure_date: document.getElementById('end_date')?.value||'', departure_time:'', flight_no:'', pax_count:0, pickup_location:'', pickup_list:[], pickup_hotel_id: computeDefaultPickupHotelIdForDeparture(), vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 });
+                selectedDepartureIndex = tripDeparturesState.length - 1;
+                renderDepartureGroups();
+                updateNamesPool(); updateDepNamesPool();
+            });
             async function fetchArrivalsForTrip(tripId){
                 try{ const r = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripArrivalsState = j.data||[]; renderArrivalGroups(); syncArrivalDateFromGroups(); updateNamesPool();
                     // Infer arrival mode from number of groups
@@ -3234,6 +3502,12 @@
             }
             async function saveArrivalsForTrip(tripId){
                 try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), arrivals: tripArrivalsState }) }); }catch(e){ /* ignore */ }
+            }
+            async function fetchDeparturesForTrip(tripId){
+                try{ const r = await fetch(`${API_URL}?action=getTripDepartures&trip_id=${tripId}`); const j = await r.json(); if (j.status==='success'){ tripDeparturesState = j.data||[]; renderDepartureGroups(); } }catch(e){ /* ignore */ }
+            }
+            async function saveDeparturesForTrip(tripId){
+                try{ await fetch(`${API_URL}?action=saveTripDepartures`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), departures: tripDeparturesState }) }); }catch(e){ /* ignore */ }
             }
             const btnAddArrivalGroup = document.getElementById('btnAddArrivalGroup'); if (btnAddArrivalGroup){ btnAddArrivalGroup.addEventListener('click', ()=>{ addArrivalGroup(); syncArrivalDateFromGroups(); }); }
 
@@ -3253,6 +3527,15 @@
                 for (const d of sorted){ if (d.day_date>=dateStr) return String(d.hotel_id); }
                 // fallback first with hotel
                 return String((sorted[0]&&sorted[0].hotel_id) || firstDayHotelId || '');
+            }
+            function computeDefaultPickupHotelIdForDeparture(){
+                if (!itineraryDaysCache || !itineraryDaysCache.length) return firstDayHotelId || '';
+                const withHotel = itineraryDaysCache.filter(d=> d && d.hotel_id);
+                if (withHotel.length===0) return firstDayHotelId || '';
+                const lastWithHotel = [...withHotel].sort((a,b)=> a.day_date.localeCompare(b.day_date)).pop();
+                if (lastWithHotel && lastWithHotel.hotel_id) return String(lastWithHotel.hotel_id);
+                if (withHotel.length>=2) return String(withHotel[withHotel.length-2].hotel_id);
+                return firstDayHotelId || '';
             }
             // Arrival mode toggle
             (function(){
@@ -3284,17 +3567,39 @@
                 tripCurrentStep = n;
                 const s1 = document.getElementById('tripStep1');
                 const s2 = document.getElementById('tripStep2');
+                const s3 = document.getElementById('tripStep3');
                 if (s1) s1.style.display = (n===1)?'':'none';
                 if (s2) s2.style.display = (n===2)?'':'none';
-                const back = document.getElementById('btnStepBack');
-                const next = document.getElementById('btnStepNext');
-                const save = document.getElementById('btnStepSave');
-                if (back) back.style.display = (n>1)?'':'none';
-                if (next) next.style.display = (n<2)?'':'none';
-                if (save) save.style.display = (n===2)?'':'none';
+                if (s3) s3.style.display = (n===3)?'':'none';
+                const c1 = document.getElementById('controlsStep1');
+                const c2 = document.getElementById('controlsStep2');
+                const c3 = document.getElementById('controlsStep3');
+                if (c1) c1.style.display = (n===1)?'flex':'none';
+                if (c2) c2.style.display = (n===2)?'flex':'none';
+                if (c3) c3.style.display = (n===3)?'flex':'none';
+                const back1 = document.getElementById('btnStepBack1');
+                const next1 = document.getElementById('btnStepNext1');
+                const save1 = document.getElementById('btnStepSave1');
+                const back2 = document.getElementById('btnStepBack2');
+                const next2 = document.getElementById('btnStepNext2');
+                const save2 = document.getElementById('btnStepSave2');
+                const back3 = document.getElementById('btnStepBack3');
+                const save3 = document.getElementById('btnStepSave3');
+                if (back1) back1.style.display = 'none';
+                if (next1) next1.style.display = '';
+                if (save1) save1.style.display = '';
+                if (back2) back2.style.display = '';
+                if (next2) next2.style.display = '';
+                if (save2) save2.style.display = '';
+                if (back3) back3.style.display = '';
+                if (save3) save3.style.display = '';
             }
-document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const next = Math.min(2, (tripCurrentStep||1)+1); setTripStep(next); updateDayBadge('arrival_date','arrivalDayBadge'); });
+document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const next = Math.min(3, (tripCurrentStep||1)+1); setTripStep(next); updateDayBadge('arrival_date','arrivalDayBadge'); });
             document.getElementById('btnStepBack')?.addEventListener('click', ()=> setTripStep(1));
+            document.getElementById('btnStepNext1')?.addEventListener('click', ()=> { setTripStep(2); updateDayBadge('arrival_date','arrivalDayBadge'); });
+            document.getElementById('btnStepBack2')?.addEventListener('click', ()=> setTripStep(1));
+            document.getElementById('btnStepNext2')?.addEventListener('click', ()=> { setTripStep(3); const ed = document.getElementById('end_date'); if (ed) { const dep = document.getElementById('departure_date'); if (dep) dep.value = ed.value || ''; } });
+            document.getElementById('btnStepBack3')?.addEventListener('click', ()=> setTripStep(2));
 
             async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip';
@@ -3332,6 +3637,9 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 tripArrivalsState = [];
                 renderArrivalGroups();
                 fetchArrivalsForTrip(trip.id);
+                tripDeparturesState = [];
+                renderDepartureGroups();
+                fetchDeparturesForTrip(trip.id);
                 // Determine Day 1 hotel from itinerary
                 try{
                     const r = await fetch(`${API_URL}?action=getItinerary&trip_id=${trip.id}&_=${Date.now()}`);
@@ -3687,6 +3995,9 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                         const arrText = (r.arrival_vehicle_summary||'').trim();
                         const arrCount = arrText ? arrText.split(',').length : 0;
                         const arrivals = arrText ? `<span><i class=\"fas fa-plane-arrival\"></i> ${arrText} ${arrCount>1? `<span class=\"status\" style=\"background:#e0f2fe;color:#075985\">${arrCount} arrivals</span>` : ''}</span>` : '';
+                        const depText = (r.departure_vehicle_summary||'').trim();
+                        const depCount = depText ? depText.split(',').length : 0;
+                        const departures = depText ? `<span><i class=\"fas fa-plane-departure\"></i> ${depText} ${depCount>1? `<span class=\"status\" style=\"background:#e0e7ff;color:#1e40af\">${depCount} departures</span>` : ''}</span>` : '';
                         const vehicle = r.vehicle_name ? `<span><i class=\"fas fa-car\"></i> ${r.vehicle_name}${r.number_plate?` (${r.number_plate})`:''}</span>` : '';
                         const services = (r.services_provided||'').trim()? `<span><i class=\"fas fa-utensils\"></i> ${r.services_provided}</span>`: '';
                         const informedPills = [
@@ -3697,7 +4008,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                         item.innerHTML = `
                           <div class="booking-main">
                             <div class="booking-title">#${String(r.trip_id).padStart(3,'0')} • ${r.guest_name} ${r.tour_code? '| Tour: ' + r.tour_code : ''}</div>
-                            <div class=\"booking-details\">${hotel} ${guide} ${vehicle} ${arrivals} ${services}</div>
+                            <div class=\"booking-details\">${hotel} ${guide} ${vehicle} ${arrivals} ${departures} ${services}</div>
                           </div>
                           <div class="booking-meta">
                             ${informedPills}

@@ -154,6 +154,18 @@ switch ($action) {
     case 'deleteTripArrival':
         deleteTripArrival($conn);
         break;
+    case 'getTripDepartures':
+        getTripDepartures($conn);
+        break;
+    case 'saveTripDepartures':
+        saveTripDepartures($conn);
+        break;
+    case 'getArrivalInsights':
+        getArrivalInsights($conn);
+        break;
+    case 'getDepartureInsights':
+        getDepartureInsights($conn);
+        break;
     case 'getTripGuests':
         getTripGuests($conn);
         break;
@@ -751,6 +763,10 @@ function getItinerary($conn) {
     ensureTripArrivalsTable($conn);
     $arr = $conn->prepare("SELECT id, trip_id, arrival_date, arrival_time, flight_no, pax_count, pickup_location, drop_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed FROM trip_arrivals WHERE trip_id = ? ORDER BY arrival_date, arrival_time");
     if ($arr) { $arr->bind_param('i', $trip_id); $arr->execute(); $res = $arr->get_result(); $data['arrivals'] = $res->fetch_all(MYSQLI_ASSOC); $arr->close(); }
+    // Include departures
+    ensureTripDeparturesTable($conn);
+    $dep = $conn->prepare("SELECT id, trip_id, departure_date, departure_time, flight_no, pax_count, pickup_location, pickup_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed FROM trip_departures WHERE trip_id = ? ORDER BY departure_date, departure_time");
+    if ($dep) { $dep->bind_param('i', $trip_id); $dep->execute(); $dr = $dep->get_result(); $data['departures'] = $dr->fetch_all(MYSQLI_ASSOC); $dep->close(); }
 
     echo json_encode(['status' => 'success', 'data' => $data]);
 }
@@ -1628,75 +1644,79 @@ function getGuideRecords($conn) {
     $statusFilter = isset($_GET['status']) ? $_GET['status'] : '';
     $monthFilter = isset($_GET['month']) ? $_GET['month'] : '';
     $year = isset($_GET['year']) && $_GET['year'] ? $_GET['year'] : date('Y');
-    
     try {
-        // Detect guide_informed column
-        $hasGuideInformed = false;
-        $colCheck = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'guide_informed'");
-        if ($colCheck && $colCheck->num_rows > 0) { $hasGuideInformed = true; }
-
-        $selectInformed = $hasGuideInformed ? 'id.guide_informed as guide_informed,' : '0 as guide_informed,';
-
-        $sql = "SELECT DISTINCT 
-                   g.id as guide_id,
-                   g.name as guide_name,
-                   g.email as guide_email,
-                   g.language as guide_language,
-                   g.availability_status as guide_status,
-                   id.day_date as assignment_date,
-                   $selectInformed
-                   t.id as trip_id,
-                   t.customer_name as guest_name,
+        // Optional informed flag
+        $hasGuideInf = false; $cg = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'guide_informed'"); if ($cg && $cg->num_rows>0) $hasGuideInf = true;
+        $idGuideInf = $hasGuideInf ? 'id.guide_informed' : '0';
+        // Base from itinerary_days
+        $q1 = "SELECT 
+                   g.id AS guide_id,
+                   g.name AS guide_name,
+                   g.email AS guide_email,
+                   g.language AS guide_language,
+                   g.availability_status AS guide_status,
+                   id.day_date AS assignment_date,
+                   $idGuideInf AS guide_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
                    t.tour_code,
                    t.status
-                FROM guides g
-                INNER JOIN itinerary_days id ON g.id = id.guide_id
-                INNER JOIN trips t ON id.trip_id = t.id
-                WHERE id.guide_id IS NOT NULL AND id.guide_id != '' AND id.guide_id != '0'";
-        
+                FROM itinerary_days id
+                JOIN trips t ON t.id = id.trip_id
+                JOIN guides g ON g.id = id.guide_id
+                WHERE id.guide_id IS NOT NULL AND id.guide_id <> '' AND id.guide_id <> '0'";
+        // From arrivals
+        $q2 = "SELECT 
+                   g.id AS guide_id,
+                   g.name AS guide_name,
+                   g.email AS guide_email,
+                   g.language AS guide_language,
+                   g.availability_status AS guide_status,
+                   ta.arrival_date AS assignment_date,
+                   ta.guide_informed AS guide_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
+                   t.tour_code,
+                   t.status
+                FROM trip_arrivals ta
+                JOIN trips t ON t.id = ta.trip_id
+                JOIN guides g ON g.id = ta.guide_id
+                WHERE ta.guide_id IS NOT NULL AND ta.guide_id <> '' AND ta.guide_id <> '0'";
+        // From departures
+        $q3 = "SELECT 
+                   g.id AS guide_id,
+                   g.name AS guide_name,
+                   g.email AS guide_email,
+                   g.language AS guide_language,
+                   g.availability_status AS guide_status,
+                   td.departure_date AS assignment_date,
+                   td.guide_informed AS guide_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
+                   t.tour_code,
+                   t.status
+                FROM trip_departures td
+                JOIN trips t ON t.id = td.trip_id
+                JOIN guides g ON g.id = td.guide_id
+                WHERE td.guide_id IS NOT NULL AND td.guide_id <> '' AND td.guide_id <> '0'";
+        // Combine
+        $sql = "$q1 UNION ALL $q2 UNION ALL $q3";
+        // Filters
+        $whereTail = [];
         $params = [];
-        $types = "";
-        
-        if ($statusFilter && $statusFilter !== 'all') {
-            $sql .= " AND g.availability_status = ?";
-            $params[] = $statusFilter;
-            $types .= "s";
-        }
-        
-        if ($monthFilter && $monthFilter !== 'all') {
-            $sql .= " AND MONTH(id.day_date) = ? AND YEAR(id.day_date) = ?";
-            $params[] = $monthFilter;
-            $params[] = $year;
-            $types .= "ii";
-        }
-        
-        $sql .= " ORDER BY g.name, id.day_date";
-        
-        if (!empty($params)) {
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } else {
-            $result = $conn->query($sql);
-        }
-        
-        if (!$result) {
-            throw new Exception('Database query failed: ' . $conn->error);
-        }
-        
-        $records = [];
-        while ($row = $result->fetch_assoc()) {
-            $records[] = $row;
-        }
-        
-        if (isset($stmt)) { $stmt->close(); }
-        
-        echo json_encode(['status' => 'success', 'data' => $records]);
-        
+        $types = '';
+        if ($statusFilter && $statusFilter !== 'all') { $whereTail[] = "guide_status = ?"; $params[] = $statusFilter; $types .= 's'; }
+        if ($monthFilter && $monthFilter !== 'all') { $whereTail[] = "MONTH(assignment_date) = ? AND YEAR(assignment_date) = ?"; $params[] = $monthFilter; $params[] = $year; $types .= 'ii'; }
+        $sql = "SELECT * FROM (".$sql.") x" . (count($whereTail)? (" WHERE ".implode(' AND ',$whereTail)) : '') . " ORDER BY guide_name, assignment_date";
+        if (!empty($params)) { $stmt = $conn->prepare($sql); $stmt->bind_param($types, ...$params); $stmt->execute(); $result = $stmt->get_result(); }
+        else { $result = $conn->query($sql); }
+        if (!$result) throw new Exception('Database query failed: '.$conn->error);
+        $records = []; while($row=$result->fetch_assoc()){ $records[]=$row; }
+        if (isset($stmt)) $stmt->close();
+        echo json_encode(['status'=>'success','data'=>$records]);
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
     }
 }
 
@@ -1759,35 +1779,63 @@ function checkGuideAvailability($conn) {
 
 function getVehicleRecords($conn) {
     try {
-        // Detect vehicle_informed column
-        $hasVehicleInformed = false;
-        $colCheck = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'vehicle_informed'");
-        if ($colCheck && $colCheck->num_rows > 0) { $hasVehicleInformed = true; }
-        $selectInformed = $hasVehicleInformed ? 'id.vehicle_informed as vehicle_informed,' : '0 as vehicle_informed,';
-        // Optional number_plate
+        // Detect optional columns
+        $hasVehInf = false; $cv = $conn->query("SHOW COLUMNS FROM itinerary_days LIKE 'vehicle_informed'"); if ($cv && $cv->num_rows>0) $hasVehInf = true;
         $hasPlate = false; $pc = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'"); if ($pc && $pc->num_rows > 0) { $hasPlate = true; }
-        $selectPlate = $hasPlate ? 'v.number_plate as number_plate,' : "'' as number_plate,";
+        $plateField = $hasPlate ? 'v.number_plate' : "''";
+        $idVehInf = $hasVehInf ? 'id.vehicle_informed' : '0';
 
-        $sql = "SELECT 
-                   v.id as vehicle_id,
+        // Base from itinerary days
+        $q1 = "SELECT 
+                   v.id AS vehicle_id,
                    v.vehicle_name,
-                   $selectPlate
-                   v.email as vehicle_email,
-                   id.day_date as assignment_date,
-                   $selectInformed
-                   t.id as trip_id,
-                   t.customer_name as guest_name,
+                   $plateField AS number_plate,
+                   v.email AS vehicle_email,
+                   id.day_date AS assignment_date,
+                   $idVehInf AS vehicle_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
                    t.tour_code,
                    t.status
-                FROM vehicles v
-                INNER JOIN itinerary_days id ON v.id = id.vehicle_id
-                INNER JOIN trips t ON id.trip_id = t.id
-                WHERE id.vehicle_id IS NOT NULL AND id.vehicle_id != '' AND id.vehicle_id != '0'
-                ORDER BY v.vehicle_name, id.day_date";
-
+                FROM itinerary_days id
+                JOIN trips t ON t.id = id.trip_id
+                JOIN vehicles v ON v.id = id.vehicle_id
+                WHERE id.vehicle_id IS NOT NULL AND id.vehicle_id <> '' AND id.vehicle_id <> '0'";
+        // From arrivals
+        $q2 = "SELECT 
+                   v.id AS vehicle_id,
+                   v.vehicle_name,
+                   $plateField AS number_plate,
+                   v.email AS vehicle_email,
+                   ta.arrival_date AS assignment_date,
+                   ta.vehicle_informed AS vehicle_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
+                   t.tour_code,
+                   t.status
+                FROM trip_arrivals ta
+                JOIN trips t ON t.id = ta.trip_id
+                JOIN vehicles v ON v.id = ta.vehicle_id
+                WHERE ta.vehicle_id IS NOT NULL AND ta.vehicle_id <> '' AND ta.vehicle_id <> '0'";
+        // From departures
+        $q3 = "SELECT 
+                   v.id AS vehicle_id,
+                   v.vehicle_name,
+                   $plateField AS number_plate,
+                   v.email AS vehicle_email,
+                   td.departure_date AS assignment_date,
+                   td.vehicle_informed AS vehicle_informed,
+                   t.id AS trip_id,
+                   t.customer_name AS guest_name,
+                   t.tour_code,
+                   t.status
+                FROM trip_departures td
+                JOIN trips t ON t.id = td.trip_id
+                JOIN vehicles v ON v.id = td.vehicle_id
+                WHERE td.vehicle_id IS NOT NULL AND td.vehicle_id <> '' AND td.vehicle_id <> '0'";
+        $sql = "$q1 UNION ALL $q2 UNION ALL $q3 ORDER BY vehicle_name, assignment_date";
         $result = $conn->query($sql);
         if (!$result) { throw new Exception('Database query failed: ' . $conn->error); }
-
         $records = [];
         while ($row = $result->fetch_assoc()) { $records[] = $row; }
         echo json_encode(['status' => 'success', 'data' => $records]);
@@ -1868,6 +1916,11 @@ function getDayRoster($conn){
         $arrivalsMap = [];
         $qA = $conn->prepare("SELECT ta.trip_id, ta.arrival_date, ta.arrival_time, v.vehicle_name, v.number_plate FROM trip_arrivals ta LEFT JOIN vehicles v ON v.id = ta.vehicle_id WHERE ta.arrival_date BETWEEN ? AND ?");
         if ($qA) { $qA->bind_param('ss', $startStr, $endStr); $qA->execute(); $rA=$qA->get_result(); while($row=$rA->fetch_assoc()){ $tid=(int)$row['trip_id']; $d=$row['arrival_date']; if(!isset($arrivalsMap[$tid]))$arrivalsMap[$tid]=[]; if(!isset($arrivalsMap[$tid][$d]))$arrivalsMap[$tid][$d]=[]; $label=$row['vehicle_name']; if ($hasPlate && !empty($row['number_plate'])) $label .= ' ('.$row['number_plate'].')'; if (!empty($row['arrival_time'])) $label .= ' @ '.$row['arrival_time']; $arrivalsMap[$tid][$d][]=$label; } $qA->close(); }
+        // Preload departure vehicles within the period
+        ensureTripDeparturesTable($conn);
+        $departuresMap = [];
+        $qD = $conn->prepare("SELECT td.trip_id, td.departure_date, td.departure_time, v.vehicle_name, v.number_plate FROM trip_departures td LEFT JOIN vehicles v ON v.id = td.vehicle_id WHERE td.departure_date BETWEEN ? AND ?");
+        if ($qD) { $qD->bind_param('ss',$startStr,$endStr); $qD->execute(); $rD=$qD->get_result(); while($row=$rD->fetch_assoc()){ $tid=(int)$row['trip_id']; $d=$row['departure_date']; if(!isset($departuresMap[$tid]))$departuresMap[$tid]=[]; if(!isset($departuresMap[$tid][$d]))$departuresMap[$tid][$d]=[]; $label=$row['vehicle_name']; if ($hasPlate && !empty($row['number_plate'])) $label.=' ('.$row['number_plate'].')'; if (!empty($row['departure_time'])) $label.=' @ '.$row['departure_time']; $departuresMap[$tid][$d][]=$label; } $qD->close(); }
 
         // Build diary-style rows for each day per trip in overlap
         $rows = [];
@@ -1915,6 +1968,12 @@ function getDayRoster($conn){
                     $row['arrival_vehicle_summary'] = implode(', ', $arrivalsMap[$tid][$ds]);
                 } else {
                     $row['arrival_vehicle_summary'] = '';
+                }
+                // Add departure vehicle summary if any
+                if (isset($departuresMap[$tid]) && isset($departuresMap[$tid][$ds]) && count($departuresMap[$tid][$ds])>0){
+                    $row['departure_vehicle_summary'] = implode(', ', $departuresMap[$tid][$ds]);
+                } else {
+                    $row['departure_vehicle_summary'] = '';
                 }
                 $rows[] = $row;
                 $d->modify('+1 day');
@@ -2013,6 +2072,130 @@ function saveTripArrivals($conn){
     echo json_encode(['status'=>'success','message'=>'Arrivals saved']);
 }
 
+// --- Trip departures schema helper
+function ensureTripDeparturesTable($conn){
+    // Base table (includes pickup_location to mirror arrivals schema)
+    $conn->query("CREATE TABLE IF NOT EXISTS trip_departures (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        trip_id INT NOT NULL,
+        departure_date DATE NOT NULL,
+        departure_time TIME NULL,
+        flight_no VARCHAR(100) NULL,
+        pax_count INT DEFAULT 0,
+        pickup_location VARCHAR(255) NULL,
+        pickup_hotel_id INT NULL,
+        vehicle_id INT NULL,
+        guide_id INT NULL,
+        notes TEXT NULL,
+        vehicle_informed TINYINT(1) DEFAULT 0,
+        guide_informed TINYINT(1) DEFAULT 0,
+        INDEX(trip_id), INDEX(departure_date), INDEX(vehicle_id), INDEX(guide_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Ensure pickup_location column exists for older schemas
+    $col = $conn->query("SHOW COLUMNS FROM trip_departures LIKE 'pickup_location'");
+    if (!$col || $col->num_rows===0){
+        $conn->query("ALTER TABLE trip_departures ADD COLUMN pickup_location VARCHAR(255) NULL AFTER pax_count");
+    }
+}
+
+function getTripDepartures($conn){
+    $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
+    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
+    ensureTripDeparturesTable($conn);
+$stmt = $conn->prepare("SELECT id, trip_id, departure_date, departure_time, flight_no, pax_count, pickup_location, pickup_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed FROM trip_departures WHERE trip_id = ? ORDER BY departure_date, departure_time");
+    if ($stmt){ $stmt->bind_param('i', $trip_id); $stmt->execute(); $res = $stmt->get_result(); $rows = $res->fetch_all(MYSQLI_ASSOC); $stmt->close(); echo json_encode(['status'=>'success','data'=>$rows]); return; }
+    echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]);
+}
+
+function saveTripDepartures($conn){
+    $payload = file_get_contents('php://input');
+    $data = json_decode($payload, true);
+    $trip_id = isset($data['trip_id']) ? intval($data['trip_id']) : 0;
+    $departures = isset($data['departures']) && is_array($data['departures']) ? $data['departures'] : [];
+    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
+    ensureTripDeparturesTable($conn);
+    // Delete existing
+    $del = $conn->prepare("DELETE FROM trip_departures WHERE trip_id = ?");
+    if ($del){ $del->bind_param('i', $trip_id); $del->execute(); $del->close(); }
+    // Insert new
+$ins = $conn->prepare("INSERT INTO trip_departures (trip_id, departure_date, departure_time, flight_no, pax_count, pickup_location, pickup_hotel_id, vehicle_id, guide_id, notes, vehicle_informed, guide_informed) VALUES (?, ?, NULLIF(?,''), NULLIF(?,''), ?, NULLIF(?,''), NULLIF(?,0), NULLIF(?,0), NULLIF(?,0), NULLIF(?,''), ?, ?)");
+    if (!$ins){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    foreach ($departures as $d){
+        $departure_date = trim($d['departure_date'] ?? '');
+        if ($departure_date==='') { continue; }
+        $departure_time = trim($d['departure_time'] ?? '');
+        $flight_no = trim($d['flight_no'] ?? '');
+        $pax_count = intval($d['pax_count'] ?? 0);
+        $pickup_location = trim($d['pickup_location'] ?? '');
+        $pickup_hotel_id = intval($d['pickup_hotel_id'] ?? 0);
+        $vehicle_id = intval($d['vehicle_id'] ?? 0);
+        $guide_id = intval($d['guide_id'] ?? 0);
+        $notes = trim($d['notes'] ?? '');
+        $vehicle_informed = intval($d['vehicle_informed'] ?? 0) ? 1 : 0;
+        $guide_informed = intval($d['guide_informed'] ?? 0) ? 1 : 0;
+        $ins->bind_param('isssissisiii', $trip_id, $departure_date, $departure_time, $flight_no, $pax_count, $pickup_location, $pickup_hotel_id, $vehicle_id, $guide_id, $notes, $vehicle_informed, $guide_informed);
+        $ins->execute();
+    }
+    $ins->close();
+    echo json_encode(['status'=>'success','message'=>'Departures saved']);
+}
+
+function getArrivalInsights($conn){
+    ensureTripArrivalsTable($conn);
+    $month = isset($_GET['month']) ? trim($_GET['month']) : date('Y-m'); // YYYY-MM
+    if (!preg_match('/^\d{4}-\d{2}$/',$month)) { $month = date('Y-m'); }
+    $start = $month.'-01';
+    $end = date('Y-m-t', strtotime($start));
+    // Optional vehicle number_plate column
+    $hasPlate = false; $pc = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'"); if ($pc && $pc->num_rows>0) $hasPlate = true;
+    $selectPlate = $hasPlate ? ', v.number_plate' : '';
+    $sql = "SELECT ta.id, ta.trip_id, ta.arrival_date, ta.arrival_time, ta.flight_no, ta.pax_count, ta.pickup_location, ta.drop_hotel_id,
+                   ta.vehicle_id, ta.guide_id, ta.notes, t.customer_name, t.tour_code,
+                   v.vehicle_name".$selectPlate.", g.name AS guide_name, h.name AS drop_hotel_name
+            FROM trip_arrivals ta
+            JOIN trips t ON t.id = ta.trip_id
+            LEFT JOIN vehicles v ON v.id = ta.vehicle_id
+            LEFT JOIN guides g ON g.id = ta.guide_id
+            LEFT JOIN hotels h ON h.id = ta.drop_hotel_id
+            WHERE ta.arrival_date BETWEEN ? AND ?
+            ORDER BY ta.arrival_date, ta.arrival_time, t.tour_code";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param('ss', $start, $end); $stmt->execute(); $res = $stmt->get_result();
+    $rows = [];
+    while ($r = $res->fetch_assoc()) { $rows[] = $r; }
+    $stmt->close();
+    echo json_encode(['status'=>'success','data'=>$rows]);
+}
+
+function getDepartureInsights($conn){
+    ensureTripDeparturesTable($conn);
+    $month = isset($_GET['month']) ? trim($_GET['month']) : date('Y-m');
+    if (!preg_match('/^\d{4}-\d{2}$/',$month)) { $month = date('Y-m'); }
+    $start = $month.'-01';
+    $end = date('Y-m-t', strtotime($start));
+    // Optional vehicle number_plate column
+    $hasPlate = false; $pc = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'"); if ($pc && $pc->num_rows>0) $hasPlate = true;
+    $selectPlate = $hasPlate ? ', v.number_plate' : '';
+    $sql = "SELECT td.id, td.trip_id, td.departure_date, td.departure_time, td.flight_no, td.pax_count,
+                   td.pickup_location, td.pickup_hotel_id, td.vehicle_id, td.guide_id, td.notes,
+                   t.customer_name, t.tour_code,
+                   v.vehicle_name".$selectPlate.", g.name AS guide_name, h.name AS pickup_hotel_name
+            FROM trip_departures td
+            JOIN trips t ON t.id = td.trip_id
+            LEFT JOIN vehicles v ON v.id = td.vehicle_id
+            LEFT JOIN guides g ON g.id = td.guide_id
+            LEFT JOIN hotels h ON h.id = td.pickup_hotel_id
+            WHERE td.departure_date BETWEEN ? AND ?
+            ORDER BY td.departure_date, td.departure_time, t.tour_code";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    $stmt->bind_param('ss', $start, $end); $stmt->execute(); $res = $stmt->get_result();
+    $rows = [];
+    while($r = $res->fetch_assoc()) { $rows[] = $r; }
+    $stmt->close();
+    echo json_encode(['status'=>'success','data'=>$rows]);
+}
 function deleteTripArrival($conn){
     parse_str(file_get_contents("php://input"), $_DELETE);
     $id = isset($_DELETE['id']) ? intval($_DELETE['id']) : 0;

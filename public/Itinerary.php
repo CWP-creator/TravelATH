@@ -215,6 +215,19 @@
         .summary-view-wrapper {
             display: none;
         }
+        .insights-view-wrapper { display:none; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); min-height: 400px; }
+        .insights-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .insight-card { border:1px solid var(--border); border-radius:10px; background:#fafafa; overflow:hidden; }
+        .insight-card .head { padding:10px 12px; font-weight:800; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px; }
+        .insight-card .head.arrival { background:#e6f4ea; color:#166534; }
+        .insight-card .head.departure { background:#eef2ff; color:#1e40af; }
+        .insight-list { padding: 8px 12px; display:flex; flex-direction:column; gap:8px; }
+        .insight-row { display:grid; grid-template-columns: 110px 1fr 1fr; gap:10px; align-items:center; padding:8px; background:#fff; border:1px solid var(--border-light); border-radius:8px; }
+        .insight-row .meta { font-size:0.85rem; color:var(--text-secondary); }
+        .insight-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-weight:800; font-size:0.72rem; }
+        .insight-badge.arrival { background:#dff0e7; color:#166534; border:1px solid #bbdfcc; }
+        .insight-badge.departure { background:#dce9ff; color:#1e40af; border:1px solid #c7dbff; }
+        @media (max-width: 900px){ .insights-sections{ grid-template-columns:1fr; } }
 
         .day-content-wrapper {
             display: none;
@@ -712,6 +725,23 @@
         }
         .btn-success { background: #10b981 !important; border-color: #10b981 !important; }
         
+        /* Report buttons */
+        .btn-report { border: none; padding: 14px 16px; border-radius: 0 12px 12px 0; font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: var(--shadow-md); display: inline-flex; align-items: center; gap: 10px; letter-spacing: 0.2px; }
+        .btn-report i { font-size: 1rem; }
+        .btn-arrival { background: #e6f4ea; color: #166534; border: 1px solid #bfe3cd; border-left: none; }
+        .btn-arrival:hover { background: #dff0e7; border-color: #acd8bd; border-left: none; }
+        .btn-departure { background: #eef2ff; color: #1e40af; border: 1px solid #c7d2fe; border-left: none; }
+        .btn-departure:hover { background: #e6ecff; border-color: #bfc9fd; border-left: none; }
+        .report-dock { position: fixed; left: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 14px; z-index: 1050; transition: left 0.25s ease; }
+        .report-dock.collapsed { left: -220px; }
+        .report-dock .btn-report { width: 240px; justify-content: flex-start; }
+        .report-handle { position:absolute; right:-24px; top:50%; transform: translateY(-50%); width:24px; height:64px; background:#e5e7eb; border:1px solid var(--border); border-left:none; border-radius:0 8px 8px 0; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#6b7280; box-shadow: var(--shadow-sm); }
+        .report-handle:hover { background:#f3f4f6; }
+        @media (max-width: 768px) {
+            .report-dock { left: 0; top: auto; bottom: 95px; transform: none; }
+            .report-dock .btn-report { width: 200px; }
+        }
+        
         /* Dropup menus for grouped actions */
         .menu-item-success { background:#dcfce7 !important; color:#166534 !important; }
         .menu-item-success:hover { background:#bbf7d0 !important; }
@@ -933,6 +963,13 @@
             </div>
         </header>
 
+        <!-- Floating report dock (left-middle) -->
+        <div id="reportButtonsDock" class="report-dock">
+            <button type="button" id="arrivalsReportBtn" class="btn-report btn-arrival" title="View arrival details"><i class="fas fa-plane-arrival"></i><span>Arrival</span></button>
+            <button type="button" id="departuresReportBtn" class="btn-report btn-departure" title="View departure details"><i class="fas fa-plane-departure"></i><span>Departure</span></button>
+            <div class="report-handle" id="reportDockToggle" title="Collapse/Expand"><i class="fas fa-chevron-left"></i></div>
+        </div>
+
         <main>
             <div class="tabs-and-toggle">
                 <div class="day-tabs-wrapper">
@@ -955,6 +992,7 @@
                 </div>
                 
                 <div class="summary-view-wrapper" id="summaryView"></div>
+                <div class="insights-view-wrapper" id="insightsView"></div>
 
                 <div class="form-actions">
                     <div class="save-info">
@@ -964,7 +1002,6 @@
                     <div class="form-actions-buttons">
                         <!-- Order: Assign (left) • Email • Export • Save (right) -->
                         
-                        <!-- Assign dropup (leftmost) -->
                         <div class="dropup" id="assignDropup">
                             <button type="button" id="assignDropBtn" class="btn-export">
                                 <i class="fas fa-tasks"></i>
@@ -1058,6 +1095,36 @@
       </div>
     </div>
 
+    <!-- Report Modals -->
+    <style>
+      .report-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items:center; justify-content:center; z-index: 1200; }
+      .report-card { width: 680px; max-height: 75vh; background:#fff; border-radius:12px; box-shadow: var(--shadow-md); overflow:hidden; display:flex; flex-direction:column; }
+      .report-header { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; font-weight:800; }
+      .report-header.arrival { background:#e8f5ee; color:#166534; border-bottom:1px solid #bbdfcc; }
+      .report-header.departure { background:#e6f0ff; color:#1e40af; border-bottom:1px solid #c7dbff; }
+      .report-body { padding:12px 16px; overflow:auto; }
+      .report-row { border:1px solid var(--border); border-radius:8px; padding:10px; margin:8px 0; background:#fafafa; }
+      .report-row .title { font-weight:700; margin-bottom:6px; }
+      .kv { display:flex; flex-wrap:wrap; gap:10px 16px; font-size:0.9rem; }
+      .kv div { min-width: 48%; }
+      .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:800; }
+      .badge.arrival { background:#dff0e7; color:#166534; border:1px solid #bbdfcc; }
+      .badge.departure { background:#dce9ff; color:#1e40af; border:1px solid #c7dbff; }
+      .report-close { cursor:pointer; color:#6b7280; }
+    </style>
+    <div id="arrivalsReportModal" class="report-modal" aria-hidden="true">
+      <div class="report-card">
+        <div class="report-header arrival"><span><i class="fas fa-plane-arrival"></i> Arrival Details</span><span class="report-close" data-target="arrivalsReportModal"><i class="fas fa-times"></i></span></div>
+        <div class="report-body" id="arrivalsReportBody"></div>
+      </div>
+    </div>
+    <div id="departuresReportModal" class="report-modal" aria-hidden="true">
+      <div class="report-card">
+        <div class="report-header departure"><span><i class="fas fa-plane-departure"></i> Departure Details</span><span class="report-close" data-target="departuresReportModal"><i class="fas fa-times"></i></span></div>
+        <div class="report-body" id="departuresReportBody"></div>
+      </div>
+    </div>
+
     <!-- Email Status Panel -->
     <div id="emailStatusPanel" class="email-status-panel">
         <div class="email-status-header">
@@ -1090,6 +1157,13 @@
             const emailDropBtn = document.getElementById('emailDropBtn');
             const emailStatusPanel = document.getElementById('emailStatusPanel');
             const emailStatusList = document.getElementById('emailStatusList');
+            // Report modals
+            const arrivalsReportBtn = document.getElementById('arrivalsReportBtn');
+            const departuresReportBtn = document.getElementById('departuresReportBtn');
+            const arrivalsReportModal = document.getElementById('arrivalsReportModal');
+            const departuresReportModal = document.getElementById('departuresReportModal');
+            const arrivalsReportBody = document.getElementById('arrivalsReportBody');
+            const departuresReportBody = document.getElementById('departuresReportBody');
             const emailStatusClose = document.getElementById('emailStatusClose');
             const emailStatusMinMax = document.getElementById('emailStatusMinMax');
             
@@ -1339,12 +1413,15 @@
                     }
 
                     console.log('API response received:', result);
-                    const { trip, itinerary_days, guides, vehicles, hotels, arrivals } = result.data;
+                    const { trip, itinerary_days, guides, vehicles, hotels, arrivals, departures } = result.data;
                     
                     allGuides = guides;
                     allVehicles = vehicles;
                     allHotels = hotels;
                     currentItineraryDays = itinerary_days;
+                    window.__trip__ = trip; // expose for reports
+                    window.__arrivals__ = arrivals || [];
+                    window.__departures__ = departures || [];
                     // Build arrivals by date map for display with group codes A1, A2...
                     arrivalsByDate = {};
                     (arrivals||[]).forEach(a=>{
@@ -1427,6 +1504,9 @@
                     scrollRightBtn.addEventListener('click', () => scrollTabs('right'));
                     
                     toggleView('details');
+                    // Reports: wire buttons now that data loaded
+                    setupReportButtons();
+                    setupReportDockToggle();
                     // Do not auto-start missing assignment wizard on itinerary view
                     
                 } catch (error) {
@@ -1846,6 +1926,87 @@
                 }
             };
             
+            function openReport(id){ const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
+            function closeReport(id){ const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+            function setupReportDockToggle(){
+                const dock = document.getElementById('reportButtonsDock');
+                const toggle = document.getElementById('reportDockToggle');
+                if (!dock || !toggle) return;
+                toggle.addEventListener('click', ()=>{
+                    dock.classList.toggle('collapsed');
+                    const icon = toggle.querySelector('i');
+                    if (dock.classList.contains('collapsed')) { icon.classList.remove('fa-chevron-left'); icon.classList.add('fa-chevron-right'); }
+                    else { icon.classList.remove('fa-chevron-right'); icon.classList.add('fa-chevron-left'); }
+                });
+            }
+            function setupReportButtons(){
+                // Close handlers
+                document.querySelectorAll('.report-close').forEach(btn=>btn.addEventListener('click', (e)=>{ const t=e.currentTarget.getAttribute('data-target'); closeReport(t); }));
+                [arrivalsReportModal, departuresReportModal].forEach(m=>{ if(!m)return; m.addEventListener('click', (e)=>{ if(e.target===m) closeReport(m.id); }); });
+                if (arrivalsReportBtn){ arrivalsReportBtn.addEventListener('click', ()=>{ buildArrivalsReport(); openReport('arrivalsReportModal'); }); }
+                if (departuresReportBtn){ departuresReportBtn.addEventListener('click', ()=>{ buildDeparturesReport(); openReport('departuresReportModal'); }); }
+            }
+            function fmt(t){ return (t&&String(t).trim().length)?t:'—'; }
+            function buildArrivalsReport(){
+                const arr = (window.__arrivals__||[]);
+                if (!arr.length){ arrivalsReportBody.innerHTML = '<div class="report-row">No arrivals recorded.</div>'; return; }
+                // Group by date then assign group codes
+                const byDate = {};
+                arr.forEach(a=>{ const d=a.arrival_date; if(!byDate[d]) byDate[d]=[]; byDate[d].push(a); });
+                const hotelName = (id)=>{ const h=allHotels.find(x=>String(x.id)===String(id)); return h? h.name : ''; };
+                const vehicleLabel = (id)=>{ const v=allVehicles.find(x=>String(x.id)===String(id)); if(!v) return ''; const plate=v.number_plate?` (${v.number_plate})`:''; return `${v.vehicle_name}${plate}`; };
+                let html='';
+                Object.keys(byDate).sort().forEach(date=>{
+                    const list = byDate[date];
+                    list.forEach((a,idx)=>{
+                        const group = `A${idx+1}`;
+                        html += `
+                        <div class="report-row">
+                          <div class="title"><span class="badge arrival">${group}</span> ${date} ${fmt(a.arrival_time)}</div>
+                          <div class="kv">
+                            <div><strong>Flight:</strong> ${fmt(a.flight_no)}</div>
+                            <div><strong>Pax:</strong> ${fmt(a.pax_count)}</div>
+                            <div><strong>Pickup:</strong> ${fmt(a.pickup_location)}</div>
+                            <div><strong>Drop Hotel:</strong> ${fmt(hotelName(a.drop_hotel_id))}</div>
+                            <div><strong>Vehicle:</strong> ${fmt(vehicleLabel(a.vehicle_id))}</div>
+                            <div><strong>Guide:</strong> ${fmt((allGuides.find(g=>String(g.id)===String(a.guide_id))||{}).name)}</div>
+                            <div style="flex:1 1 100%"><strong>Notes:</strong> ${fmt(a.notes)}</div>
+                          </div>
+                        </div>`;
+                    });
+                });
+                arrivalsReportBody.innerHTML = html;
+            }
+            function buildDeparturesReport(){
+                const dep = (window.__departures__||[]);
+                if (!dep.length){ departuresReportBody.innerHTML = '<div class="report-row">No departures recorded.</div>'; return; }
+                const byDate = {};
+                dep.forEach(d=>{ const dt=d.departure_date; if(!byDate[dt]) byDate[dt]=[]; byDate[dt].push(d); });
+                const hotelName = (id)=>{ const h=allHotels.find(x=>String(x.id)===String(id)); return h? h.name : ''; };
+                const vehicleLabel = (id)=>{ const v=allVehicles.find(x=>String(x.id)===String(id)); if(!v) return ''; const plate=v.number_plate?` (${v.number_plate})`:''; return `${v.vehicle_name}${plate}`; };
+                let html='';
+                Object.keys(byDate).sort().forEach(date=>{
+                    const list = byDate[date];
+                    list.forEach((d,idx)=>{
+                        const group = `D${idx+1}`;
+                        html += `
+                        <div class="report-row">
+                          <div class="title"><span class="badge departure">${group}</span> ${date} ${fmt(d.departure_time)}</div>
+                          <div class="kv">
+                            <div><strong>Flight:</strong> ${fmt(d.flight_no)}</div>
+                            <div><strong>Pax:</strong> ${fmt(d.pax_count)}</div>
+                            <div><strong>From:</strong> ${fmt(hotelName(d.pickup_hotel_id))}</div>
+                            <div><strong>Guests:</strong> ${fmt(d.pickup_location)}</div>
+                            <div><strong>Vehicle:</strong> ${fmt(vehicleLabel(d.vehicle_id))}</div>
+                            <div><strong>Guide:</strong> ${fmt((allGuides.find(g=>String(g.id)===String(d.guide_id))||{}).name)}</div>
+                            <div style="flex:1 1 100%"><strong>Notes:</strong> ${fmt(d.notes)}</div>
+                          </div>
+                        </div>`;
+                    });
+                });
+                departuresReportBody.innerHTML = html;
+            }
+
             const setupInformedToggles = () => {
                 const informedInputs = document.querySelectorAll('.informed-input');
                 
@@ -2219,6 +2380,55 @@
                 });
             };
 
+            const renderInsights = () => {
+                const insightsView = document.getElementById('insightsView');
+                if (!insightsView) return;
+                const arr = (window.__arrivals__||[]);
+                // Build arrivals section
+                const vehicleLabel = (id)=>{ const v=allVehicles.find(x=>String(x.id)===String(id)); if(!v) return ''; const plate=v.number_plate?` (${v.number_plate})`:''; return `${v.vehicle_name}${plate}`; };
+                const guideName = (id)=>{ const g=allGuides.find(x=>String(x.id)===String(id)); return g? g.name : ''; };
+                const hotelName = (id)=>{ const h=allHotels.find(x=>String(x.id)===String(id)); return h? h.name : ''; };
+                const groupByDate = {};
+                arr.forEach(a=>{ const d=a.arrival_date; if(!groupByDate[d]) groupByDate[d]=[]; groupByDate[d].push(a); });
+                let arrivalsHtml = '';
+                Object.keys(groupByDate).sort().forEach(date=>{
+                    const list = groupByDate[date];
+                    list.forEach((a,idx)=>{
+                        const group = `A${idx+1}`;
+                        arrivalsHtml += `
+                        <div class="insight-row">
+                            <div><span class="insight-badge arrival">${group}</span> ${date}<div class="meta">${a.arrival_time||''}</div></div>
+                            <div><strong>Vehicle:</strong> ${vehicleLabel(a.vehicle_id)}<div class="meta">Guide: ${guideName(a.guide_id)||'—'}</div></div>
+                            <div><strong>Pax:</strong> ${a.pax_count||'—'}<div class="meta">Drop: ${hotelName(a.drop_hotel_id)||'—'}</div></div>
+                        </div>`;
+                    });
+                });
+                if (!arrivalsHtml) arrivalsHtml = '<div class="insight-row">No arrivals recorded.</div>';
+                const dep = (window.__departures__||[]);
+                let departuresHtml = '';
+                dep.forEach((d,idx)=>{
+                    const group = `D${idx+1}`;
+                    departuresHtml += `
+                    <div class="insight-row">
+                        <div><span class="insight-badge departure">${group}</span> ${d.departure_date||''}<div class="meta">${d.departure_time||''}</div></div>
+                        <div><strong>Flight:</strong> ${d.flight_no||'—'}<div class="meta">Pax: ${d.pax_count||'—'}</div></div>
+                        <div><strong>From:</strong> ${hotelName(d.pickup_hotel_id)||'—'}<div class="meta">Vehicle: ${vehicleLabel(d.vehicle_id)||'—'}</div></div>
+                    </div>`;
+                });
+                if (!departuresHtml) departuresHtml = '<div class="insight-row">No departures recorded.</div>';
+                insightsView.innerHTML = `
+                    <div class="insights-sections">
+                      <div class="insight-card">
+                        <div class="head arrival"><i class="fas fa-plane-arrival"></i> Arrivals</div>
+                        <div class="insight-list">${arrivalsHtml}</div>
+                      </div>
+                      <div class="insight-card">
+                        <div class="head departure"><i class="fas fa-plane-departure"></i> Departures</div>
+                        <div class="insight-list">${departuresHtml}</div>
+                      </div>
+                    </div>`;
+            };
+
             const renderSummaryCards = (daysData) => {
                 let html = '<div class="summary-card-grid">';
                 const currentData = getCurrentFormData(daysData);
@@ -2287,18 +2497,30 @@
 
             const toggleView = (mode) => {
                 const isSummaryMode = mode === 'summary';
+                const isInsightsMode = mode === 'insights';
                 
                 if (isSummaryMode) {
                     itineraryGrid.style.display = 'none';
                     summaryView.style.display = 'block';
+                    insightsView.style.display = 'none';
                     summaryToggleBtn.classList.add('active');
                     summaryToggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> <span>View Details</span>';
                     summaryToggleBtn.dataset.viewMode = 'summary';
                     dayTabsContainer.parentNode.style.display = 'none';
                     renderSummaryCards(currentItineraryDays);
+                } else if (isInsightsMode) {
+                    itineraryGrid.style.display = 'none';
+                    summaryView.style.display = 'none';
+                    insightsView.style.display = 'block';
+                    summaryToggleBtn.classList.remove('active');
+                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-check"></i> <span>View Summary</span>';
+                    summaryToggleBtn.dataset.viewMode = 'details';
+                    dayTabsContainer.parentNode.style.display = 'none';
+                    renderInsights();
                 } else {
                     itineraryGrid.style.display = 'block';
                     summaryView.style.display = 'none';
+                    insightsView.style.display = 'none';
                     summaryToggleBtn.classList.remove('active');
                     summaryToggleBtn.innerHTML = '<i class="fas fa-list-check"></i> <span>View Summary</span>';
                     summaryToggleBtn.dataset.viewMode = 'details';
