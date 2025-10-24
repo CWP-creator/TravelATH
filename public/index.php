@@ -1766,6 +1766,20 @@
                     if (result.status === 'success') {
                         hotelsData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderHotels(hotelsData);
+                        // If a new hotel was just added for a package day, append/select it
+                        if (window.__pendingHotelSelectId && window.__pendingHotelName) {
+                          const target = document.getElementById(window.__pendingHotelSelectId);
+                          const nameLower = window.__pendingHotelName.trim().toLowerCase();
+                          const found = hotelsData.find(h=> String(h.name||'').trim().toLowerCase()===nameLower);
+                          if (target && found) {
+                            // ensure option exists
+                            if (!Array.from(target.options).some(o=> String(o.value)===String(found.id))) {
+                              const opt = document.createElement('option'); opt.value = found.id; opt.textContent = found.name; target.appendChild(opt);
+                            }
+                            target.value = String(found.id);
+                          }
+                          window.__pendingHotelSelectId = null; window.__pendingHotelName = null;
+                        }
                     }
                 } catch (error) {
                     showToast('Error fetching hotels.', 'error');
@@ -2643,6 +2657,7 @@
                 hotelsData.forEach(hotel => {
                     hotelOptions += `<option value="${hotel.id}">${hotel.name}</option>`;
                 });
+                hotelOptions += `<option value="__add__">+ Add new hotel…</option>`;
 
                 for (let i = 1; i <= dayCount; i++) {
                     const dayCard = document.createElement('div');
@@ -2707,16 +2722,34 @@
                     `;
                     container.appendChild(dayCard);
                     
-                    // Add event listener for vehicle checkbox
+                    // Add listeners: vehicle checkbox + hotel add
                     const vehicleCheckbox = dayCard.querySelector(`#vehicle_required_day_${i}`);
                     const vehicleTypeSelect = dayCard.querySelector(`#vehicle_type_day_${i}`);
-                    
-                    vehicleCheckbox.addEventListener('change', function() {
-                        vehicleTypeSelect.style.display = this.checked ? 'block' : 'none';
-                        if (!this.checked) {
-                            vehicleTypeSelect.value = '';
+                    if (vehicleCheckbox) {
+                      vehicleCheckbox.addEventListener('change', function() {
+                          vehicleTypeSelect.style.display = this.checked ? 'block' : 'none';
+                          if (!this.checked) {
+                              vehicleTypeSelect.value = '';
+                          }
+                      });
+                    }
+                    const hotelSel = dayCard.querySelector(`#hotel_day_${i}`);
+                    if (hotelSel) {
+                      hotelSel.addEventListener('change', function(){
+                        if (this.value === '__add__') {
+                          // remember target select to set after creation
+                          window.__pendingHotelSelectId = this.id;
+                          window.__pendingHotelName = null;
+                          this.value = '';
+                          // open hotel modal
+                          document.getElementById('hotelForm').reset();
+                          document.getElementById('hotelId').value = '';
+                          document.getElementById('hotelModalTitle').textContent = 'Add Hotel';
+                          document.getElementById('hotel_services_provided').value = '';
+                          openModal('hotelModal');
                         }
-                    });
+                      });
+                    }
                 }
             };
             
@@ -2925,6 +2958,8 @@
                 e.preventDefault();
                 const hotelId = document.getElementById('hotelId').value;
                 const action = hotelId ? 'updateHotel' : 'addHotel';
+                // capture intended name for selection after adding
+                window.__pendingHotelName = (!hotelId) ? (document.getElementById('hotel_name').value||'') : null;
                 handleFormSubmit(this, action, () => {
                     closeModal('hotelModal');
                     fetchHotels();
