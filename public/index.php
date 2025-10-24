@@ -1159,7 +1159,7 @@
                     </details>
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" id="guestDetailsCard">
                     <h4><i class="fas fa-user"></i> Guest Details</h4>
                 <div class="form-group">
                         <label for="company">Company</label>
@@ -2600,7 +2600,16 @@
                 
                 document.getElementById('package_description_container').style.display = 'none';
 
-                // Reset arrivals state
+                // Creation-lite: hide Guest Details and Arrival/Departure sections & controls
+                const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = 'none';
+                const s2 = document.getElementById('tripStep2'); if (s2) s2.style.display = 'none';
+                const s3 = document.getElementById('tripStep3'); if (s3) s3.style.display = 'none';
+                const c2 = document.getElementById('controlsStep2'); if (c2) c2.style.display = 'none';
+                const c3 = document.getElementById('controlsStep3'); if (c3) c3.style.display = 'none';
+                const next1 = document.getElementById('btnStepNext1'); if (next1) next1.style.display = 'none';
+                const back1 = document.getElementById('btnStepBack1'); if (back1) back1.style.display = 'none';
+
+                // Reset arrivals state (not used on creation)
                 tripArrivalsState = [];
                 renderArrivalGroups();
                 tripDeparturesState = [];
@@ -3855,6 +3864,13 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 const trip = tripsData.find(t => t.id == id);
                 if (!trip){ showToast('Trip not found','error'); return; }
                 populateTripForm(trip);
+                // Ensure all sections visible for editing
+                const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = '';
+                const s2 = document.getElementById('tripStep2'); if (s2) s2.style.display = '';
+                const s3 = document.getElementById('tripStep3'); if (s3) s3.style.display = '';
+                const c2 = document.getElementById('controlsStep2'); if (c2) c2.style.display = 'flex';
+                const c3 = document.getElementById('controlsStep3'); if (c3) c3.style.display = 'flex';
+                const next1 = document.getElementById('btnStepNext1'); if (next1) next1.style.display = '';
                 openModal('tripModal');
             }
 
