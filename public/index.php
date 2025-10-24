@@ -1962,8 +1962,8 @@
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No packages found.</td></tr>';
                     return;
                 }
-                const packages = [...packages].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
-                packages.forEach(pkg => {
+                const sortedPackages = [...packages].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                sortedPackages.forEach(pkg => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${pkg.id}</td>
@@ -1989,8 +1989,8 @@
                     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hotels found.</td></tr>';
                     return;
                 }
-                const hotels = [...hotels].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
-                hotels.forEach(hotel => {
+                const sortedHotels = [...hotels].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                sortedHotels.forEach(hotel => {
                     const row = document.createElement('tr');
                     if (hotel.availability) {
                         const statusClass = `row-status-${hotel.availability.replace(/\s+/g, '-')}`;
@@ -2022,8 +2022,8 @@
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No vehicles found.</td></tr>';
                     return;
                 }
-                const vehicles = [...vehicles].sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
-                vehicles.forEach(vehicle => {
+                const sortedVehicles = [...vehicles].sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
+                sortedVehicles.forEach(vehicle => {
                     const row = document.createElement('tr');
                     if (vehicle.availability) {
                         const statusClass = `row-status-${vehicle.availability.replace(/\s+/g, '-')}`;
@@ -2050,8 +2050,8 @@
                     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No guides found.</td></tr>';
                     return;
                 }
-                const guides = [...guides].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
-                guides.forEach(guide => {
+                const sortedGuides = [...guides].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                sortedGuides.forEach(guide => {
                     const row = document.createElement('tr');
                     if (guide.availability_status) {
                         const statusClass = `row-status-${guide.availability_status.replace(/\s+/g, '-')}`;
