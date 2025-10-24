@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Agency Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-<style>
+    <style>
         :root {
             --primary-color: #4A90E2;
             --background-color: #f0f2f5;
@@ -155,6 +155,15 @@
             color: var(--primary-color);
             border-left-color: var(--primary-color);
         }
+
+        /* Creation-lite: hide arrival/departure steps in trip modal */
+        #tripForm.creation-lite #tripStep2,
+        #tripForm.creation-lite #tripStep3,
+        #tripForm.creation-lite #controlsStep2,
+        #tripForm.creation-lite #controlsStep3,
+        #tripForm.creation-lite #guestDetailsCard,
+        #tripForm.creation-lite #btnStepNext1,
+        #tripForm.creation-lite #btnStepBack1 { display: none !important; }
         
         .page-wrapper {
             margin-left: 240px;
@@ -2592,6 +2601,7 @@
 
             document.getElementById('addTripBtn').addEventListener('click', () => {
                 document.getElementById('tripForm').reset();
+                document.getElementById('tripForm').classList.add('creation-lite');
                 const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 document.getElementById('tripIdHidden').value = '';
                 document.getElementById('tripIdDisplay').value = '';
@@ -3865,6 +3875,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 if (!trip){ showToast('Trip not found','error'); return; }
                 populateTripForm(trip);
                 // Ensure all sections visible for editing
+                document.getElementById('tripForm')?.classList.remove('creation-lite');
                 const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = '';
                 const s2 = document.getElementById('tripStep2'); if (s2) s2.style.display = '';
                 const s3 = document.getElementById('tripStep3'); if (s3) s3.style.display = '';
