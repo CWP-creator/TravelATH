@@ -68,7 +68,9 @@ try {
     }
 
 	// --- Fetch Trip Details (Tour Code and Customer Name) ---
-	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name, start_date, end_date FROM trips WHERE id = ?");
+    // Detect optional guest_details column
+    $hasGuestDetails = false; $cT = $conn->query("SHOW COLUMNS FROM trips LIKE 'guest_details'"); if ($cT && $cT->num_rows>0) $hasGuestDetails = true;
+	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name, start_date, end_date".($hasGuestDetails?", guest_details":"")." FROM trips WHERE id = ?");
 	if (!$tripDetailsStmt) {
 		respond('error', 'Database prepare failed for trip details: ' . $conn->error);
 	}
@@ -83,6 +85,7 @@ try {
 	$customerName = $tripData['customer_name'] ?: 'Our Valued Guest';
 	$startDate = $tripData['start_date'];
 	$endDate = $tripData['end_date'];
+    $guestDetails = isset($tripData['guest_details']) ? trim($tripData['guest_details']) : '';
 	$tripDetailsStmt->close();
 
 	// --- Build day index for reference ---
@@ -224,8 +227,9 @@ try {
 		$emailBodyHtml = "
 			<p>Dear " . htmlspecialchars($guideName) . ",</p>
 			<p>You have been assigned as a guide for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>
-<p><strong>Trip Duration:</strong> " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "</p>
-			<p>Please find your duty schedule below:</p>
+<p><strong>Trip Duration:</strong> " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "</p>" .
+        ($guestDetails!=='' ? ("<p><strong>Guest Details:</strong> " . nl2br(htmlspecialchars($guestDetails)) . "</p>") : "") .
+        "<p>Please find your duty schedule below:</p>
 			<table style='width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: left;'>
 				<thead style='background-color: #f2f2f2;'>
 					<tr>

@@ -72,7 +72,8 @@ try {
     }
 
 	// Fetch Trip Details (Tour Code, Customer, and Package)
-	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name, trip_package_id FROM trips WHERE id = ?");
+    $hasGuestDetails = false; $cT = $conn->query("SHOW COLUMNS FROM trips LIKE 'guest_details'"); if ($cT && $cT->num_rows>0) $hasGuestDetails = true;
+	$tripDetailsStmt = $conn->prepare("SELECT tour_code, customer_name, trip_package_id".($hasGuestDetails?", guest_details":"")." FROM trips WHERE id = ?");
 	if (!$tripDetailsStmt) {
 		respond('error', 'Database prepare failed for trip details: ' . $conn->error);
 	}
@@ -85,6 +86,7 @@ try {
 	$tripData = $tripDetailsResult->fetch_assoc();
 	$tourCode = $tripData['tour_code'] ?: 'N/A';
 	$customerName = $tripData['customer_name'] ?: 'Our Valued Guest';
+    $guestDetails = isset($tripData['guest_details']) ? trim($tripData['guest_details']) : '';
     $tripPackageId = isset($tripData['trip_package_id']) ? (int)$tripData['trip_package_id'] : 0;
 	$tripDetailsStmt->close();
 
@@ -358,8 +360,9 @@ try {
 
 		$emailBodyHtml = "
 			<p>Dear {$hotelName},</p>
-			<p>We would like to request a booking for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>
-			<p>Please find the booking details below:</p>
+			<p>We would like to request a booking for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>" .
+            ($guestDetails!=='' ? ("<p><strong>Guest Details:</strong> " . nl2br(htmlspecialchars($guestDetails)) . "</p>") : "") .
+			"<p>Please find the booking details below:</p>
 			<table style='width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: left;'>
 				<thead style='background-color: #f2f2f2;'>
 					<tr>

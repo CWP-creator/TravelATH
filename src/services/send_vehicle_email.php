@@ -48,13 +48,15 @@ try {
     if ($trip_id <= 0) respond('error', 'Invalid or missing trip_id.');
 
     // Trip details
-    $tripStmt = $conn->prepare("SELECT tour_code, customer_name, start_date, end_date FROM trips WHERE id = ?");
+    $hasGuestDetails = false; $cT = $conn->query("SHOW COLUMNS FROM trips LIKE 'guest_details'"); if ($cT && $cT->num_rows>0) $hasGuestDetails = true;
+    $tripStmt = $conn->prepare("SELECT tour_code, customer_name, start_date, end_date".($hasGuestDetails?", guest_details":"")." FROM trips WHERE id = ?");
     if (!$tripStmt) respond('error', 'DB prepare failed: ' . $conn->error);
     $tripStmt->bind_param('i', $trip_id);
     $tripStmt->execute();
     $tripRes = $tripStmt->get_result();
     if ($tripRes->num_rows === 0) respond('error', 'Trip not found.');
     $trip = $tripRes->fetch_assoc();
+    $guestDetails = isset($trip['guest_details']) ? trim($trip['guest_details']) : '';
     $tripStmt->close();
 
     // Build day index
@@ -123,6 +125,7 @@ try {
         $html = "<p>Dear Driver/Operator of <strong>".htmlspecialchars($vehName)."</strong>,</p>".
                 "<p>You are assigned for guest <strong>".htmlspecialchars($trip['customer_name'])."</strong> (Tour: <strong>".htmlspecialchars($trip['tour_code'])."</strong>).</p>".
                 "<p><strong>Trip Duration:</strong> ".htmlspecialchars($trip['start_date'])." to ".htmlspecialchars($trip['end_date'])."</p>".
+                ($guestDetails!=='' ? ("<p><strong>Guest Details:</strong> ".nl2br(htmlspecialchars($guestDetails))."</p>") : "") .
                 "<table style='width:100%;border-collapse:collapse;font-family:sans-serif;font-size:14px;'><thead style='background:#f2f2f2'><tr><th style='border:1px solid #ddd;padding:8px;'>Date</th></tr></thead><tbody>$rowsHtml</tbody></table>".
                 "<p>Please confirm your availability.</p>";
         $alt = "You are assigned for guest ".$trip['customer_name']." (Tour: ".$trip['tour_code'].").\n" . implode("\n",$altLines);

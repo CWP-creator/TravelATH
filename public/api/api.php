@@ -334,6 +334,7 @@ function addTrip($conn) {
             'total_pax' => $total_pax,
             'couples_count' => $couples_count,
             'singles_count' => $singles_count,
+            'guest_details' => isset($_POST['guest_details']) ? trim($_POST['guest_details']) : null,
         ];
         foreach ($optionalMap as $col => $val) {
             if (isset($cols[$col])) { $fields[$col] = $val; }
@@ -554,6 +555,7 @@ function updateTrip($conn) {
         'total_pax' => $total_pax,
         'couples_count' => $couples_count,
         'singles_count' => $singles_count,
+        'guest_details' => isset($_POST['guest_details']) ? trim($_POST['guest_details']) : null,
     ];
     foreach ($optionalMap as $col => $val) { if (isset($cols[$col])) { $fields[$col] = $val; } }
 

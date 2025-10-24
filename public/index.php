@@ -1210,6 +1210,10 @@
                         <label>Guest Names</label>
                         <div id="guestNamesInner"></div>
                     </div>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label for="guest_details">Guest Details (optional)</label>
+                        <textarea id="guest_details" name="guest_details" rows="2" placeholder="Notes about guests, preferences, special info..."></textarea>
+                    </div>
                 </div>
                 <div id="controlsStep1" class="form-inline-controls">
                     <button type="button" id="btnStepBack1" class="icon-btn" title="Back" aria-label="Back">
@@ -2956,7 +2960,7 @@
                 fd.set('trip_package_id', srcTrip.trip_package_id);
                 fd.set('start_date', srcTrip.start_date); fd.set('end_date', srcTrip.end_date);
                 fd.set('status', srcTrip.status||'Pending');
-                ['company','country','address','passport_no','arrival_date','arrival_time','arrival_flight','departure_date','departure_time','departure_flight','total_pax','couples_count','singles_count'].forEach(k=>{ if (typeof srcTrip[k] !== 'undefined' && srcTrip[k] !== null) fd.set(k, srcTrip[k]); });
+                ['company','country','address','passport_no','arrival_date','arrival_time','arrival_flight','departure_date','departure_time','departure_flight','total_pax','couples_count','singles_count','guest_details'].forEach(k=>{ if (typeof srcTrip[k] !== 'undefined' && srcTrip[k] !== null) fd.set(k, srcTrip[k]); });
                 const addRes = await fetch(`${API_URL}?action=addTrip`, { method:'POST', body: fd });
                 const addJs = await addRes.json(); if (addJs.status!=='success'){ showToast(addJs.message||'Failed to create trip','error'); return; }
                 const newId = addJs.data && addJs.data.id; if (!newId){ showToast('No new trip id returned','error'); return; }
@@ -3697,6 +3701,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 document.getElementById('fileIdGroup').style.display = 'block';
                 document.getElementById('company').value = (trip.company || '');
                 const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
+                const gd = document.getElementById('guest_details'); if (gd) gd.value = (trip.guest_details || '');
                 const totalPaxEl = document.getElementById('total_pax');
                 if (totalPaxEl) { totalPaxEl.value = (trip.total_pax != null ? trip.total_pax : ''); }
                 const countryEl = document.getElementById('country');
