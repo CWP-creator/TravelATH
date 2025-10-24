@@ -1543,31 +1543,6 @@
       </div>
     </div>
 
-    <!-- Email Status Panel -->
-    <style>
-      .email-status-panel { position: fixed; right: 20px; bottom: 95px; width: 360px; max-height: 60vh; background: #fff; border: 1px solid var(--border-color); box-shadow: var(--shadow-md); border-radius: 10px; overflow: hidden; display: none; z-index: 1100; }
-      .email-status-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#f7f7f9; border-bottom:1px solid var(--border-color); font-weight:700; color: var(--text-color); }
-      .email-status-body { padding:8px 12px; max-height:50vh; overflow:auto; }
-      .email-status-list { list-style:none; margin:0; padding:0; }
-      .email-status-item { display:flex; align-items:flex-start; gap:8px; padding:8px 4px; border-bottom:1px dashed #eee; font-size:0.9rem; }
-      .email-status-item:last-child { border-bottom:none; }
-      .status-pill { padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:700; white-space:nowrap; }
-      .pill-sent { background:#dcfce7; color:#166534; }
-      .pill-queued { background:#e0f2fe; color:#075985; }
-      .pill-error { background:#fee2e2; color:#991b1b; }
-      .email-status-close, .email-status-minmax { cursor:pointer; color:#666; }
-      .email-status-body.minimized { display:none; }
-    </style>
-    <div id="emailStatusPanel" class="email-status-panel">
-      <div class="email-status-header">
-        <span><i class="fas fa-envelope-open-text"></i> Email Status</span>
-        <div>
-          <span id="emailStatusMinMax" class="email-status-minmax" title="Minimize/Maximize"><i class="fas fa-minus"></i></span>
-          <span id="emailStatusClose" class="email-status-close"><i class="fas fa-times"></i></span>
-        </div>
-      </div>
-      <div class="email-status-body"><ul id="emailStatusList" class="email-status-list"></ul></div>
-    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1947,7 +1922,7 @@
                         <td><span class=\"status status-${trip.status}\">${trip.status}</span></td>
                         <td class=\"actions\">
                             <a href=\"#\" class=\"btn-edit-trip\" data-id=\"${trip.id}\" title=\"Edit Trip\"><i class=\"fas fa-pencil\"></i></a>
-                            <a href=\"#\" class=\"btn-email-trip\" data-id=\"${trip.id}\" title=\"Send All Emails\"><i class=\"fas fa-envelope\"></i></a>
+                            <a href=\"#\" class=\"btn-duplicate-trip\" data-id=\"${trip.id}\" title=\"Duplicate Trip\"><i class=\"fas fa-clone\"></i></a>
                             <a href=\"#\" class=\"btn-delete-trip\" data-id=\"${trip.id}\"><i class=\"fas fa-trash\"></i></a>
                         </td>
                     `;
@@ -2869,33 +2844,55 @@
             });
 
             // --- Event Delegation for Edit/Delete ---
-            // Email Status Panel helpers (for Trip Files bulk email)
-            const emailStatusPanel = document.getElementById('emailStatusPanel');
-            const emailStatusList = document.getElementById('emailStatusList');
-            const emailStatusClose = document.getElementById('emailStatusClose');
-            const emailStatusMinMax = document.getElementById('emailStatusMinMax');
-            const openEmailStatusPanel = () => { emailStatusPanel.style.display = 'block'; };
-            const closeEmailStatusPanel = () => { emailStatusPanel.style.display = 'none'; };
-            const clearEmailStatus = () => { emailStatusList.innerHTML = ''; };
-            const addEmailStatusItem = (status, text) => {
-              const li = document.createElement('li');
-              li.className = 'email-status-item';
-              let pillClass = 'pill-queued'; let pillText = 'QUEUED';
-              if (status === 'success' || status === 'sent') { pillClass = 'pill-sent'; pillText = 'SENT'; }
-              if (status === 'error' || status === 'failed') { pillClass = 'pill-error'; pillText = 'ERROR'; }
-              if (status === 'info' || status === 'queued') { pillClass = 'pill-queued'; pillText = 'QUEUED'; }
-              li.innerHTML = `<span class="status-pill ${pillClass}">${pillText}</span><span>${text}</span>`;
-              emailStatusList.appendChild(li);
-            };
-            emailStatusClose.addEventListener('click', closeEmailStatusPanel);
-            emailStatusMinMax.addEventListener('click', () => {
-              const body = emailStatusPanel.querySelector('.email-status-body');
-              const icon = emailStatusMinMax.querySelector('i');
-              if (body.classList.contains('minimized')) { body.classList.remove('minimized'); icon.classList.remove('fa-plus'); icon.classList.add('fa-minus'); }
-              else { body.classList.add('minimized'); icon.classList.remove('fa-minus'); icon.classList.add('fa-plus'); }
-            });
+            // Duplicate Trip (deep copy)
+            async function duplicateTrip(tripId){
+              try{
+                // Load source
+                const itRes = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${Date.now()}`);
+                const it = await itRes.json(); if (it.status!=='success') { showToast(it.message||'Failed to load trip','error'); return; }
+                const srcTrip = it.data.trip; const srcDays = it.data.itinerary_days||[]; const srcArrivals = it.data.arrivals||[];
+                // Guests
+                let guests = { couples: [], singles: [] };
+                try{ const gRes = await fetch(`${API_URL}?action=getTripGuests&trip_id=${tripId}&_=${Date.now()}`); const gJs = await gRes.json(); if (gJs.status==='success') guests = gJs.data||guests; }catch(e){}
+                // New tour code
+                let tour_code = srcTrip.tour_code;
+                try{ const r=await fetch(`${API_URL}?action=getNextTourCode&trip_package_id=${srcTrip.trip_package_id}&_=${Date.now()}`); const j=await r.json(); if (j.status==='success') tour_code=j.data.tour_code; }catch(e){}
+                // Create new trip with same fields
+                const fd = new FormData();
+                fd.set('customer_name', srcTrip.customer_name||'');
+                fd.set('tour_code', tour_code||'');
+                fd.set('trip_package_id', srcTrip.trip_package_id);
+                fd.set('start_date', srcTrip.start_date); fd.set('end_date', srcTrip.end_date);
+                fd.set('status', srcTrip.status||'Pending');
+                ['company','country','address','passport_no','arrival_date','arrival_time','arrival_flight','departure_date','departure_time','departure_flight','total_pax','couples_count','singles_count'].forEach(k=>{ if (typeof srcTrip[k] !== 'undefined' && srcTrip[k] !== null) fd.set(k, srcTrip[k]); });
+                const addRes = await fetch(`${API_URL}?action=addTrip`, { method:'POST', body: fd });
+                const addJs = await addRes.json(); if (addJs.status!=='success'){ showToast(addJs.message||'Failed to create trip','error'); return; }
+                const newId = addJs.data && addJs.data.id; if (!newId){ showToast('No new trip id returned','error'); return; }
+                // Copy arrivals
+                try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(newId), arrivals: srcArrivals }) }); }catch(e){}
+                // Copy departures
+                try{ const dRes = await fetch(`${API_URL}?action=getTripDepartures&trip_id=${tripId}`); const dJs = await dRes.json(); if (dJs.status==='success'){ await fetch(`${API_URL}?action=saveTripDepartures`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(newId), departures: dJs.data||[] }) }); } }catch(e){}
+                // Copy guests
+                try{ await fetch(`${API_URL}?action=saveTripGuests`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(newId), couples: guests.couples||[], singles: guests.singles||[] }) }); }catch(e){}
+                // Copy itinerary assignments
+                try{
+                  const newItR = await fetch(`${API_URL}?action=getItinerary&trip_id=${newId}&_=${Date.now()}`); const newIt = await newItR.json();
+                  if (newIt.status==='success'){
+                    const newDays = newIt.data.itinerary_days||[];
+                    const payload = [];
+                    for (let i=0;i<Math.min(srcDays.length, newDays.length);i++){
+                      const s = srcDays[i]; const n = newDays[i];
+                      payload.push({ id: n.id, guide_id: s.guide_id||null, vehicle_id: s.vehicle_id||null, hotel_id: s.hotel_id||null, room_type_data: s.room_type_data||null, guide_informed: s.guide_informed?1:0, vehicle_informed: s.vehicle_informed?1:0, hotel_informed: s.hotel_informed?1:0, notes: s.notes||'', services_provided: s.services_provided||'' });
+                    }
+                    if (payload.length){ await fetch(`${API_URL}?action=updateItinerary`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ itinerary_days: payload }) }); }
+                  }
+                }catch(e){}
+                showToast(`Trip duplicated as ${tour_code}`,'success');
+                fetchTrips();
+              }catch(err){ showToast('Duplicate failed: '+err.message,'error'); }
+            }
 
-            // Missing assignment wizard for Trip Files (before bulk email)
+            // Missing assignment wizard (kept for other flows)
             let wizardState = { type:'rooms', items:[], index:0, tripId:null, days:[], changes:{} };
             const missingModal = document.getElementById('missingAssignModal');
             const missingTitle = document.getElementById('missingAssignTitle');
@@ -3738,10 +3735,6 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 const id = target.dataset.id;
                 
                 // Edit Actions
-                if (target.classList.contains('btn-email-trip')) {
-                    e.preventDefault();
-                    await sendAllEmailsForTrip(id, target);
-                }
 
                 if (target.classList.contains('btn-edit-trip')) {
                     e.preventDefault();
@@ -3754,6 +3747,11 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                     if (pkg) {
                         openTripModalForPackage(pkg.id);
                     }
+                }
+
+                if (target.classList.contains('btn-duplicate-trip')) {
+                    e.preventDefault();
+                    await duplicateTrip(id);
                 }
 
                 if (target.classList.contains('btn-duplicate-package')) {
