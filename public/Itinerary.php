@@ -1169,6 +1169,8 @@
             
             const urlParams = new URLSearchParams(window.location.search);
             const tripId = urlParams.get('trip_id');
+            const focusDateParam = urlParams.get('focus_date');
+            const focusDayParam = parseInt(urlParams.get('focus_day')||'0',10) || null;
 
             let allGuides = [];
             let allVehicles = [];
@@ -1486,6 +1488,15 @@
                     try {
                         renderTabsAndSwitch(itinerary_days);
                         renderSummaryCards(itinerary_days);
+                        // Jump to requested date/day if provided
+                        try {
+                            if (focusDayParam && Number.isInteger(focusDayParam)) {
+                                switchDay(focusDayParam);
+                            } else if (focusDateParam) {
+                                const idx = itinerary_days.findIndex(d => String(d.day_date) === String(focusDateParam));
+                                if (idx !== -1) switchDay(idx+1);
+                            }
+                        } catch(_){}
                     } catch (error) {
                         console.error('Error rendering tabs/summary:', error);
                     }

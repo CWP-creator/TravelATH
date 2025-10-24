@@ -1862,6 +1862,9 @@
                                     <span><i class="fas fa-car"></i> ${r.vehicle_name? (r.vehicle_name+plate) : '—'}</span>
                                     <span><i class="fas fa-user-tie"></i> ${r.guide_name||'—'}</span>
                                 </div>
+                            </div>
+                            <div class="booking-actions">
+                                <a href="Itinerary.php?trip_id=${r.trip_id}&focus_date=${r.arrival_date}" title="Open Itinerary on ${r.arrival_date}"><i class="fas fa-route"></i></a>
                             </div>`;
                         body.appendChild(item);
                     });
@@ -1892,6 +1895,9 @@
                                     <span><i class="fas fa-car"></i> ${r.vehicle_name? (r.vehicle_name+plate) : '—'}</span>
                                     <span><i class="fas fa-user-tie"></i> ${r.guide_name||'—'}</span>
                                 </div>
+                            </div>
+                            <div class="booking-actions">
+                                <a href="Itinerary.php?trip_id=${r.trip_id}&focus_date=${r.departure_date}" title="Open Itinerary on ${r.departure_date}"><i class="fas fa-route"></i></a>
                             </div>`;
                         body.appendChild(item);
                     });
@@ -2123,7 +2129,7 @@
                                 ${informedPill}
                                 <span class="status status-${record.status}">${record.status}</span>
                                 <div class="booking-actions">
-                                    <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
+                                    <a href=\"Itinerary.php?trip_id=${record.trip_id}&focus_date=${record.check_in_date}\" title=\"Open Itinerary on ${record.check_in_date}\">
                                         <i class="fas fa-route"></i>
                                     </a>
                                 </div>
@@ -2170,7 +2176,7 @@
                                 ${informedPill}
                                 <span class="status status-${rec.status}">${rec.status}</span>
                                 <div class="booking-actions">
-                                    <a href="Itinerary.php?trip_id=${rec.trip_id}" title="View Itinerary #${String(rec.trip_id).padStart(3, '0')}"><i class="fas fa-route"></i></a>
+                                    <a href=\"Itinerary.php?trip_id=${rec.trip_id}&focus_date=${rec.assignment_date}\" title=\"Open Itinerary on ${rec.assignment_date}\">
                                 </div>
                             </div>`;
                         list.appendChild(item);
@@ -2238,7 +2244,7 @@
                                 ${informedPill}
                                 <span class="status status-${record.status}">${record.status}</span>
                                 <div class="booking-actions">
-                                    <a href="Itinerary.php?trip_id=${record.trip_id}" title="View Itinerary #${String(record.trip_id).padStart(3, '0')}">
+                                    <a href=\"Itinerary.php?trip_id=${record.trip_id}&focus_date=${record.assignment_date}\" title=\"Open Itinerary on ${record.assignment_date}\">
                                         <i class="fas fa-route"></i>
                                     </a>
                                 </div>
@@ -4011,7 +4017,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                           <div class="booking-meta">
                             ${informedPills}
                             <span class="status status-${r.status}">${r.status}</span>
-                            <div class="booking-actions"><a href="Itinerary.php?trip_id=${r.trip_id}" title="Open Itinerary"><i class="fas fa-route"></i></a></div>
+                            <div class=\"booking-actions\"><a href=\"Itinerary.php?trip_id=${r.trip_id}&focus_date=${date}\" title=\"Open Itinerary on ${date}\"><i class=\"fas fa-route\"></i></a></div>
                           </div>`;
                         // Notes row
                         if ((r.notes||'').trim()){
