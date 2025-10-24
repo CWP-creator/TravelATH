@@ -2539,7 +2539,12 @@
             };
 
             const closeModal = (modalId) => {
-                document.getElementById(modalId).style.display = 'none';
+                const el = document.getElementById(modalId);
+                if (el) el.style.display = 'none';
+            };
+            const closeAllModals = () => {
+                ['tripModal','packageModal','hotelModal','vehicleModal','guideModal'].forEach(closeModal);
+                const mini = document.getElementById('missingAssignModal'); if (mini) mini.style.display = 'none';
             };
 
             document.querySelectorAll('.close-btn, .btn-cancel').forEach(btn => {
@@ -2554,6 +2559,13 @@
             //         // Do not close on outside click
             //     }
             // });
+            // Close any open modal on ESC
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                    e.preventDefault();
+                    closeAllModals();
+                }
+            });
 
             // Populate countries dropdown
             const COUNTRY_LIST = [
