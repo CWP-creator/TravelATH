@@ -1357,10 +1357,21 @@
                     <label for="hotel_name">Hotel Name</label>
                     <input type="text" id="hotel_name" name="name" required>
                 </div>
+
+                <div class="form-group">
+                    <label for="hotel_email">Email</label>
+                    <input type="email" id="hotel_email" name="email" placeholder="hotel@example.com">
+                </div>
                 
                 <div class="form-group">
-                    <label for="hotel_room_types">Room Types</label>
-                    <input type="text" id="hotel_room_types" name="room_types" placeholder="e.g., Suite, Double, Single">
+                    <label>Room Types (optional)</label>
+                    <div class="services-block" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="room_type_double"> <span>Double</span></label>
+                        <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="room_type_twin"> <span>Twin</span></label>
+                        <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="room_type_single"> <span>Single</span></label>
+                        <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="room_type_triple"> <span>Triple</span></label>
+                        <input type="hidden" id="hotel_room_types" name="room_types">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -2553,6 +2564,8 @@
                 document.getElementById('hotelId').value = '';
                 document.getElementById('hotelModalTitle').textContent = 'Add Hotel';
                 document.getElementById('hotel_services_provided').value = '';
+                document.getElementById('hotel_room_types').value = '';
+                ['room_type_double','room_type_twin','room_type_single','room_type_triple'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                 openModal('hotelModal');
             });
 
@@ -2667,13 +2680,21 @@
 
             // --- Handle Services Checkboxes ---
             document.getElementById('hotelForm').addEventListener('change', function(e) {
-                if (e.target.name.startsWith('service_')) {
+                if (e.target.name && e.target.name.startsWith('service_')) {
                     const services = [];
                     if (document.querySelector('input[name="service_breakfast"]').checked) services.push('B');
                     if (document.querySelector('input[name="service_lunch"]').checked) services.push('L');
                     if (document.querySelector('input[name="service_dinner"]').checked) services.push('D');
-                    
                     document.getElementById('hotel_services_provided').value = services.join(', ');
+                }
+                // Update room types hidden input on any room_type_* change
+                if (e.target && e.target.id && e.target.id.startsWith('room_type_')) {
+                    const parts = [];
+                    if (document.getElementById('room_type_double')?.checked) parts.push('Double');
+                    if (document.getElementById('room_type_twin')?.checked) parts.push('Twin');
+                    if (document.getElementById('room_type_single')?.checked) parts.push('Single');
+                    if (document.getElementById('room_type_triple')?.checked) parts.push('Triple');
+                    document.getElementById('hotel_room_types').value = parts.join(', ');
                 }
             });
 
@@ -3824,7 +3845,19 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                         document.getElementById('hotelModalTitle').textContent = 'Edit Hotel';
                         document.getElementById('hotelId').value = hotel.id;
                         document.getElementById('hotel_name').value = hotel.name;
-                        document.getElementById('hotel_room_types').value = hotel.room_types || '';
+                        document.getElementById('hotel_email').value = hotel.email || '';
+                        // Room types (checkbox UI + hidden value)
+                        const rt = (hotel.room_types||'').toLowerCase();
+                        document.getElementById('room_type_double').checked = /double/.test(rt);
+                        document.getElementById('room_type_twin').checked = /twin/.test(rt);
+                        document.getElementById('room_type_single').checked = /single/.test(rt);
+                        document.getElementById('room_type_triple').checked = /triple/.test(rt);
+                        const parts = [];
+                        if (document.getElementById('room_type_double').checked) parts.push('Double');
+                        if (document.getElementById('room_type_twin').checked) parts.push('Twin');
+                        if (document.getElementById('room_type_single').checked) parts.push('Single');
+                        if (document.getElementById('room_type_triple').checked) parts.push('Triple');
+                        document.getElementById('hotel_room_types').value = parts.join(', ');
                         document.getElementById('hotel_availability').value = hotel.availability || 'Available';
                         
                         document.querySelector('input[name="service_breakfast"]').checked = hotel.services_provided && hotel.services_provided.includes('B');
