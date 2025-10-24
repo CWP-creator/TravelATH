@@ -2671,8 +2671,37 @@
             
             document.getElementById('package_days').addEventListener('change', function() {
                 const days = parseInt(this.value, 10);
+                // Capture existing selections to preserve on re-render
+                const preserve = {};
+                const container = document.getElementById('day_requirements_container');
+                if (container) {
+                    const cards = container.querySelectorAll('.day-requirement-card');
+                    cards.forEach((card, idx) => {
+                        const i = idx + 1;
+                        const data = {};
+                        const h = card.querySelector(`#hotel_day_${i}`); if (h) data.hotel_id = h.value;
+                        const g = card.querySelector(`#guide_required_day_${i}`); if (g) data.guide_required = g.checked;
+                        const v = card.querySelector(`#vehicle_required_day_${i}`); if (v) data.vehicle_required = v.checked;
+                        const vt = card.querySelector(`#vehicle_type_day_${i}`); if (vt) data.vehicle_type = vt.value;
+                        const b = card.querySelector(`#svc_b_${i}`); const l = card.querySelector(`#svc_l_${i}`); const d = card.querySelector(`#svc_d_${i}`);
+                        data.svc_b = !!(b && b.checked); data.svc_l = !!(l && l.checked); data.svc_d = !!(d && d.checked);
+                        const n = card.querySelector(`#notes_day_${i}`); if (n) data.notes = n.value;
+                        preserve[i] = data;
+                    });
+                }
                 if (days > 0 && days < 100) { // Safety limit
                     generateDayRequirements(days);
+                    // Reapply preserved selections for overlapping day range
+                    for (let i=1; i<=days; i++){
+                        const d = preserve[i]; if (!d) continue;
+                        const h = document.getElementById(`hotel_day_${i}`); if (h && typeof d.hotel_id !== 'undefined') h.value = d.hotel_id;
+                        const g = document.getElementById(`guide_required_day_${i}`); if (g && typeof d.guide_required !== 'undefined') g.checked = d.guide_required;
+                        const v = document.getElementById(`vehicle_required_day_${i}`); if (v && typeof d.vehicle_required !== 'undefined') { v.checked = d.vehicle_required; const vt = document.getElementById(`vehicle_type_day_${i}`); if (vt) { vt.style.display = v.checked ? 'block' : 'none'; if (typeof d.vehicle_type !== 'undefined') vt.value = d.vehicle_type || ''; } }
+                        const b = document.getElementById(`svc_b_${i}`); if (b) b.checked = !!d.svc_b;
+                        const l = document.getElementById(`svc_l_${i}`); if (l) l.checked = !!d.svc_l;
+                        const di = document.getElementById(`svc_d_${i}`); if (di) di.checked = !!d.svc_d;
+                        const n = document.getElementById(`notes_day_${i}`); if (n && typeof d.notes !== 'undefined') n.value = d.notes;
+                    }
                 } else {
                     document.getElementById('day_requirements_container').innerHTML = '';
                 }
