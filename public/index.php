@@ -2499,11 +2499,12 @@
                 });
             });
 
-            window.addEventListener('click', (event) => {
-                if (event.target.classList.contains('modal')) {
-                    closeModal(event.target.id);
-                }
-            });
+            // Disable closing modals by clicking outside the content
+            // window.addEventListener('click', (event) => {
+            //     if (event.target.classList.contains('modal')) {
+            //         // Do not close on outside click
+            //     }
+            // });
 
             // Populate countries dropdown
             const COUNTRY_LIST = [
