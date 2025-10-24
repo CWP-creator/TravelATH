@@ -333,8 +333,10 @@ function addTrip($conn) {
             'departure_flight' => $departure_flight,
             'total_pax' => $total_pax,
             'couples_count' => $couples_count,
-            'singles_count' => $singles_count,
+'singles_count' => $singles_count,
             'guest_details' => isset($_POST['guest_details']) ? trim($_POST['guest_details']) : null,
+            'guest_status' => isset($_POST['guest_status']) ? trim($_POST['guest_status']) : null,
+            'dob' => isset($_POST['dob']) ? trim($_POST['dob']) : null,
         ];
         foreach ($optionalMap as $col => $val) {
             if (isset($cols[$col])) { $fields[$col] = $val; }
@@ -555,7 +557,9 @@ function updateTrip($conn) {
         'total_pax' => $total_pax,
         'couples_count' => $couples_count,
         'singles_count' => $singles_count,
-        'guest_details' => isset($_POST['guest_details']) ? trim($_POST['guest_details']) : null,
+'guest_details' => isset($_POST['guest_details']) ? trim($_POST['guest_details']) : null,
+        'guest_status' => isset($_POST['guest_status']) ? trim($_POST['guest_status']) : null,
+        'dob' => isset($_POST['dob']) ? trim($_POST['dob']) : null,
     ];
     foreach ($optionalMap as $col => $val) { if (isset($cols[$col])) { $fields[$col] = $val; } }
 
@@ -1990,18 +1994,67 @@ function getDayRoster($conn){
     }
 }
 
+// --- Utility: check if table exists
+function tableExists($conn, $table){
+    $table = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '$table'");
+    return ($res && $res->num_rows > 0);
+}
+
 // --- Trip Guests schema helper
 function ensureTripGuestsSchema($conn){
-    // Create trip_guests table if not exists
+    // Preferred new table: guests
+    $conn->query("CREATE TABLE IF NOT EXISTS guests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        trip_id INT NOT NULL,
+        type VARCHAR(10) NOT NULL,
+        name1 VARCHAR(255) NOT NULL,
+        name2 VARCHAR(255) NULL,
+        passport1 VARCHAR(100) NULL,
+        passport2 VARCHAR(100) NULL,
+        dob1 DATE NULL,
+        dob2 DATE NULL,
+        country1 VARCHAR(100) NULL,
+        country2 VARCHAR(100) NULL,
+        remark1 VARCHAR(255) NULL,
+        remark2 VARCHAR(255) NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        INDEX(trip_id), INDEX(type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Backward-compatible table: trip_guests
     $conn->query("CREATE TABLE IF NOT EXISTS trip_guests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         trip_id INT NOT NULL,
         type VARCHAR(10) NOT NULL,
         name1 VARCHAR(255) NOT NULL,
         name2 VARCHAR(255) NULL,
+        passport1 VARCHAR(100) NULL,
+        passport2 VARCHAR(100) NULL,
+        dob1 DATE NULL,
+        dob2 DATE NULL,
+        country1 VARCHAR(100) NULL,
+        country2 VARCHAR(100) NULL,
+        remark1 VARCHAR(255) NULL,
+        remark2 VARCHAR(255) NULL,
         display_order INT NOT NULL DEFAULT 0,
         INDEX(trip_id), INDEX(type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Ensure optional columns exist on older schemas for both tables
+    foreach (['guests','trip_guests'] as $tbl){
+        $cols = [];
+        $resCols = $conn->query("SHOW COLUMNS FROM $tbl");
+        if ($resCols) { while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; } }
+        if (!isset($cols['passport1'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN passport1 VARCHAR(100) NULL AFTER name2"); }
+        if (!isset($cols['passport2'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN passport2 VARCHAR(100) NULL AFTER passport1"); }
+        if (!isset($cols['dob1'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN dob1 DATE NULL AFTER passport2"); }
+        if (!isset($cols['dob2'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN dob2 DATE NULL AFTER dob1"); }
+        if (!isset($cols['country1'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN country1 VARCHAR(100) NULL AFTER dob2"); }
+        if (!isset($cols['country2'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN country2 VARCHAR(100) NULL AFTER country1"); }
+        if (!isset($cols['remark1'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN remark1 VARCHAR(255) NULL AFTER country2"); }
+        if (!isset($cols['remark2'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN remark2 VARCHAR(255) NULL AFTER remark1"); }
+    }
 
     // Ensure trips table has pax-related columns
     $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'total_pax'");
@@ -2010,6 +2063,8 @@ function ensureTripGuestsSchema($conn){
     if (!$res || $res->num_rows===0){ $conn->query("ALTER TABLE trips ADD COLUMN couples_count INT NULL"); }
     $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'singles_count'");
     if (!$res || $res->num_rows===0){ $conn->query("ALTER TABLE trips ADD COLUMN singles_count INT NULL"); }
+    $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'guest_status'");
+    if (!$res || $res->num_rows===0){ $conn->query("ALTER TABLE trips ADD COLUMN guest_status VARCHAR(50) NULL"); }
 }
 
 // --- Trip arrivals schema helper
@@ -2215,16 +2270,35 @@ function getTripGuests($conn){
     $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
     if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
     ensureTripGuestsSchema($conn);
-    $stmt = $conn->prepare("SELECT type, name1, name2 FROM trip_guests WHERE trip_id = ? ORDER BY display_order, id");
+    $tbl = tableExists($conn, 'guests') ? 'guests' : 'trip_guests';
+    $stmt = $conn->prepare("SELECT type, name1, name2, passport1, passport2, dob1, dob2, country1, country2, remark1, remark2 FROM $tbl WHERE trip_id = ? ORDER BY display_order, id");
     if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
     $stmt->bind_param('i', $trip_id); $stmt->execute(); $res = $stmt->get_result();
     $couples = []; $singles = [];
+    $couples_details = []; $singles_details = [];
     while ($row = $res->fetch_assoc()){
-        if ($row['type'] === 'couple') { $couples[] = [ $row['name1'], $row['name2'] ]; }
-        else { $singles[] = $row['name1']; }
+        if ($row['type'] === 'couple') {
+            $couples[] = [ $row['name1'], $row['name2'] ];
+            $couples_details[] = [
+                'name1'=>$row['name1'], 'name2'=>$row['name2'],
+                'passport1'=>$row['passport1'], 'passport2'=>$row['passport2'],
+                'dob1'=>$row['dob1'], 'dob2'=>$row['dob2'],
+                'country'=>$row['country1'],
+                'remark1'=>$row['remark1'], 'remark2'=>$row['remark2']
+            ];
+        } else {
+            $singles[] = $row['name1'];
+            $singles_details[] = [
+                'name'=>$row['name1'],
+                'passport'=>$row['passport1'],
+                'dob'=>$row['dob1'],
+                'country'=>$row['country1'],
+                'remark'=>$row['remark1']
+            ];
+        }
     }
     $stmt->close();
-    echo json_encode(['status'=>'success','data'=>['couples'=>$couples,'singles'=>$singles]]);
+    echo json_encode(['status'=>'success','data'=>['couples'=>$couples,'singles'=>$singles,'details'=>['couples'=>$couples_details,'singles'=>$singles_details]]]);
 }
 
 function saveTripGuests($conn){
@@ -2233,36 +2307,74 @@ function saveTripGuests($conn){
     $trip_id = isset($data['trip_id']) ? intval($data['trip_id']) : 0;
     $couples = isset($data['couples']) && is_array($data['couples']) ? $data['couples'] : [];
     $singles = isset($data['singles']) && is_array($data['singles']) ? $data['singles'] : [];
+    $couples_details = isset($data['couples_details']) && is_array($data['couples_details']) ? $data['couples_details'] : [];
+    $singles_details = isset($data['singles_details']) && is_array($data['singles_details']) ? $data['singles_details'] : [];
     if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
-    ensureTripGuestsSchema($conn);
-    // Replace existing
-    $del = $conn->prepare("DELETE FROM trip_guests WHERE trip_id = ?");
-    if ($del){ $del->bind_param('i', $trip_id); $del->execute(); $del->close(); }
-    // Insert couples and singles
-    $ins = $conn->prepare("INSERT INTO trip_guests (trip_id, type, name1, name2, display_order) VALUES (?, ?, ?, NULLIF(?, ''), ?)");
-    if (!$ins){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
+    
+    try {
+        ensureTripGuestsSchema($conn);
+        $tbl = tableExists($conn, 'guests') ? 'guests' : 'trip_guests';
+        // Replace existing
+        $del = $conn->prepare("DELETE FROM $tbl WHERE trip_id = ?");
+        if ($del){ $del->bind_param('i', $trip_id); $del->execute(); $del->close(); }
+        // Insert with extended columns
+        $ins = $conn->prepare("INSERT INTO $tbl (trip_id, type, name1, name2, passport1, passport2, dob1, dob2, country1, country2, remark1, remark2, display_order) VALUES (?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?)");
+        if (!$ins){ throw new Exception('DB prepare failed: '.$conn->error); }
     $order = 1;
-    foreach ($couples as $c){
-        $n1 = trim($c[0] ?? ''); $n2 = trim($c[1] ?? '');
-        if ($n1==='') continue;
-        $type = 'couple';
-        $ins->bind_param('isssi', $trip_id, $type, $n1, $n2, $order);
-        $ins->execute();
-        $order++;
+    // Couples: prefer details if provided
+    if (!empty($couples_details)){
+        foreach ($couples_details as $cd){
+            $n1 = trim($cd['name1'] ?? ''); if ($n1==='') continue;
+            $n2 = trim($cd['name2'] ?? '');
+            $p1 = trim($cd['passport1'] ?? ''); $p2 = trim($cd['passport2'] ?? '');
+            $d1 = trim($cd['dob1'] ?? ''); $d2 = trim($cd['dob2'] ?? '');
+            $country = trim($cd['country'] ?? '');
+            $r1 = trim($cd['remark1'] ?? ''); $r2 = trim($cd['remark2'] ?? '');
+            $type='couple';
+            $ins->bind_param('isssssssssssi', $trip_id, $type, $n1, $n2, $p1, $p2, $d1, $d2, $country, $country, $r1, $r2, $order);
+            $ins->execute();
+            $order++;
+        }
+    } else {
+        foreach ($couples as $c){
+            $n1 = trim($c[0] ?? ''); $n2 = trim($c[1] ?? '');
+            if ($n1==='') continue; $type='couple';
+            $empty='';
+            $ins->bind_param('isssssssssssi', $trip_id, $type, $n1, $n2, $empty, $empty, $empty, $empty, $empty, $empty, $empty, $empty, $order);
+            $ins->execute();
+            $order++;
+        }
     }
-    foreach ($singles as $s){
-        $n1 = trim($s ?? ''); if ($n1==='') continue;
-        $type = 'single'; $empty = '';
-        $ins->bind_param('isssi', $trip_id, $type, $n1, $empty, $order);
-        $ins->execute();
-        $order++;
+    // Singles: prefer details if provided
+    if (!empty($singles_details)){
+        foreach ($singles_details as $sd){
+            $n1 = trim($sd['name'] ?? ''); if ($n1==='') continue;
+            $p1 = trim($sd['passport'] ?? '');
+            $d1 = trim($sd['dob'] ?? '');
+            $country = trim($sd['country'] ?? '');
+            $r1 = trim($sd['remark'] ?? '');
+            $type='single'; $empty='';
+            $ins->bind_param('isssssssssssi', $trip_id, $type, $n1, $empty, $p1, $empty, $d1, $empty, $country, $empty, $r1, $empty, $order);
+            $ins->execute();
+            $order++;
+        }
+    } else {
+        foreach ($singles as $s){
+            $n1 = trim($s ?? ''); if ($n1==='') continue; $type='single'; $empty='';
+            $ins->bind_param('isssssssssssi', $trip_id, $type, $n1, $empty, $empty, $empty, $empty, $empty, $empty, $empty, $empty, $empty, $order);
+            $ins->execute();
+            $order++;
+        }
     }
-    $ins->close();
-    // Update trips counters
-    $cou = count(array_filter($couples, function($c){ return trim($c[0] ?? '') !== ''; }));
-    $sin = count(array_filter($singles, function($s){ return trim($s ?? '') !== ''; }));
-    $pax = (int)($cou * 2 + $sin);
-    $upd = $conn->prepare("UPDATE trips SET couples_count = ?, singles_count = ?, total_pax = ? WHERE id = ?");
-    if ($upd){ $upd->bind_param('iiii', $cou, $sin, $pax, $trip_id); $upd->execute(); $upd->close(); }
-    echo json_encode(['status'=>'success','message'=>'Guests saved','data'=>['couples_count'=>$cou,'singles_count'=>$sin,'total_pax'=>$pax]]);
+        $ins->close();
+        // Update trips counters
+        $cou = !empty($couples_details) ? count(array_filter($couples_details, function($cd){ return trim($cd['name1'] ?? '') !== ''; })) : count(array_filter($couples, function($c){ return trim($c[0] ?? '') !== ''; }));
+        $sin = !empty($singles_details) ? count(array_filter($singles_details, function($sd){ return trim($sd['name'] ?? '') !== ''; })) : count(array_filter($singles, function($s){ return trim($s ?? '') !== ''; }));
+        $pax = (int)($cou * 2 + $sin);
+        $upd = $conn->prepare("UPDATE trips SET couples_count = ?, singles_count = ?, total_pax = ? WHERE id = ?");
+        if ($upd){ $upd->bind_param('iiii', $cou, $sin, $pax, $trip_id); $upd->execute(); $upd->close(); }
+        echo json_encode(['status'=>'success','message'=>'Guests saved','data'=>['couples_count'=>$cou,'singles_count'=>$sin,'total_pax'=>$pax]]);
+    } catch (Exception $e) {
+        echo json_encode(['status'=>'error','message'=>'Save guests error: '.$e->getMessage().' at line '.$e->getLine()]);
+    }
 }
