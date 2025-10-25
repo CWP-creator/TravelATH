@@ -1177,8 +1177,28 @@
                   </div>
                   <!-- Multiple Arrival -->
                   <div id="gi_multiple_arrival" style="display:none;">
-                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Each guest can have different arrival details.</p>
-                    <div id="gi_multi_arrival_list"></div>
+                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Drag guests into arrival groups to assign them.</p>
+                    
+                    <!-- Unassigned Guests Pool -->
+                    <div style="background: var(--border-light); border: 2px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-users" style="margin-right: 6px;"></i>Unassigned Guests</h4>
+                      </div>
+                      <div id="gi_unassigned_guests" class="unassigned-dropzone" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 60px;">
+                        <!-- Draggable guest badges will appear here -->
+                      </div>
+                    </div>
+                    
+                    <!-- Arrival Groups -->
+                    <div style="margin-bottom: 16px;">
+                      <button type="button" id="gi_create_arrival_group" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                        <i class="fas fa-plus"></i> Create Arrival Group
+                      </button>
+                    </div>
+                    
+                    <div id="gi_arrival_groups_list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                      <!-- Arrival group cards will be dynamically added here -->
+                    </div>
                   </div>
 
                   <div class="gi-section-title" style="margin-top: 24px;">
@@ -1227,8 +1247,28 @@
                   </div>
                   <!-- Multiple Departure -->
                   <div id="gi_multiple_departure" style="display:none;">
-                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Each guest can have different departure details.</p>
-                    <div id="gi_multi_departure_list"></div>
+                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Drag guests into departure groups to assign them.</p>
+                    
+                    <!-- Unassigned Guests Pool for Departure -->
+                    <div style="background: var(--border-light); border: 2px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-users" style="margin-right: 6px;"></i>Unassigned Guests</h4>
+                      </div>
+                      <div id="gi_unassigned_guests_dep" class="unassigned-dropzone-dep" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 60px;">
+                        <!-- Draggable guest badges will appear here -->
+                      </div>
+                    </div>
+                    
+                    <!-- Departure Groups -->
+                    <div style="margin-bottom: 16px;">
+                      <button type="button" id="gi_create_departure_group" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                        <i class="fas fa-plus"></i> Create Departure Group
+                      </button>
+                    </div>
+                    
+                    <div id="gi_departure_groups_list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                      <!-- Departure group cards will be dynamically added here -->
+                    </div>
                   </div>
 
                   <div class="gi-actions" id="giStep2Actions" style="display:none;">
@@ -1732,17 +1772,55 @@
                 const totalGuests = (couplesCount*2 + singlesCount);
                 const arrivals = [];
                 if (arrivalType === 'multiple'){
-                    // Build per-card rows in DOM order
-                    const rows = document.querySelectorAll('#gi_multi_arrival_list .guest-info-grid');
-                    rows.forEach((row, idx) => {
-                        const time = row.querySelector('.gi-marr-time')?.value || '';
-                        const flight = row.querySelector('.gi-marr-flight')?.value || '';
-                        const hotelId = row.querySelector('.gi-marr-hotel')?.value || '';
-                        const guideId = row.querySelector('.gi-marr-guide')?.value || '';
-                        const vehicleId = row.querySelector('.gi-marr-vehicle')?.value || '';
-                        const pax = (idx < couplesCount) ? 2 : 1; // naive map: first N couples rows then singles
-                        arrivals.push({ arrival_date: day2Date, arrival_time: time, flight_no: flight, pax_count: pax, pickup_location: '', drop_hotel_id: Number(hotelId||0), vehicle_id: Number(vehicleId||0), guide_id: Number(guideId||0), notes: '' });
-                    });
+                    // Check if using drag-and-drop groups
+                    if (arrivalGroups && arrivalGroups.length > 0) {
+                        // Build arrivals from drag-and-drop groups
+                        arrivalGroups.forEach((group, groupIdx) => {
+                            // Count guests in this group
+                            let paxCount = 0;
+                            let guestNames = [];
+                            Object.keys(guestAssignments).forEach(guestId => {
+                                if (guestAssignments[guestId] === groupIdx) {
+                                    const [type, idx] = guestId.split('_');
+                                    if (type === 'couple') {
+                                        paxCount += 2;
+                                        const c = giGuestList.couples[parseInt(idx)];
+                                        guestNames.push(`${c.name1||''} & ${c.name2||''}`);
+                                    } else {
+                                        paxCount += 1;
+                                        const s = giGuestList.singles[parseInt(idx)];
+                                        guestNames.push(s.name||'');
+                                    }
+                                }
+                            });
+                            
+                            if (paxCount > 0) {
+                                arrivals.push({
+                                    arrival_date: day2Date,
+                                    arrival_time: group.time || '',
+                                    flight_no: group.flight || '',
+                                    pax_count: paxCount,
+                                    pickup_location: '',
+                                    drop_hotel_id: Number(group.hotel_id||0),
+                                    vehicle_id: Number(group.vehicle_id||0),
+                                    guide_id: Number(group.guide_id||0),
+                                    notes: guestNames.join(', ')
+                                });
+                            }
+                        });
+                    } else {
+                        // Legacy: Build per-card rows in DOM order
+                        const rows = document.querySelectorAll('#gi_multi_arrival_list .guest-info-grid');
+                        rows.forEach((row, idx) => {
+                            const time = row.querySelector('.gi-marr-time')?.value || '';
+                            const flight = row.querySelector('.gi-marr-flight')?.value || '';
+                            const hotelId = row.querySelector('.gi-marr-hotel')?.value || '';
+                            const guideId = row.querySelector('.gi-marr-guide')?.value || '';
+                            const vehicleId = row.querySelector('.gi-marr-vehicle')?.value || '';
+                            const pax = (idx < couplesCount) ? 2 : 1; // naive map: first N couples rows then singles
+                            arrivals.push({ arrival_date: day2Date, arrival_time: time, flight_no: flight, pax_count: pax, pickup_location: '', drop_hotel_id: Number(hotelId||0), vehicle_id: Number(vehicleId||0), guide_id: Number(guideId||0), notes: '' });
+                        });
+                    }
                 } else if (arrivalType === 'single'){
                     const time = (document.getElementById('gi_arrival_time')?.value)||'';
                     const flight = (document.getElementById('gi_arrival_flight')?.value)||'';
@@ -1799,7 +1877,7 @@
                         card.style.background = 'var(--border-light)';
                         card.innerHTML = `
                           <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 600; color: var(--text-primary);"><i class="fas fa-heart" style="color: #ef4444; margin-right: 8px;"></i>${couple.name1 || 'Couple'} & ${couple.name2 || ''}</div>
+                            <div style="font-weight: 600; color: var(--text-primary);"><i class="fas fa-user-group" style="color: #ef4444; margin-right: 8px;"></i>${couple.name1 || 'Couple'} & ${couple.name2 || ''}</div>
                             <button type="button" class="gi-expand-btn" style="background: none; border: none; cursor: pointer; color: var(--primary-color); font-weight: 600;"><i class="fas fa-chevron-down"></i> Edit</button>
                           </div>
                         `;
@@ -1810,7 +1888,7 @@
                     } else {
                         card.innerHTML = `
                           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h4 style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-heart" style="color: #ef4444; margin-right: 8px;"></i>Couple</h4>
+                            <h4 style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-user-group" style="color: #ef4444; margin-right: 8px;"></i>Couple</h4>
                             <div style="display: flex; gap: 8px;">
                               <button type="button" class="gi-minimize-btn" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px 8px;"><i class="fas fa-chevron-up"></i></button>
                               <button type="button" class="gi-delete-btn" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 4px 8px;"><i class="fas fa-trash"></i></button>
@@ -1974,6 +2052,590 @@
             });
             
             // Arrival/Departure Type Toggles
+            // Drag-and-drop arrival groups state
+            let arrivalGroups = [];
+            let guestAssignments = {}; // maps guest id to group index
+            
+            // Drag-and-drop departure groups state
+            let departureGroups = [];
+            let guestAssignmentsDep = {}; // maps guest id to group index
+            
+            function getGuestId(type, idx) {
+                return `${type}_${idx}`;
+            }
+            
+            function getGuestLabel(type, idx) {
+                if (type === 'couple') {
+                    const c = giGuestList.couples[idx];
+                    return `<i class="fas fa-user-group" style="color:#ef4444; margin-right:4px;"></i>${c?.name1 || 'Guest'} & ${c?.name2 || ''}`;
+                } else {
+                    const s = giGuestList.singles[idx];
+                    return `<i class="fas fa-user" style="color:#6366f1; margin-right:4px;"></i>${s?.name || 'Guest'}`;
+                }
+            }
+            
+            function renderUnassignedGuests() {
+                const container = document.getElementById('gi_unassigned_guests');
+                if (!container) return;
+                
+                console.log('Rendering unassigned guests. Current assignments:', guestAssignments);
+                console.log('Guest list:', giGuestList);
+                
+                // Remove old listeners before re-adding
+                const newContainer = container.cloneNode(false);
+                container.parentNode.replaceChild(newContainer, container);
+                const cleanContainer = document.getElementById('gi_unassigned_guests');
+                
+                // Setup drop zone for unassigned area (to allow dragging back)
+                cleanContainer.addEventListener('dragover', handleDragOver);
+                cleanContainer.addEventListener('drop', handleDropToUnassigned);
+                
+                // Add all guests that are not assigned to any group
+                let unassignedCount = 0;
+                giGuestList.couples.forEach((c, idx) => {
+                    const guestId = getGuestId('couple', idx);
+                    console.log('Checking couple:', guestId, 'assigned:', guestAssignments[guestId]);
+                    if (guestAssignments[guestId] === undefined) {
+                        unassignedCount++;
+                        const badge = document.createElement('div');
+                        badge.className = 'guest-badge';
+                        badge.draggable = true;
+                        badge.dataset.guestId = guestId;
+                        badge.dataset.type = 'couple';
+                        badge.dataset.idx = idx;
+                        badge.innerHTML = getGuestLabel('couple', idx);
+                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
+                        badge.addEventListener('dragstart', handleDragStart);
+                        badge.addEventListener('dragend', handleDragEnd);
+                        cleanContainer.appendChild(badge);
+                    }
+                });
+                
+                giGuestList.singles.forEach((s, idx) => {
+                    const guestId = getGuestId('single', idx);
+                    console.log('Checking single:', guestId, 'assigned:', guestAssignments[guestId]);
+                    if (guestAssignments[guestId] === undefined) {
+                        unassignedCount++;
+                        const badge = document.createElement('div');
+                        badge.className = 'guest-badge';
+                        badge.draggable = true;
+                        badge.dataset.guestId = guestId;
+                        badge.dataset.type = 'single';
+                        badge.dataset.idx = idx;
+                        badge.innerHTML = getGuestLabel('single', idx);
+                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
+                        badge.addEventListener('dragstart', handleDragStart);
+                        badge.addEventListener('dragend', handleDragEnd);
+                        cleanContainer.appendChild(badge);
+                    }
+                });
+                
+                console.log('Unassigned guests count:', unassignedCount);
+                
+                if (cleanContainer.children.length === 0) {
+                    cleanContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">All guests assigned</p>';
+                }
+            }
+            
+            function renderUnassignedGuestsDep() {
+                const container = document.getElementById('gi_unassigned_guests_dep');
+                if (!container) return;
+                
+                console.log('Rendering unassigned guests for departure. Current assignments:', guestAssignmentsDep);
+                
+                // Remove old listeners before re-adding
+                const newContainer = container.cloneNode(false);
+                container.parentNode.replaceChild(newContainer, container);
+                const cleanContainer = document.getElementById('gi_unassigned_guests_dep');
+                
+                // Setup drop zone for unassigned area
+                cleanContainer.addEventListener('dragover', handleDragOver);
+                cleanContainer.addEventListener('drop', handleDropToUnassignedDep);
+                
+                // Add all guests that are not assigned to any departure group
+                let unassignedCount = 0;
+                giGuestList.couples.forEach((c, idx) => {
+                    const guestId = getGuestId('couple', idx);
+                    if (guestAssignmentsDep[guestId] === undefined) {
+                        unassignedCount++;
+                        const badge = document.createElement('div');
+                        badge.className = 'guest-badge';
+                        badge.draggable = true;
+                        badge.dataset.guestId = guestId;
+                        badge.dataset.type = 'couple';
+                        badge.dataset.idx = idx;
+                        badge.innerHTML = getGuestLabel('couple', idx);
+                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
+                        badge.addEventListener('dragstart', handleDragStart);
+                        badge.addEventListener('dragend', handleDragEnd);
+                        cleanContainer.appendChild(badge);
+                    }
+                });
+                
+                giGuestList.singles.forEach((s, idx) => {
+                    const guestId = getGuestId('single', idx);
+                    if (guestAssignmentsDep[guestId] === undefined) {
+                        unassignedCount++;
+                        const badge = document.createElement('div');
+                        badge.className = 'guest-badge';
+                        badge.draggable = true;
+                        badge.dataset.guestId = guestId;
+                        badge.dataset.type = 'single';
+                        badge.dataset.idx = idx;
+                        badge.innerHTML = getGuestLabel('single', idx);
+                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
+                        badge.addEventListener('dragstart', handleDragStart);
+                        badge.addEventListener('dragend', handleDragEnd);
+                        cleanContainer.appendChild(badge);
+                    }
+                });
+                
+                if (cleanContainer.children.length === 0) {
+                    cleanContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">All guests assigned</p>';
+                }
+            }
+            
+            function renderDepartureGroups() {
+                const container = document.getElementById('gi_departure_groups_list');
+                if (!container) return;
+                container.innerHTML = '';
+                
+                departureGroups.forEach((group, groupIdx) => {
+                    const card = document.createElement('div');
+                    card.className = 'departure-group-card';
+                    card.dataset.groupIdx = groupIdx;
+                    card.style.cssText = 'border: 2px solid var(--primary-color); border-radius: 10px; padding: 12px; background: var(--surface); transition: all 0.2s; position: relative;';
+                    
+                    // Make entire card a drop zone
+                    card.addEventListener('dragover', handleDragOverGroup);
+                    card.addEventListener('dragleave', handleDragLeaveGroup);
+                    card.addEventListener('drop', handleDropDep);
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 2;';
+                    header.innerHTML = `
+                        <h4 style="margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--primary-color);"><i class="fas fa-plane-departure" style="margin-right: 4px; font-size: 0.9rem;"></i>Group ${groupIdx + 1}</h4>
+                        <button type="button" class="remove-group-dep" data-group-idx="${groupIdx}" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.85rem;" title="Remove Group">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    card.appendChild(header);
+                    
+                    // Guest display area
+                    const guestsArea = document.createElement('div');
+                    guestsArea.className = 'departure-group-guests';
+                    guestsArea.style.cssText = 'background: var(--border-light); border: 2px dashed var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; pointer-events: none;';
+                    
+                    // Show assigned guests
+                    let hasGuests = false;
+                    Object.keys(guestAssignmentsDep).forEach(guestId => {
+                        if (guestAssignmentsDep[guestId] === groupIdx) {
+                            hasGuests = true;
+                            const [type, idx] = guestId.split('_');
+                            const badge = document.createElement('div');
+                            badge.className = 'guest-badge';
+                            badge.draggable = true;
+                            badge.dataset.guestId = guestId;
+                            badge.dataset.type = type;
+                            badge.dataset.idx = idx;
+                            badge.innerHTML = `
+                                ${getGuestLabel(type, parseInt(idx))}
+                                <button type="button" class="remove-guest-dep" data-guest-id="${guestId}" style="background: none; border: none; cursor: pointer; color: white; margin-left: 4px; padding: 0; font-size: 0.75rem;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                            badge.style.cssText = 'background: var(--primary-light); color: white; border: 2px solid var(--primary-color); border-radius: 6px; padding: 6px 10px; cursor: move; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 3px; pointer-events: auto;';
+                            badge.addEventListener('dragstart', handleDragStart);
+                            badge.addEventListener('dragend', handleDragEnd);
+                            guestsArea.appendChild(badge);
+                        }
+                    });
+                    
+                    if (!hasGuests) {
+                        const placeholder = document.createElement('p');
+                        placeholder.style.cssText = 'color: var(--text-secondary); font-size: 0.85rem; margin: 0; pointer-events: none;';
+                        placeholder.textContent = 'Drop guests here';
+                        guestsArea.appendChild(placeholder);
+                    }
+                    
+                    card.appendChild(guestsArea);
+                    
+                    // Departure details form
+                    const detailsHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2;">
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Date</label><input type="date" class="dep-group-date" data-group-idx="${groupIdx}" value="${window.__lastDate__ || ''}" readonly style="background: var(--border-light); cursor: not-allowed; padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Time</label><input type="time" class="dep-group-time" data-group-idx="${groupIdx}" lang="en-GB" step="60" value="${group.time || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Flight</label><input type="text" class="dep-group-flight" data-group-idx="${groupIdx}" placeholder="e.g., EK 456" value="${group.flight || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Pickup Hotel</label><select class="dep-group-hotel" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Guide</label><select class="dep-group-guide" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Vehicle</label><select class="dep-group-vehicle" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                        </div>
+                    `;
+                    card.innerHTML += detailsHTML;
+                    container.appendChild(card);
+                    
+                    // Populate dropdowns
+                    const hotels = window.__hotels__ || [];
+                    const guides = window.__guides__ || [];
+                    const vehicles = window.__vehicles__ || [];
+                    
+                    const hotelSel = card.querySelector('.dep-group-hotel');
+                    hotels.forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; hotelSel.appendChild(o); });
+                    if (group.hotel_id) hotelSel.value = group.hotel_id;
+                    else if (window.__lastHotelId__) hotelSel.value = window.__lastHotelId__;
+                    
+                    const guideSel = card.querySelector('.dep-group-guide');
+                    guides.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; guideSel.appendChild(o); });
+                    if (group.guide_id) guideSel.value = group.guide_id;
+                    
+                    const vehicleSel = card.querySelector('.dep-group-vehicle');
+                    vehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.number_plate ? `${v.vehicle_name} (${v.number_plate})` : v.vehicle_name; vehicleSel.appendChild(o); });
+                    if (group.vehicle_id) vehicleSel.value = group.vehicle_id;
+                });
+                
+                // Wire remove buttons
+                container.querySelectorAll('.remove-group-dep').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
+                        // Unassign all guests from this group
+                        Object.keys(guestAssignmentsDep).forEach(gid => {
+                            if (guestAssignmentsDep[gid] === groupIdx) delete guestAssignmentsDep[gid];
+                        });
+                        // Remove group and reindex
+                        departureGroups.splice(groupIdx, 1);
+                        const newAssignments = {};
+                        Object.keys(guestAssignmentsDep).forEach(gid => {
+                            const oldIdx = guestAssignmentsDep[gid];
+                            if (oldIdx > groupIdx) newAssignments[gid] = oldIdx - 1;
+                            else newAssignments[gid] = oldIdx;
+                        });
+                        guestAssignmentsDep = newAssignments;
+                        renderDepartureGroups();
+                        renderUnassignedGuestsDep();
+                    });
+                });
+                
+                container.querySelectorAll('.remove-guest-dep').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const guestId = e.currentTarget.dataset.guestId;
+                        delete guestAssignmentsDep[guestId];
+                        renderDepartureGroups();
+                        renderUnassignedGuestsDep();
+                    });
+                });
+                
+                // Store group data on input change
+                container.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const groupIdx = parseInt(e.target.dataset.groupIdx);
+                        if (!departureGroups[groupIdx]) return;
+                        if (e.target.classList.contains('dep-group-time')) departureGroups[groupIdx].time = e.target.value;
+                        else if (e.target.classList.contains('dep-group-flight')) departureGroups[groupIdx].flight = e.target.value;
+                        else if (e.target.classList.contains('dep-group-hotel')) departureGroups[groupIdx].hotel_id = e.target.value;
+                        else if (e.target.classList.contains('dep-group-guide')) departureGroups[groupIdx].guide_id = e.target.value;
+                        else if (e.target.classList.contains('dep-group-vehicle')) departureGroups[groupIdx].vehicle_id = e.target.value;
+                    });
+                });
+            }
+            
+            function renderArrivalGroups() {
+                const container = document.getElementById('gi_arrival_groups_list');
+                if (!container) return;
+                container.innerHTML = '';
+                
+                arrivalGroups.forEach((group, groupIdx) => {
+                    const card = document.createElement('div');
+                    card.className = 'arrival-group-card';
+                    card.dataset.groupIdx = groupIdx;
+                    card.style.cssText = 'border: 2px solid var(--primary-color); border-radius: 10px; padding: 12px; background: var(--surface); transition: all 0.2s; position: relative;';
+                    
+                    // Make entire card a drop zone
+                    card.addEventListener('dragover', handleDragOverGroup);
+                    card.addEventListener('dragleave', handleDragLeaveGroup);
+                    card.addEventListener('drop', handleDrop);
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 2;';
+                    header.innerHTML = `
+                        <h4 style="margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--primary-color);"><i class="fas fa-plane-arrival" style="margin-right: 4px; font-size: 0.9rem;"></i>Group ${groupIdx + 1}</h4>
+                        <button type="button" class="remove-group" data-group-idx="${groupIdx}" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.85rem;" title="Remove Group">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    card.appendChild(header);
+                    
+                    // Guest display area (not a separate drop zone)
+                    const guestsArea = document.createElement('div');
+                    guestsArea.className = 'arrival-group-guests';
+                    guestsArea.style.cssText = 'background: var(--border-light); border: 2px dashed var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; pointer-events: none;';
+                    
+                    // Show assigned guests
+                    let hasGuests = false;
+                    Object.keys(guestAssignments).forEach(guestId => {
+                        console.log('Checking if', guestId, 'is in group', groupIdx, ':', guestAssignments[guestId]);
+                        if (guestAssignments[guestId] === groupIdx) {
+                            hasGuests = true;
+                            const [type, idx] = guestId.split('_');
+                            const badge = document.createElement('div');
+                            badge.className = 'guest-badge';
+                            badge.draggable = true;
+                            badge.dataset.guestId = guestId;
+                            badge.dataset.type = type;
+                            badge.dataset.idx = idx;
+                            badge.innerHTML = `
+                                ${getGuestLabel(type, parseInt(idx))}
+                                <button type="button" class="remove-guest" data-guest-id="${guestId}" style="background: none; border: none; cursor: pointer; color: white; margin-left: 4px; padding: 0; font-size: 0.75rem;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                            badge.style.cssText = 'background: var(--primary-light); color: white; border: 2px solid var(--primary-color); border-radius: 6px; padding: 6px 10px; cursor: move; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 3px; pointer-events: auto;';
+                            badge.addEventListener('dragstart', handleDragStart);
+                            badge.addEventListener('dragend', handleDragEnd);
+                            guestsArea.appendChild(badge);
+                        }
+                    });
+                    
+                    if (!hasGuests) {
+                        const placeholder = document.createElement('p');
+                        placeholder.style.cssText = 'color: var(--text-secondary); font-size: 0.85rem; margin: 0; pointer-events: none;';
+                        placeholder.textContent = 'Drop guests here';
+                        guestsArea.appendChild(placeholder);
+                    }
+                    
+                    card.appendChild(guestsArea);
+                    
+                    // Arrival details form
+                    const detailsHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2;">
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Date</label><input type="date" class="arr-group-date" data-group-idx="${groupIdx}" value="${window.__day2Date__ || ''}" readonly style="background: var(--border-light); cursor: not-allowed; padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Time</label><input type="time" class="arr-group-time" data-group-idx="${groupIdx}" lang="en-GB" step="60" value="${group.time || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Flight</label><input type="text" class="arr-group-flight" data-group-idx="${groupIdx}" placeholder="e.g., EK 123" value="${group.flight || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
+                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Hotel</label><select class="arr-group-hotel" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Guide</label><select class="arr-group-guide" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Vehicle</label><select class="arr-group-vehicle" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
+                        </div>
+                    `;
+                    card.innerHTML += detailsHTML;
+                    container.appendChild(card);
+                    
+                    // Populate dropdowns
+                    const hotels = window.__hotels__ || [];
+                    const guides = window.__guides__ || [];
+                    const vehicles = window.__vehicles__ || [];
+                    
+                    const hotelSel = card.querySelector('.arr-group-hotel');
+                    hotels.forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; hotelSel.appendChild(o); });
+                    if (group.hotel_id) hotelSel.value = group.hotel_id;
+                    else if (window.__day2HotelId__) hotelSel.value = window.__day2HotelId__;
+                    
+                    const guideSel = card.querySelector('.arr-group-guide');
+                    guides.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; guideSel.appendChild(o); });
+                    if (group.guide_id) guideSel.value = group.guide_id;
+                    
+                    const vehicleSel = card.querySelector('.arr-group-vehicle');
+                    vehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.number_plate ? `${v.vehicle_name} (${v.number_plate})` : v.vehicle_name; vehicleSel.appendChild(o); });
+                    if (group.vehicle_id) vehicleSel.value = group.vehicle_id;
+                });
+                
+                // Wire remove buttons
+                container.querySelectorAll('.remove-group').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
+                        // Unassign all guests from this group
+                        Object.keys(guestAssignments).forEach(gid => {
+                            if (guestAssignments[gid] === groupIdx) delete guestAssignments[gid];
+                        });
+                        // Remove group and reindex remaining groups
+                        arrivalGroups.splice(groupIdx, 1);
+                        const newAssignments = {};
+                        Object.keys(guestAssignments).forEach(gid => {
+                            const oldIdx = guestAssignments[gid];
+                            if (oldIdx > groupIdx) newAssignments[gid] = oldIdx - 1;
+                            else newAssignments[gid] = oldIdx;
+                        });
+                        guestAssignments = newAssignments;
+                        renderArrivalGroups();
+                        renderUnassignedGuests();
+                    });
+                });
+                
+                container.querySelectorAll('.remove-guest').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const guestId = e.currentTarget.dataset.guestId;
+                        delete guestAssignments[guestId];
+                        renderArrivalGroups();
+                        renderUnassignedGuests();
+                    });
+                });
+                
+                // Store group data on input change
+                container.querySelectorAll('input, select').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const groupIdx = parseInt(e.target.dataset.groupIdx);
+                        if (!arrivalGroups[groupIdx]) return;
+                        if (e.target.classList.contains('arr-group-time')) arrivalGroups[groupIdx].time = e.target.value;
+                        else if (e.target.classList.contains('arr-group-flight')) arrivalGroups[groupIdx].flight = e.target.value;
+                        else if (e.target.classList.contains('arr-group-hotel')) arrivalGroups[groupIdx].hotel_id = e.target.value;
+                        else if (e.target.classList.contains('arr-group-guide')) arrivalGroups[groupIdx].guide_id = e.target.value;
+                        else if (e.target.classList.contains('arr-group-vehicle')) arrivalGroups[groupIdx].vehicle_id = e.target.value;
+                    });
+                });
+            }
+            
+            function handleDragStart(e) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', e.target.dataset.guestId);
+                e.target.style.opacity = '0.4';
+            }
+            
+            function handleDragEnd(e) {
+                e.target.style.opacity = '1';
+            }
+            
+            function handleDragOver(e) {
+                if (e.preventDefault) e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+            
+            function handleDragOverGroup(e) {
+                if (e.preventDefault) e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                // Add visual feedback to entire card
+                const card = e.currentTarget;
+                if (card.classList.contains('arrival-group-card')) {
+                    card.style.background = 'rgba(99, 102, 241, 0.15)';
+                    card.style.borderColor = 'var(--primary-color)';
+                    card.style.borderWidth = '3px';
+                    card.style.transform = 'scale(1.02)';
+                    card.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                }
+                return false;
+            }
+            
+            function handleDragLeaveGroup(e) {
+                // Only remove if we're actually leaving the card (not entering a child)
+                if (e.currentTarget.contains(e.relatedTarget)) return;
+                
+                // Remove visual feedback
+                const card = e.currentTarget;
+                if (card.classList.contains('arrival-group-card')) {
+                    card.style.background = 'var(--surface)';
+                    card.style.borderColor = 'var(--primary-color)';
+                    card.style.borderWidth = '2px';
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = 'none';
+                }
+            }
+            
+            function handleDrop(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                e.preventDefault();
+                
+                // Remove visual feedback
+                const card = e.currentTarget;
+                if (card.classList.contains('arrival-group-card')) {
+                    card.style.background = 'var(--surface)';
+                    card.style.borderColor = 'var(--primary-color)';
+                    card.style.borderWidth = '2px';
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = 'none';
+                }
+                
+                const guestId = e.dataTransfer.getData('text/plain');
+                const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
+                
+                console.log('Drop:', { guestId, groupIdx, currentAssignments: guestAssignments });
+                
+                if (!isNaN(groupIdx) && guestId) {
+                    // Assign guest to this group
+                    guestAssignments[guestId] = groupIdx;
+                    
+                    console.log('After assignment:', guestAssignments);
+                    
+                    // Re-render both areas
+                    renderUnassignedGuests();
+                    renderArrivalGroups();
+                }
+                
+                return false;
+            }
+            
+            function handleDropToUnassigned(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                e.preventDefault();
+                
+                const guestId = e.dataTransfer.getData('text/plain');
+                
+                // Unassign guest
+                delete guestAssignments[guestId];
+                
+                renderArrivalGroups();
+                renderUnassignedGuests();
+                
+                return false;
+            }
+            
+            function handleDropToUnassignedDep(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                e.preventDefault();
+                
+                const guestId = e.dataTransfer.getData('text/plain');
+                
+                // Unassign guest from departure
+                delete guestAssignmentsDep[guestId];
+                
+                renderDepartureGroups();
+                renderUnassignedGuestsDep();
+                
+                return false;
+            }
+            
+            function handleDropDep(e) {
+                if (e.stopPropagation) e.stopPropagation();
+                e.preventDefault();
+                
+                // Remove visual feedback
+                const card = e.currentTarget;
+                if (card.classList.contains('departure-group-card')) {
+                    card.style.background = 'var(--surface)';
+                    card.style.borderColor = 'var(--primary-color)';
+                    card.style.borderWidth = '2px';
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = 'none';
+                }
+                
+                const guestId = e.dataTransfer.getData('text/plain');
+                const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
+                
+                console.log('Drop departure:', { guestId, groupIdx, currentAssignments: guestAssignmentsDep });
+                
+                if (!isNaN(groupIdx) && guestId) {
+                    // Assign guest to this group
+                    guestAssignmentsDep[guestId] = groupIdx;
+                    
+                    console.log('After departure assignment:', guestAssignmentsDep);
+                    
+                    // Re-render both areas
+                    renderUnassignedGuestsDep();
+                    renderDepartureGroups();
+                }
+                
+                return false;
+            }
+            
+            document.getElementById('gi_create_arrival_group')?.addEventListener('click', () => {
+                arrivalGroups.push({ time: '', flight: '', hotel_id: '', guide_id: '', vehicle_id: '' });
+                renderArrivalGroups();
+            });
+            
+            document.getElementById('gi_create_departure_group')?.addEventListener('click', () => {
+                departureGroups.push({ time: '', flight: '', hotel_id: '', guide_id: '', vehicle_id: '' });
+                renderDepartureGroups();
+            });
+            
             document.getElementById('gi_arrival_type')?.addEventListener('change', (e) => {
                 const val = e.target.value;
                 const singleDiv = document.getElementById('gi_single_arrival');
@@ -1984,7 +2646,21 @@
                 } else {
                     singleDiv.style.display = 'none';
                     multiDiv.style.display = 'block';
-                    renderMultiArrival();
+                    // Try to load saved arrival groups
+                    const trip = window.__trip__ || {};
+                    const saved = localStorage.getItem(`arrival_groups_${trip.id}`);
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            arrivalGroups = data.groups || [];
+                            guestAssignments = data.assignments || {};
+                            console.log('Loaded arrival groups from localStorage:', data);
+                        } catch(e) {
+                            console.error('Failed to parse saved arrival groups:', e);
+                        }
+                    }
+                    renderUnassignedGuests();
+                    renderArrivalGroups();
                 }
             });
             document.getElementById('gi_departure_type')?.addEventListener('change', (e) => {
@@ -1999,13 +2675,51 @@
                 } else {
                     singleDiv.style.display = 'none';
                     multiDiv.style.display = 'block';
-                    renderMultiDeparture();
+                    // Try to load saved departure groups
+                    const trip = window.__trip__ || {};
+                    const saved = localStorage.getItem(`departure_groups_${trip.id}`);
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            departureGroups = data.groups || [];
+                            guestAssignmentsDep = data.assignments || {};
+                            console.log('Loaded departure groups from localStorage:', data);
+                        } catch(e) {
+                            console.error('Failed to parse saved departure groups:', e);
+                        }
+                    }
+                    renderUnassignedGuestsDep();
+                    renderDepartureGroups();
                 }
             });
             document.getElementById('gi_departure_same_as_arrival')?.addEventListener('change', (e) => {
                 if (e.target.checked) {
                     const arrType = document.getElementById('gi_arrival_type')?.value || 'single';
-                    const depType = document.getElementById('gi_departure_type'); if (depType) { depType.value = arrType; depType.dispatchEvent(new Event('change')); }
+                    const depType = document.getElementById('gi_departure_type');
+                    
+                    if (depType) {
+                        depType.value = arrType;
+                        
+                        // If multiple, copy arrival groups to departure groups
+                        if (arrType === 'multiple') {
+                            // Deep copy arrival groups
+                            departureGroups = arrivalGroups.map(g => ({
+                                time: g.time || '',
+                                flight: g.flight || '',
+                                hotel_id: g.hotel_id || '',
+                                guide_id: g.guide_id || '',
+                                vehicle_id: g.vehicle_id || ''
+                            }));
+                            
+                            // Copy guest assignments
+                            guestAssignmentsDep = { ...guestAssignments };
+                            
+                            console.log('Copied arrival groups to departures:', { departureGroups, guestAssignmentsDep });
+                        }
+                        
+                        // Trigger the change event to render
+                        depType.dispatchEvent(new Event('change'));
+                    }
                 }
             });
             
@@ -2226,8 +2940,19 @@
                             const aResp = await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(arrivalsPayload) });
                             const aText = await aResp.text(); console.log('saveTripArrivals response:', aText);
                         }
-                        // TODO: departures support can be added similarly when UI is ready
-                    }catch(e){ console.error('Arrival save error:', e); }
+                        // Save arrival groups data (for drag-and-drop system)
+                        if (arrType === 'multiple' && arrivalGroups.length > 0) {
+                            const groupsData = { trip_id: Number(trip.id||0), groups: arrivalGroups, assignments: guestAssignments };
+                            console.log('Saving arrival groups:', groupsData);
+                            localStorage.setItem(`arrival_groups_${trip.id}`, JSON.stringify(groupsData));
+                        }
+                        // Save departure groups data (for drag-and-drop system)
+                        if (depType === 'multiple' && departureGroups.length > 0) {
+                            const groupsData = { trip_id: Number(trip.id||0), groups: departureGroups, assignments: guestAssignmentsDep };
+                            console.log('Saving departure groups:', groupsData);
+                            localStorage.setItem(`departure_groups_${trip.id}`, JSON.stringify(groupsData));
+                        }
+                    }catch(e){ console.error('Arrival/Departure save error:', e); }
                     // Update in-memory trip
                     const couplesCount = giGuestList.couples.length;
                     const singlesCount = giGuestList.singles.length;
@@ -2638,8 +3363,11 @@
                     }
 
                     dayContentWrapper.innerHTML = `
-                        <div style=\"font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px;\">
-                            Day ${dayCounter} – ${dateString}
+                        <div style=\"font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;\">
+                            <span>Day ${dayCounter} – ${dateString}</span>
+                            <button type="button" onclick="showGuestInfo()" style="background: none; border: none; cursor: pointer; color: var(--primary-color); padding: 4px 8px; display: flex; align-items: center; gap: 4px;" title="View Guest Details">
+                                <i class="fas fa-users" style="font-size: 0.95rem;"></i>
+                            </button>
                         </div>
                         <div class=\"assignments-grid\">
                             ${showGuide ? `
