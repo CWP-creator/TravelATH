@@ -228,7 +228,9 @@ function getNextTourCode($conn){
 }
 
 function addTrip($conn) {
-    $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
+    // New: file_name (primary), fallback to customer_name for backward compat
+    $file_name = isset($_POST['file_name']) ? trim($_POST['file_name']) : (isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '');
+    $customer_name = $file_name; // Keep customer_name synced with file_name for now
     $tour_code = isset($_POST['tour_code']) ? trim($_POST['tour_code']) : '';
     $trip_package_id = isset($_POST['trip_package_id']) ? intval($_POST['trip_package_id']) : 0;
     $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
@@ -310,6 +312,7 @@ function addTrip($conn) {
 
         // Base fields
         $fields = [
+            'file_name' => $file_name,
             'customer_name' => $customer_name,
             'tour_code' => $tour_code,
             'trip_package_id' => $trip_package_id,
@@ -2056,7 +2059,15 @@ function ensureTripGuestsSchema($conn){
         if (!isset($cols['remark2'])) { $conn->query("ALTER TABLE $tbl ADD COLUMN remark2 VARCHAR(255) NULL AFTER remark1"); }
     }
 
-    // Ensure trips table has pax-related columns
+    // Ensure trips table has file_name column (NEW - replacing customer_name)
+    $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'file_name'");
+    if (!$res || $res->num_rows===0){ 
+        $conn->query("ALTER TABLE trips ADD COLUMN file_name VARCHAR(255) NULL AFTER id"); 
+        // Copy existing customer_name to file_name for migration
+        $conn->query("UPDATE trips SET file_name = customer_name WHERE file_name IS NULL");
+    }
+    
+    // Ensure trips table has pax-related columns (will be removed later)
     $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'total_pax'");
     if (!$res || $res->num_rows===0){ $conn->query("ALTER TABLE trips ADD COLUMN total_pax INT NULL"); }
     $res = $conn->query("SHOW COLUMNS FROM trips LIKE 'couples_count'");
