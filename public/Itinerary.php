@@ -1004,7 +1004,7 @@
               @media (max-width: 900px) { .gi-single-grid { grid-template-columns: 1fr; } .guest-info-grid { grid-template-columns: 1fr; } }
               @media (max-width: 780px) { .gi-couple-grid { grid-template-columns: 1fr; } .guest-info-card { padding: 16px; } .guest-info-view { padding: 15px 10px; } }
             </style>
-            <div id="guestInfoView" class="guest-info-view" style="display:none">
+            <!-- Guest Info View Removed for 2026/2027 files -->
               <div class="guest-info-card">
                 <div class="gi-section-title">
                   <i class="fas fa-info-circle"></i>
