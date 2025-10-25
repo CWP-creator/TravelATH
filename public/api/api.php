@@ -2482,11 +2482,10 @@ function analyzeCsvFile($filePath) {
 }
 
 function analyzeExcelFile($filePath) {
-    // For now, we'll require PhpSpreadsheet to be installed
-    // You would need to run: composer require phpoffice/phpspreadsheet
-    
+    // Check if PhpSpreadsheet is available, otherwise provide fallback
     if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
-        throw new Exception('PhpSpreadsheet library not found. Please install it with: composer require phpoffice/phpspreadsheet');
+        // Fallback: suggest CSV conversion
+        throw new Exception('Excel support requires PhpSpreadsheet library. Please either:\n1. Install PhpSpreadsheet: composer require phpoffice/phpspreadsheet\n2. Or convert your Excel file to CSV format and try again');
     }
     
     $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
