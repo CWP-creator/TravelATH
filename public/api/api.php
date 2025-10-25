@@ -42,6 +42,13 @@ if (file_exists('../../utils/check_session.php')) {
 
 include '../../src/services/db_connect.php';
 
+// Ensure users schema has must_change_password flag
+function ensureUsersSchema($conn){
+    $res = $conn->query("SHOW COLUMNS FROM users LIKE 'must_change_password'");
+    if (!$res || $res->num_rows===0){ $conn->query("ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) DEFAULT 0"); }
+}
+ensureUsersSchema($conn);
+
 $response = ['status' => 'error', 'message' => 'An unknown error occurred.'];
 $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
 
@@ -166,6 +173,9 @@ switch ($action) {
     case 'getDepartureInsights':
         getDepartureInsights($conn);
         break;
+    case 'getPackageRecords':
+        getPackageRecords($conn);
+        break;
     case 'getTripGuests':
         getTripGuests($conn);
         break;
@@ -178,6 +188,19 @@ switch ($action) {
     default:
         echo json_encode(['status' => 'error', 'message' => 'Invalid action specified.']);
         break;
+}
+
+// ============= PACKAGE RECORDS =============
+function getPackageRecords($conn){
+    $sql = "SELECT t.id, t.file_name, t.start_date, t.end_date, p.name AS package_name
+            FROM trips t
+            JOIN trip_packages p ON t.trip_package_id = p.id
+            ORDER BY p.name, t.start_date";
+    $res = $conn->query($sql);
+    if (!$res){ echo json_encode(['status'=>'error','message'=>'DB error: '.$conn->error]); return; }
+    $rows = [];
+    while ($r = $res->fetch_assoc()){ $rows[] = $r; }
+    echo json_encode(['status'=>'success','data'=>$rows]);
 }
 
 // ============= TRIP MANAGEMENT =============

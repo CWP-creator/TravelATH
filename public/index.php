@@ -1033,7 +1033,8 @@
                     </div>
                     <div id="insightsContainer">
                         <div id="arrivalInsightsContainer" class="hotel-records-container" style="margin-bottom:16px;"></div>
-                        <div id="departureInsightsContainer" class="hotel-records-container"></div>
+                        <div id="departureInsightsContainer" class="hotel-records-container" style="margin-bottom:16px;"></div>
+                        <div id="packageRecordsContainer" class="hotel-records-container"></div>
                     </div>
                 </div>
             </section>
@@ -1125,6 +1126,10 @@
                     </div>
 
                     <div class="form-grid">
+                        <div class="form-group">
+                            <label for="file_name">File Name</label>
+                            <input type="text" id="file_name" name="file_name" placeholder="e.g. Smith Family 2027" required>
+                        </div>
                         <div class="form-group">
                             <label for="tour_code">Tour File No</label>
                             <input type="text" id="tour_code" name="tour_code" placeholder="e.g. T-0001">
@@ -1842,14 +1847,17 @@
                 try {
                     const m = document.getElementById('insightsMonth');
                     const month = m && m.value ? m.value : new Date().toISOString().slice(0,7);
-                    const [arrRes, depRes] = await Promise.all([
+                    const [arrRes, depRes, pkgRes] = await Promise.all([
                         fetch(`${API_URL}?action=getArrivalInsights&month=${encodeURIComponent(month)}`),
-                        fetch(`${API_URL}?action=getDepartureInsights&month=${encodeURIComponent(month)}`)
+                        fetch(`${API_URL}?action=getDepartureInsights&month=${encodeURIComponent(month)}`),
+                        fetch(`${API_URL}?action=getPackageRecords`)
                     ]);
                     const arrJs = await arrRes.json();
                     const depJs = await depRes.json();
+                    const pkgJs = await pkgRes.json();
                     if (arrJs.status==='success') renderArrivalInsights(arrJs.data); else showToast(arrJs.message||'Arrival insights error','error');
                     if (depJs.status==='success') renderDepartureInsights(depJs.data); else showToast(depJs.message||'Departure insights error','error');
+                    if (pkgJs.status==='success') renderPackageRecords(pkgJs.data); else showToast(pkgJs.message||'Package records error','error');
                 } catch(e){ showToast('Error fetching insights','error'); }
             };
 
@@ -1931,7 +1939,7 @@
                         const plate = r.number_plate ? ` (${r.number_plate})` : '';
                         item.innerHTML = `
                             <div class="booking-main">
-                                <div class="booking-title">[D${idx+1}] ${r.customer_name} — ${r.tour_code||''}</div>
+                                <div class="booking-title">[D${idx+1}] ${r.file_name || r.tour_code || ''}</div>
                                 <div class="booking-details">
                                     <span><i class="far fa-clock"></i> ${r.departure_time||'—'}</span>
                                     <span><i class="fas fa-plane"></i> ${r.flight_no||'—'}</span>
@@ -1944,6 +1952,33 @@
                             <div class="booking-actions">
                                 <a href="Itinerary.php?trip_id=${r.trip_id}&focus_date=${r.departure_date}" title="Open Itinerary on ${r.departure_date}"><i class="fas fa-route"></i></a>
                             </div>`;
+                        body.appendChild(item);
+                    });
+                    group.appendChild(body); c.appendChild(group);
+                });
+            }
+
+            function renderPackageRecords(rows){
+                const c = document.getElementById('packageRecordsContainer'); if (!c) return; c.innerHTML='';
+                if (!rows || rows.length===0){ c.innerHTML = '<div class="no-records">No package records found.</div>'; return; }
+                // Group by package
+                const byPkg = rows.reduce((acc,r)=>{ const p=r.package_name||'Unknown'; (acc[p]=acc[p]||[]).push(r); return acc; },{});
+                Object.keys(byPkg).sort().forEach(pkg=>{
+                    const group = document.createElement('div'); group.className='hotel-group';
+                    const head = document.createElement('div'); head.className='hotel-header'; head.innerHTML = `<i class="fas fa-box"></i> ${pkg} <span style="margin-left:auto;">${byPkg[pkg].length} file(s)</span>`; group.appendChild(head);
+                    const body = document.createElement('div'); body.className='hotel-bookings';
+                    byPkg[pkg].forEach(r=>{
+                        const item = document.createElement('div'); item.className='booking-item';
+                        item.innerHTML = `
+                          <div class="booking-main">
+                            <div class="booking-title">${r.file_name || r.tour_code || 'Untitled'}</div>
+                            <div class="booking-details">
+                              <span><i class="far fa-calendar"></i> ${r.start_date} to ${r.end_date}</span>
+                            </div>
+                          </div>
+                          <div class="booking-actions">
+                            <a href="Itinerary.php?trip_id=${r.id}" title="Open Itinerary"><i class="fas fa-route"></i></a>
+                          </div>`;
                         body.appendChild(item);
                     });
                     group.appendChild(body); c.appendChild(group);
@@ -3763,8 +3798,8 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip';
                 document.getElementById('tripIdHidden').value = trip.id;
-                document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
-                document.getElementById('fileIdGroup').style.display = 'block';
+                document.getElementById('tripIdDisplay').value = '';
+                document.getElementById('fileIdGroup').style.display = 'none';
                 document.getElementById('company').value = (trip.company || '');
                 const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 const gd = document.getElementById('guest_details'); if (gd) gd.value = (trip.guest_details || '');

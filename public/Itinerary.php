@@ -3034,21 +3034,7 @@
                     window.__lastHotelId__ = lastHotelId;
                     window.__lastDate__ = lastDate;
                     try {
-                        populateGuestInfo(trip);
-                        // Set arrival date to Day 2 and lock it
-                        const ad = document.getElementById('gi_arrival_date');
-                        if (ad && day2Date) { ad.value = day2Date; ad.setAttribute('readonly','readonly'); ad.style.backgroundColor='var(--border-light)'; ad.style.cursor='not-allowed'; }
-                        populateArrivalDepartureDropdowns();
-                        // Default arrival drop-off hotel to Day 2 hotel
-                        const ah = document.getElementById('gi_arrival_hotel');
-                        if (ah && day2HotelId) { ah.value = String(day2HotelId); }
-                        // Default departure date to last date
-                        const dd = document.getElementById('gi_departure_date');
-                        if (dd && lastDate) { dd.value = lastDate; }
-                        // Default departure pickup hotel to last hotel
-                        const dh = document.getElementById('gi_departure_hotel');
-                        if (dh && lastHotelId) { dh.value = String(lastHotelId); }
-                        showGuestInfo();
+                        // Guest info disabled for 2026/2027 files
                     } catch(_){}
                     // Load existing guest details
                     try {
@@ -3117,7 +3103,7 @@
                         }
                     }
                     
-                    document.getElementById('tripTitle').textContent = `${trip.customer_name}'s ${trip.package_name}`;
+                    document.getElementById('tripTitle').textContent = `${trip.file_name || trip.tour_code || 'Trip'} — ${trip.package_name}`;
                     document.getElementById('tripMeta').innerHTML = `
                         <div class="trip-meta-item">
                             <i class="far fa-calendar"></i>
@@ -3168,10 +3154,7 @@
                     scrollLeftBtn.addEventListener('click', () => scrollTabs('left'));
                     scrollRightBtn.addEventListener('click', () => scrollTabs('right'));
                     
-                    // Only toggle to details if guest info is not already showing
-                    if (guestInfoView && guestInfoView.style.display !== 'block') {
-                        toggleView('details');
-                    }
+                    toggleView('details');
                     // Reports: wire buttons now that data loaded
                     setupReportButtons();
                     setupReportDockToggle();
@@ -3365,9 +3348,6 @@
                     dayContentWrapper.innerHTML = `
                         <div style=\"font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px dashed var(--border-light); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;\">
                             <span>Day ${dayCounter} – ${dateString}</span>
-                            <button type="button" onclick="showGuestInfo()" style="background: none; border: none; cursor: pointer; color: var(--primary-color); padding: 4px 8px; display: flex; align-items: center; gap: 4px;" title="View Guest Details">
-                                <i class="fas fa-users" style="font-size: 0.95rem;"></i>
-                            </button>
                         </div>
                         <div class=\"assignments-grid\">
                             ${showGuide ? `
