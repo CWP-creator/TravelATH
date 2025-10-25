@@ -180,26 +180,54 @@
         
         .tab-button {
             display: inline-block;
-            padding: 11px 18px; 
-            margin-right: 10px;
-            background: var(--surface);
+            padding: 14px 22px; 
+            margin-right: 12px;
+            background: linear-gradient(135deg, var(--surface) 0%, #f8fafc 100%);
             color: var(--text-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 0.98rem; 
-            font-weight: 500;
-            transition: all 0.2s;
+            font-size: 1rem; 
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             appearance: none; 
             -webkit-appearance: none;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tab-button:hover:not(.active) {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-color: var(--primary-light);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
         }
 
         .tab-button.active {
-            padding: 12px 18px; 
-            background: var(--primary-color);
+            padding: 14px 22px; 
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             color: white;
             border-color: var(--primary-color);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+            position: relative;
+            z-index: 2;
+        }
+        
+        .tab-button.active::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0.5;
         }
 
         .itinerary-grid, .summary-view-wrapper {
@@ -216,18 +244,25 @@
             display: none;
         }
         .insights-view-wrapper { display:none; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); min-height: 400px; }
-        .insights-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .insights-sections { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
         .insight-card { border:1px solid var(--border); border-radius:10px; background:#fafafa; overflow:hidden; }
         .insight-card .head { padding:10px 12px; font-weight:800; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px; }
         .insight-card .head.arrival { background:#e6f4ea; color:#166534; }
         .insight-card .head.departure { background:#eef2ff; color:#1e40af; }
+        .insight-card .head.file-records-header { background:#fff3e0; color:#e65100; }
         .insight-list { padding: 8px 12px; display:flex; flex-direction:column; gap:8px; }
         .insight-row { display:grid; grid-template-columns: 110px 1fr 1fr; gap:10px; align-items:center; padding:8px; background:#fff; border:1px solid var(--border-light); border-radius:8px; }
         .insight-row .meta { font-size:0.85rem; color:var(--text-secondary); }
         .insight-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-weight:800; font-size:0.72rem; }
         .insight-badge.arrival { background:#dff0e7; color:#166534; border:1px solid #bbdfcc; }
         .insight-badge.departure { background:#dce9ff; color:#1e40af; border:1px solid #c7dbff; }
-        @media (max-width: 900px){ .insights-sections{ grid-template-columns:1fr; } }
+        .file-records-package { margin-bottom: 12px; }
+        .package-header { padding: 6px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+        .package-badge { display:inline-block; padding:4px 12px; border-radius:6px; font-weight:700; font-size:0.8rem; background:#fff3e0; color:#e65100; border:1px solid #ffcc80; }
+        .file-record-row { display:grid; grid-template-columns: 110px 1fr 1fr; gap:10px; align-items:center; padding:8px; background:#fff; border:1px solid var(--border-light); border-radius:8px; margin-bottom: 6px; }
+        .date-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-weight:800; font-size:0.72rem; background:#e8f5e8; color:#2e7d32; border:1px solid #c8e6c9; }
+        @media (max-width: 1200px){ .insights-sections{ grid-template-columns:1fr 1fr; } .insight-card.file-records { grid-column: span 2; } }
+        @media (max-width: 900px){ .insights-sections{ grid-template-columns:1fr; } .insight-card.file-records { grid-column: span 1; } }
 
         .day-content-wrapper {
             display: none;
@@ -963,331 +998,8 @@
             </div>
         </header>
 
-        <!-- Floating report dock (left-middle) -->
-        <div id="reportButtonsDock" class="report-dock">
-            <button type="button" id="arrivalsReportBtn" class="btn-report btn-arrival" title="View arrival details"><i class="fas fa-plane-arrival"></i><span>Arrival</span></button>
-            <button type="button" id="departuresReportBtn" class="btn-report btn-departure" title="View departure details"><i class="fas fa-plane-departure"></i><span>Departure</span></button>
-            <div class="report-handle" id="reportDockToggle" title="Collapse/Expand"><i class="fas fa-chevron-left"></i></div>
-        </div>
 
         <main>
-            <!-- Guest Info Sheet -->
-            <style>
-              :root { --gi-border:#e5e7eb; --gi-muted:#6b7280; --gi-primary:#1e40af; --gi-bg:#ffffff; }
-              .guest-info-view { padding: 20px 15px; background: var(--background); min-height: 100vh; }
-              .guest-info-card { background: var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; box-shadow: var(--shadow); max-width: 1000px; margin: 0 auto 20px; }
-              .guest-info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; }
-              .guest-info-card .form-group { margin-bottom: 16px; }
-              .guest-info-card .form-group label { font-weight:600; color: var(--text-primary); margin-bottom:8px; display:block; font-size: 0.9rem; }
-              .guest-info-card .form-group input,
-              .guest-info-card .form-group select,
-              .guest-info-card .form-group textarea { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:8px; background: var(--border-light); font-size: 0.9rem; transition: all 0.2s; }
-              .guest-info-card .form-group input:focus,
-              .guest-info-card .form-group select:focus,
-              .guest-info-card .form-group textarea:focus { outline: none; border-color: var(--primary-color); background: white; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-              .gi-section-title { font-weight:700; color: var(--text-primary); margin: 24px 0 16px; display:flex; align-items:center; gap:8px; font-size: 1.1rem; border-bottom: 2px solid var(--border-light); padding-bottom: 8px; }
-              .gi-section-title i { color: var(--primary-color); }
-              .guest-row { border:1px solid var(--border); border-radius:12px; padding:20px; background: var(--surface); box-shadow: var(--shadow-sm); margin:12px 0; position: relative; }
-              .guest-row h4 { font-weight:700; color: var(--text-primary); margin-bottom:16px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
-              .guest-row h4 i { color: var(--primary-color); }
-              .gi-couple-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; }
-              .gi-single-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:16px; }
-              .guest-row .form-group { margin-bottom: 12px; }
-              .guest-row .form-group label { font-weight:500; color: var(--text-secondary); margin-bottom:4px; font-size: 0.85rem; }
-              .guest-row .form-group input { padding: 8px 10px; font-size: 0.85rem; }
-              .gi-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:20px; padding-top: 16px; border-top: 1px solid var(--border-light); }
-              .gi-actions .btn { padding:12px 20px; border-radius:8px; font-weight:600; border:none; cursor:pointer; transition: all 0.2s; font-size: 0.9rem; }
-              .btn-primary { background: var(--primary-color); color:#fff; box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2); }
-              .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-              .btn-secondary { background: var(--border-light); color: var(--text-primary); border: 1px solid var(--border); }
-              .btn-secondary:hover { background: var(--background); }
-              @media (max-width: 900px) { .gi-single-grid { grid-template-columns: 1fr; } .guest-info-grid { grid-template-columns: 1fr; } }
-              @media (max-width: 780px) { .gi-couple-grid { grid-template-columns: 1fr; } .guest-info-card { padding: 16px; } .guest-info-view { padding: 15px 10px; } }
-            </style>
-            <!-- Guest Info View Removed for 2026/2027 files -->
-              <div class="guest-info-card">
-                <div class="gi-section-title">
-                  <i class="fas fa-info-circle"></i>
-                  Guest Information
-                </div>
-
-                <!-- Step 1: Ask only for Guest Status -->
-                <div id="gi_step1">
-                  <div class="guest-info-grid">
-                    <div class="form-group">
-                      <label>Guest Status</label>
-                      <select id="gi_guest_status">
-                        <option value="">-- Select Status --</option>
-                        <option value="Pre-Booking">Pre-Booking</option>
-                        <option value="Booking">Booking</option>
-                        <option value="Confirmed">Confirmed</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="gi-actions" id="giStep1Actions">
-                    <button type="button" id="giNextBtn" class="btn btn-primary">
-                      <i class="fas fa-arrow-right"></i>
-                      Next: Guest Details
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Step 2: Guest Names -->
-                <div id="gi_step2" style="display:none;">
-                  <div class="gi-section-title">
-                    <i class="fas fa-users"></i>
-                    Add Guests
-                  </div>
-                  
-                  <!-- Dynamic guest list -->
-                  <div id="gi_guest_list" style="margin-bottom: 20px;"></div>
-                  
-                  <!-- Add Guest Form -->
-                  <div id="gi_add_guest_form" style="border: 2px solid var(--primary-color); border-radius: 14px; padding: 30px; background: var(--border-light); margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 24px; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);"><i class="fas fa-plus-circle" style="color: var(--primary-color); margin-right: 10px;"></i>Add Guest</h3>
-                    
-                    <div class="guest-info-grid" style="margin-bottom: 20px;">
-                      <div class="form-group">
-                        <label style="font-weight: 700; font-size: 0.95rem;">Guest Type</label>
-                        <select id="gi_new_guest_type" style="padding: 12px; font-size: 0.95rem;">
-                          <option value="">-- Select --</option>
-                          <option value="couple">Couple (2 people)</option>
-                          <option value="single">Single Guest</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <!-- Fields shown based on type -->
-                    <div id="gi_new_guest_fields" style="display:none;">
-                      <!-- For Single -->
-                      <div id="gi_new_guest_single" style="display:none;">
-                        <div class="guest-info-grid">
-                          <div class="form-group" style="grid-column: 1 / -1;">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Full Name</label>
-                            <input type="text" id="gi_new_single_name" placeholder="Enter full name" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Passport Number</label>
-                            <input type="text" id="gi_new_single_passport" placeholder="Passport number" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Date of Birth</label>
-                            <input type="date" id="gi_new_single_dob" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Country</label>
-                            <select id="gi_new_single_country" style="padding: 12px; font-size: 0.95rem;">
-                              <option value="">-- Select Country --</option>
-                            </select>
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Notes (optional)</label>
-                            <input type="text" id="gi_new_single_note" placeholder="Any notes" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- For Couple -->
-                      <div id="gi_new_guest_couple" style="display:none;">
-                        <div class="guest-info-grid">
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 1 - Full Name</label>
-                            <input type="text" id="gi_new_couple_name1" placeholder="Enter full name" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 2 - Full Name</label>
-                            <input type="text" id="gi_new_couple_name2" placeholder="Enter full name" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 1 - Passport</label>
-                            <input type="text" id="gi_new_couple_passport1" placeholder="Passport number" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 2 - Passport</label>
-                            <input type="text" id="gi_new_couple_passport2" placeholder="Passport number" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 1 - Date of Birth</label>
-                            <input type="date" id="gi_new_couple_dob1" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Person 2 - Date of Birth</label>
-                            <input type="date" id="gi_new_couple_dob2" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Country</label>
-                            <select id="gi_new_couple_country" style="padding: 12px; font-size: 0.95rem;">
-                              <option value="">-- Select Country --</option>
-                            </select>
-                          </div>
-                          <div class="form-group">
-                            <label style="font-weight: 600; font-size: 0.95rem;">Notes (optional)</label>
-                            <input type="text" id="gi_new_couple_note" placeholder="Any notes" style="padding: 12px; font-size: 0.95rem;">
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                      <button type="button" id="gi_add_guest_btn" class="btn btn-primary" style="flex: 1; padding: 16px 24px; font-size: 1rem; font-weight: 700;">
-                        <i class="fas fa-plus"></i> Add Guest
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="gi-section-title">
-                    <i class="fas fa-plane-arrival"></i>
-                    Arrival Details
-                  </div>
-                  <div class="guest-info-grid" style="margin-bottom: 16px;">
-                    <div class="form-group">
-                      <label style="font-weight: 600;">Arrival Type</label>
-                      <select id="gi_arrival_type" style="padding: 12px;">
-                        <option value="single">Single (All guests arrive together)</option>
-                        <option value="multiple">Multiple (Different arrival times)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <!-- Single Arrival -->
-                  <div id="gi_single_arrival" class="guest-info-grid">
-                    <div class="form-group">
-                      <label>Arrival Date</label>
-                      <input type="date" id="gi_arrival_date">
-                    </div>
-                    <div class="form-group">
-                      <label>Arrival Time</label>
-                      <input type="time" id="gi_arrival_time" lang="en-GB" step="60">
-                    </div>
-                    <div class="form-group">
-                      <label>Flight Number</label>
-                      <input type="text" id="gi_arrival_flight" placeholder="e.g., EK 123">
-                    </div>
-                    <div class="form-group">
-                      <label>Drop-off Hotel</label>
-                      <select id="gi_arrival_hotel"><option value="">-- Select Hotel --</option></select>
-                    </div>
-                    <div class="form-group">
-                      <label>Guide</label>
-                      <select id="gi_arrival_guide"><option value="">-- Select Guide --</option></select>
-                    </div>
-                    <div class="form-group">
-                      <label>Vehicle</label>
-                      <select id="gi_arrival_vehicle"><option value="">-- Select Vehicle --</option></select>
-                    </div>
-                  </div>
-                  <!-- Multiple Arrival -->
-                  <div id="gi_multiple_arrival" style="display:none;">
-                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Drag guests into arrival groups to assign them.</p>
-                    
-                    <!-- Unassigned Guests Pool -->
-                    <div style="background: var(--border-light); border: 2px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-users" style="margin-right: 6px;"></i>Unassigned Guests</h4>
-                      </div>
-                      <div id="gi_unassigned_guests" class="unassigned-dropzone" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 60px;">
-                        <!-- Draggable guest badges will appear here -->
-                      </div>
-                    </div>
-                    
-                    <!-- Arrival Groups -->
-                    <div style="margin-bottom: 16px;">
-                      <button type="button" id="gi_create_arrival_group" class="btn btn-primary" style="width: 100%; padding: 12px;">
-                        <i class="fas fa-plus"></i> Create Arrival Group
-                      </button>
-                    </div>
-                    
-                    <div id="gi_arrival_groups_list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                      <!-- Arrival group cards will be dynamically added here -->
-                    </div>
-                  </div>
-
-                  <div class="gi-section-title" style="margin-top: 24px;">
-                    <i class="fas fa-plane-departure"></i>
-                    Departure Details
-                  </div>
-                  <div class="guest-info-grid" style="margin-bottom: 16px;">
-                    <div class="form-group">
-                      <label style="font-weight: 600;">Departure Type</label>
-                      <select id="gi_departure_type" style="padding: 12px;">
-                        <option value="single">Single (All guests depart together)</option>
-                        <option value="multiple">Multiple (Different departure times)</option>
-                      </select>
-                    </div>
-                    <div class="form-group" style="display:flex; align-items:center; gap:8px;">
-                      <input type="checkbox" id="gi_departure_same_as_arrival" style="width:auto; margin:0;">
-                      <label for="gi_departure_same_as_arrival" style="margin:0; font-weight:600; cursor:pointer;">Same group as arrival</label>
-                    </div>
-                  </div>
-                  <!-- Single Departure -->
-                  <div id="gi_single_departure" class="guest-info-grid">
-                    <div class="form-group">
-                      <label>Departure Date</label>
-                      <input type="date" id="gi_departure_date">
-                    </div>
-                    <div class="form-group">
-                      <label>Departure Time</label>
-                      <input type="time" id="gi_departure_time" lang="en-GB" step="60">
-                    </div>
-                    <div class="form-group">
-                      <label>Flight Number</label>
-                      <input type="text" id="gi_departure_flight" placeholder="e.g., EK 456">
-                    </div>
-                    <div class="form-group">
-                      <label>Drop-off Hotel</label>
-                      <select id="gi_departure_hotel"><option value="">-- Select Hotel --</option></select>
-                    </div>
-                    <div class="form-group">
-                      <label>Guide</label>
-                      <select id="gi_departure_guide"><option value="">-- Select Guide --</option></select>
-                    </div>
-                    <div class="form-group">
-                      <label>Vehicle</label>
-                      <select id="gi_departure_vehicle"><option value="">-- Select Vehicle --</option></select>
-                    </div>
-                  </div>
-                  <!-- Multiple Departure -->
-                  <div id="gi_multiple_departure" style="display:none;">
-                    <p style="color: var(--text-secondary); margin: 12px 0; font-size: 0.95rem;"><i class="fas fa-info-circle"></i> Drag guests into departure groups to assign them.</p>
-                    
-                    <!-- Unassigned Guests Pool for Departure -->
-                    <div style="background: var(--border-light); border: 2px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-users" style="margin-right: 6px;"></i>Unassigned Guests</h4>
-                      </div>
-                      <div id="gi_unassigned_guests_dep" class="unassigned-dropzone-dep" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 60px;">
-                        <!-- Draggable guest badges will appear here -->
-                      </div>
-                    </div>
-                    
-                    <!-- Departure Groups -->
-                    <div style="margin-bottom: 16px;">
-                      <button type="button" id="gi_create_departure_group" class="btn btn-primary" style="width: 100%; padding: 12px;">
-                        <i class="fas fa-plus"></i> Create Departure Group
-                      </button>
-                    </div>
-                    
-                    <div id="gi_departure_groups_list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                      <!-- Departure group cards will be dynamically added here -->
-                    </div>
-                  </div>
-
-                  <div class="gi-actions" id="giStep2Actions" style="display:none;">
-                    <button type="button" id="giBackBtn" class="btn btn-secondary">
-                      <i class="fas fa-arrow-left"></i>
-                      Back to Status
-                    </button>
-                    <button type="button" id="guestInfoSaveBtn" class="btn btn-secondary">
-                      <i class="fas fa-save"></i>
-                      Save Changes
-                    </button>
-                    <button type="button" id="guestInfoContinueBtn" class="btn btn-primary">
-                      <i class="fas fa-arrow-right"></i>
-                      Continue to Itinerary
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
             <div class="tabs-and-toggle">
                 <div class="day-tabs-wrapper">
                     <button id="scrollLeftBtn" class="tab-scroll-btn left"><i class="fas fa-chevron-left"></i></button>
@@ -1708,1285 +1420,10 @@
                 }
             }
             
-            // Guest Info helpers
-            const guestInfoView = document.getElementById('guestInfoView');
-            const tabsAndToggleEl = document.querySelector('.tabs-and-toggle');
-            const formActionsEl = document.querySelector('.form-actions');
-            function populateGuestInfo(trip){
-                try{
-                    const setVal = (id, val) => { const el=document.getElementById(id); if (el) el.value = (val==null? '' : val); };
-                    setVal('gi_guest_status', trip.guest_status||'');
-                    setVal('gi_arrival_date', trip.arrival_date||'');
-                    setVal('gi_arrival_time', trip.arrival_time||'');
-                    setVal('gi_arrival_flight', trip.arrival_flight||'');
-                    setVal('gi_departure_date', trip.departure_date||'');
-                    setVal('gi_departure_time', trip.departure_time||'');
-                    setVal('gi_departure_flight', trip.departure_flight||'');
-                }catch(_){/* ignore */}
-            }
-            function showGuestInfo(){
-                try{
-                    if (guestInfoView) guestInfoView.style.display = 'block';
-                    if (tabsAndToggleEl) tabsAndToggleEl.style.display = 'none';
-                    const itGrid = document.getElementById('itineraryGrid');
-                    if (itGrid) itGrid.style.display = 'none';
-                    if (summaryView) summaryView.style.display = 'none';
-                    const insights = document.getElementById('insightsView'); if (insights) insights.style.display='none';
-                    if (formActionsEl) formActionsEl.style.display = 'none';
-                    const dock = document.getElementById('reportButtonsDock'); if (dock) dock.style.display='none';
-                    // default to step 1 (status only)
-                    try { showGuestStep(1); } catch(e){}
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }catch(_){/* ignore */}
-            }
-            function showItinerary(){
-                try{
-                    if (guestInfoView) guestInfoView.style.display = 'none';
-                    if (tabsAndToggleEl) tabsAndToggleEl.style.display = 'flex';
-                    if (itineraryGrid) itineraryGrid.style.display = 'block';
-                    if (summaryView) summaryView.style.display = 'none';
-                    const insights = document.getElementById('insightsView'); if (insights) insights.style.display='none';
-                    if (formActionsEl) formActionsEl.style.display = 'flex';
-                    const dock = document.getElementById('reportButtonsDock'); if (dock) dock.style.display='';
-                }catch(_){/* ignore */}
-            }
-            // Country list and helpers
-            const GI_COUNTRIES = [
-              'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Costa Rica','Cote d\'Ivoire','Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Macedonia','Norway','Oman','Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Republic of the Congo','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
-            ];
-            function populateCountryOptions(sel){
-              if (!sel) return;
-              if (sel.options.length > 1) return; // already populated
-              GI_COUNTRIES.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
-            }
-            // Populate selects on load
-            requestAnimationFrame(() => {
-              populateCountryOptions(document.getElementById('gi_new_single_country'));
-              populateCountryOptions(document.getElementById('gi_new_couple_country'));
-            });
 
-            // Guest editor state and rendering
-            function collectArrivalDetails(arrivalType, couplesCount, singlesCount){
-                const day2Date = window.__day2Date__ || '';
-                const trip = window.__trip__ || {};
-                const totalGuests = (couplesCount*2 + singlesCount);
-                const arrivals = [];
-                if (arrivalType === 'multiple'){
-                    // Check if using drag-and-drop groups
-                    if (arrivalGroups && arrivalGroups.length > 0) {
-                        // Build arrivals from drag-and-drop groups
-                        arrivalGroups.forEach((group, groupIdx) => {
-                            // Count guests in this group
-                            let paxCount = 0;
-                            let guestNames = [];
-                            Object.keys(guestAssignments).forEach(guestId => {
-                                if (guestAssignments[guestId] === groupIdx) {
-                                    const [type, idx] = guestId.split('_');
-                                    if (type === 'couple') {
-                                        paxCount += 2;
-                                        const c = giGuestList.couples[parseInt(idx)];
-                                        guestNames.push(`${c.name1||''} & ${c.name2||''}`);
-                                    } else {
-                                        paxCount += 1;
-                                        const s = giGuestList.singles[parseInt(idx)];
-                                        guestNames.push(s.name||'');
-                                    }
-                                }
-                            });
-                            
-                            if (paxCount > 0) {
-                                arrivals.push({
-                                    arrival_date: day2Date,
-                                    arrival_time: group.time || '',
-                                    flight_no: group.flight || '',
-                                    pax_count: paxCount,
-                                    pickup_location: '',
-                                    drop_hotel_id: Number(group.hotel_id||0),
-                                    vehicle_id: Number(group.vehicle_id||0),
-                                    guide_id: Number(group.guide_id||0),
-                                    notes: guestNames.join(', ')
-                                });
-                            }
-                        });
-                    } else {
-                        // Legacy: Build per-card rows in DOM order
-                        const rows = document.querySelectorAll('#gi_multi_arrival_list .guest-info-grid');
-                        rows.forEach((row, idx) => {
-                            const time = row.querySelector('.gi-marr-time')?.value || '';
-                            const flight = row.querySelector('.gi-marr-flight')?.value || '';
-                            const hotelId = row.querySelector('.gi-marr-hotel')?.value || '';
-                            const guideId = row.querySelector('.gi-marr-guide')?.value || '';
-                            const vehicleId = row.querySelector('.gi-marr-vehicle')?.value || '';
-                            const pax = (idx < couplesCount) ? 2 : 1; // naive map: first N couples rows then singles
-                            arrivals.push({ arrival_date: day2Date, arrival_time: time, flight_no: flight, pax_count: pax, pickup_location: '', drop_hotel_id: Number(hotelId||0), vehicle_id: Number(vehicleId||0), guide_id: Number(guideId||0), notes: '' });
-                        });
-                    }
-                } else if (arrivalType === 'single'){
-                    const time = (document.getElementById('gi_arrival_time')?.value)||'';
-                    const flight = (document.getElementById('gi_arrival_flight')?.value)||'';
-                    const hotelId = (document.getElementById('gi_arrival_hotel')?.value)||'';
-                    const guideId = (document.getElementById('gi_arrival_guide')?.value)||'';
-                    const vehicleId = (document.getElementById('gi_arrival_vehicle')?.value)||'';
-                    arrivals.push({ arrival_date: day2Date || (document.getElementById('gi_arrival_date')?.value)||'', arrival_time: time, flight_no: flight, pax_count: totalGuests, pickup_location: '', drop_hotel_id: Number(hotelId||0), vehicle_id: Number(vehicleId||0), guide_id: Number(guideId||0), notes: '' });
-                }
-                return { trip_id: Number(trip.id||0), arrivals };
-            }
-            function collectGuestDetails(){
-                const couples = [];
-                giGuestList.couples.forEach(c => {
-                    couples.push({
-                        name1: c.name1 || '',
-                        name2: c.name2 || '',
-                        passport1: c.passport1 || '',
-                        passport2: c.passport2 || '',
-                        dob1: c.dob1 || '',
-                        dob2: c.dob2 || '',
-                        country: c.country || '',
-                        remark1: c.remark1 || '',
-                        remark2: c.remark2 || ''
-                    });
-                });
-                const singles = [];
-                giGuestList.singles.forEach(s => {
-                    singles.push({
-                        name: s.name || '',
-                        passport: s.passport || '',
-                        dob: s.dob || '',
-                        country: s.country || '',
-                        remark: s.remark || ''
-                    });
-                });
-                return { couples, singles };
-            }
-            // Guest tracking
-            let giGuestList = { couples: [], singles: [] };
             
-            function renderGuestList(){
-                const container = document.getElementById('gi_guest_list'); if (!container) return;
-                container.innerHTML = '';
-                
-                // Couples
-                giGuestList.couples.forEach((couple, idx) => {
-                    const card = document.createElement('div');
-                    card.style.cssText = 'border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface); margin-bottom: 12px; cursor: pointer; transition: all 0.2s;';
-                    card.dataset.idx = idx;
-                    card.dataset.type = 'couple';
-                    
-                    const isMinimized = couple.minimized;
-                    if (isMinimized) {
-                        card.style.background = 'var(--border-light)';
-                        card.innerHTML = `
-                          <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 600; color: var(--text-primary);"><i class="fas fa-user-group" style="color: #ef4444; margin-right: 8px;"></i>${couple.name1 || 'Couple'} & ${couple.name2 || ''}</div>
-                            <button type="button" class="gi-expand-btn" style="background: none; border: none; cursor: pointer; color: var(--primary-color); font-weight: 600;"><i class="fas fa-chevron-down"></i> Edit</button>
-                          </div>
-                        `;
-                        card.querySelector('.gi-expand-btn')?.addEventListener('click', () => {
-                            giGuestList.couples[idx].minimized = false;
-                            renderGuestList();
-                        });
-                    } else {
-                        card.innerHTML = `
-                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h4 style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-user-group" style="color: #ef4444; margin-right: 8px;"></i>Couple</h4>
-                            <div style="display: flex; gap: 8px;">
-                              <button type="button" class="gi-minimize-btn" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px 8px;"><i class="fas fa-chevron-up"></i></button>
-                              <button type="button" class="gi-delete-btn" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 4px 8px;"><i class="fas fa-trash"></i></button>
-                            </div>
-                          </div>
-                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div class="form-group">
-                              <label>Person 1 - Full Name</label>
-                              <input type="text" class="gi-couple-name1" placeholder="Enter full name" value="${couple.name1 || ''}">
-                            </div>
-                            <div class="form-group">
-                              <label>Person 2 - Full Name</label>
-                              <input type="text" class="gi-couple-name2" placeholder="Enter full name" value="${couple.name2 || ''}">
-                            </div>
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                              <label>Special Notes (optional)</label>
-                              <input type="text" class="gi-couple-remark" placeholder="Dietary needs, preferences" value="${couple.remark1 || ''}">
-                            </div>
-                          </div>
-                        `;
-                        card.querySelector('.gi-minimize-btn')?.addEventListener('click', () => {
-                            giGuestList.couples[idx].minimized = true;
-                            renderGuestList();
-                        });
-                        card.querySelector('.gi-delete-btn')?.addEventListener('click', () => {
-                            giGuestList.couples.splice(idx, 1);
-                            renderGuestList();
-                        });
-                        card.querySelector('.gi-couple-name1')?.addEventListener('input', (e) => { giGuestList.couples[idx].name1 = e.target.value; });
-                        card.querySelector('.gi-couple-name2')?.addEventListener('input', (e) => { giGuestList.couples[idx].name2 = e.target.value; });
-                        card.querySelector('.gi-couple-passport1')?.addEventListener('input', (e) => { giGuestList.couples[idx].passport1 = e.target.value; });
-                        card.querySelector('.gi-couple-passport2')?.addEventListener('input', (e) => { giGuestList.couples[idx].passport2 = e.target.value; });
-                        card.querySelector('.gi-couple-dob1')?.addEventListener('input', (e) => { giGuestList.couples[idx].dob1 = e.target.value; });
-                        card.querySelector('.gi-couple-dob2')?.addEventListener('input', (e) => { giGuestList.couples[idx].dob2 = e.target.value; });
-                        card.querySelector('.gi-couple-country')?.addEventListener('input', (e) => { giGuestList.couples[idx].country = e.target.value; });
-                    }
-                    container.appendChild(card);
-                });
-                
-                // Singles
-                giGuestList.singles.forEach((single, idx) => {
-                    const card = document.createElement('div');
-                    card.style.cssText = 'border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface); margin-bottom: 12px; cursor: pointer; transition: all 0.2s;';
-                    card.dataset.idx = idx;
-                    card.dataset.type = 'single';
-                    
-                    const isMinimized = single.minimized;
-                    if (isMinimized) {
-                        card.style.background = 'var(--border-light)';
-                        card.innerHTML = `
-                          <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 600; color: var(--text-primary);"><i class="fas fa-user" style="color: #6366f1; margin-right: 8px;"></i>${single.name || 'Single Guest'}</div>
-                            <button type="button" class="gi-expand-btn" style="background: none; border: none; cursor: pointer; color: var(--primary-color); font-weight: 600;"><i class="fas fa-chevron-down"></i> Edit</button>
-                          </div>
-                        `;
-                        card.querySelector('.gi-expand-btn')?.addEventListener('click', () => {
-                            giGuestList.singles[idx].minimized = false;
-                            renderGuestList();
-                        });
-                    } else {
-                        card.innerHTML = `
-                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h4 style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-user" style="color: #6366f1; margin-right: 8px;"></i>Single Guest</h4>
-                            <div style="display: flex; gap: 8px;">
-                              <button type="button" class="gi-minimize-btn" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px 8px;"><i class="fas fa-chevron-up"></i></button>
-                              <button type="button" class="gi-delete-btn" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 4px 8px;"><i class="fas fa-trash"></i></button>
-                            </div>
-                          </div>
-                          <div style="display: grid; gap: 12px;">
-                            <div class="form-group">
-                              <label>Full Name</label>
-                              <input type="text" class="gi-single-name" placeholder="Enter full name" value="${single.name || ''}">
-                            </div>
-                            <div class="form-group">
-                              <label>Special Notes (optional)</label>
-                              <input type="text" class="gi-single-remark" placeholder="Dietary needs, preferences" value="${single.remark || ''}">
-                            </div>
-                          </div>
-                        `;
-                        card.querySelector('.gi-minimize-btn')?.addEventListener('click', () => {
-                            giGuestList.singles[idx].minimized = true;
-                            renderGuestList();
-                        });
-                        card.querySelector('.gi-delete-btn')?.addEventListener('click', () => {
-                            giGuestList.singles.splice(idx, 1);
-                            renderGuestList();
-                        });
-                        card.querySelector('.gi-single-name')?.addEventListener('input', (e) => { giGuestList.singles[idx].name = e.target.value; });
-                        card.querySelector('.gi-single-passport')?.addEventListener('input', (e) => { giGuestList.singles[idx].passport = e.target.value; });
-                        card.querySelector('.gi-single-dob')?.addEventListener('input', (e) => { giGuestList.singles[idx].dob = e.target.value; });
-                        card.querySelector('.gi-single-country')?.addEventListener('input', (e) => { giGuestList.singles[idx].country = e.target.value; });
-                    }
-                    container.appendChild(card);
-                });
-            }
             
-            // Guest type selector
-            document.getElementById('gi_new_guest_type')?.addEventListener('change', (e) => {
-                const singleDiv = document.getElementById('gi_new_guest_single');
-                const coupleDiv = document.getElementById('gi_new_guest_couple');
-                const fieldsDiv = document.getElementById('gi_new_guest_fields');
-                const val = e.target.value;
-                if (val === 'single') {
-                    fieldsDiv.style.display = 'block';
-                    singleDiv.style.display = 'block';
-                    coupleDiv.style.display = 'none';
-                } else if (val === 'couple') {
-                    fieldsDiv.style.display = 'block';
-                    singleDiv.style.display = 'none';
-                    coupleDiv.style.display = 'block';
-                } else {
-                    fieldsDiv.style.display = 'none';
-                }
-            });
             
-            // Add guest button
-            document.getElementById('gi_add_guest_btn')?.addEventListener('click', () => {
-                const type = document.getElementById('gi_new_guest_type')?.value;
-                if (!type) { showToast('Please select a guest type', 'error'); return; }
-                
-                if (type === 'single') {
-                    const name = document.getElementById('gi_new_single_name')?.value || '';
-                    if (!name.trim()) { showToast('Please enter guest name', 'error'); return; }
-                    const passport = document.getElementById('gi_new_single_passport')?.value || '';
-                    const dob = document.getElementById('gi_new_single_dob')?.value || '';
-                    const country = document.getElementById('gi_new_single_country')?.value || '';
-                    const note = document.getElementById('gi_new_single_note')?.value || '';
-                    giGuestList.singles.push({ name, passport, dob, country, remark: note, minimized: true });
-                } else if (type === 'couple') {
-                    const n1 = document.getElementById('gi_new_couple_name1')?.value || '';
-                    const n2 = document.getElementById('gi_new_couple_name2')?.value || '';
-                    if (!n1.trim() || !n2.trim()) { showToast('Please enter both names', 'error'); return; }
-                    const p1 = document.getElementById('gi_new_couple_passport1')?.value || '';
-                    const p2 = document.getElementById('gi_new_couple_passport2')?.value || '';
-                    const d1 = document.getElementById('gi_new_couple_dob1')?.value || '';
-                    const d2 = document.getElementById('gi_new_couple_dob2')?.value || '';
-                    const country = document.getElementById('gi_new_couple_country')?.value || '';
-                    const note = document.getElementById('gi_new_couple_note')?.value || '';
-                    giGuestList.couples.push({ name1: n1, name2: n2, passport1: p1, passport2: p2, dob1: d1, dob2: d2, country, remark1: note, remark2: '', minimized: true });
-                }
-                
-                // Reset form
-                document.getElementById('gi_new_guest_type').value = '';
-                document.getElementById('gi_new_guest_fields').style.display = 'none';
-                document.getElementById('gi_new_single_name').value = '';
-                const _sps = document.getElementById('gi_new_single_passport'); if (_sps) _sps.value='';
-                const _sd = document.getElementById('gi_new_single_dob'); if (_sd) _sd.value='';
-                const _sc = document.getElementById('gi_new_single_country'); if (_sc) _sc.value='';
-                const _sn = document.getElementById('gi_new_single_note'); if (_sn) _sn.value='';
-                document.getElementById('gi_new_couple_name1').value = '';
-                document.getElementById('gi_new_couple_name2').value = '';
-                const _cp1 = document.getElementById('gi_new_couple_passport1'); if (_cp1) _cp1.value='';
-                const _cp2 = document.getElementById('gi_new_couple_passport2'); if (_cp2) _cp2.value='';
-                const _cd1 = document.getElementById('gi_new_couple_dob1'); if (_cd1) _cd1.value='';
-                const _cd2 = document.getElementById('gi_new_couple_dob2'); if (_cd2) _cd2.value='';
-                const _cc = document.getElementById('gi_new_couple_country'); if (_cc) _cc.value='';
-                const _cn = document.getElementById('gi_new_couple_note'); if (_cn) _cn.value='';
-                
-                renderGuestList();
-                showToast('Guest added', 'success');
-            });
-            
-            // Arrival/Departure Type Toggles
-            // Drag-and-drop arrival groups state
-            let arrivalGroups = [];
-            let guestAssignments = {}; // maps guest id to group index
-            
-            // Drag-and-drop departure groups state
-            let departureGroups = [];
-            let guestAssignmentsDep = {}; // maps guest id to group index
-            
-            function getGuestId(type, idx) {
-                return `${type}_${idx}`;
-            }
-            
-            function getGuestLabel(type, idx) {
-                if (type === 'couple') {
-                    const c = giGuestList.couples[idx];
-                    return `<i class="fas fa-user-group" style="color:#ef4444; margin-right:4px;"></i>${c?.name1 || 'Guest'} & ${c?.name2 || ''}`;
-                } else {
-                    const s = giGuestList.singles[idx];
-                    return `<i class="fas fa-user" style="color:#6366f1; margin-right:4px;"></i>${s?.name || 'Guest'}`;
-                }
-            }
-            
-            function renderUnassignedGuests() {
-                const container = document.getElementById('gi_unassigned_guests');
-                if (!container) return;
-                
-                console.log('Rendering unassigned guests. Current assignments:', guestAssignments);
-                console.log('Guest list:', giGuestList);
-                
-                // Remove old listeners before re-adding
-                const newContainer = container.cloneNode(false);
-                container.parentNode.replaceChild(newContainer, container);
-                const cleanContainer = document.getElementById('gi_unassigned_guests');
-                
-                // Setup drop zone for unassigned area (to allow dragging back)
-                cleanContainer.addEventListener('dragover', handleDragOver);
-                cleanContainer.addEventListener('drop', handleDropToUnassigned);
-                
-                // Add all guests that are not assigned to any group
-                let unassignedCount = 0;
-                giGuestList.couples.forEach((c, idx) => {
-                    const guestId = getGuestId('couple', idx);
-                    console.log('Checking couple:', guestId, 'assigned:', guestAssignments[guestId]);
-                    if (guestAssignments[guestId] === undefined) {
-                        unassignedCount++;
-                        const badge = document.createElement('div');
-                        badge.className = 'guest-badge';
-                        badge.draggable = true;
-                        badge.dataset.guestId = guestId;
-                        badge.dataset.type = 'couple';
-                        badge.dataset.idx = idx;
-                        badge.innerHTML = getGuestLabel('couple', idx);
-                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
-                        badge.addEventListener('dragstart', handleDragStart);
-                        badge.addEventListener('dragend', handleDragEnd);
-                        cleanContainer.appendChild(badge);
-                    }
-                });
-                
-                giGuestList.singles.forEach((s, idx) => {
-                    const guestId = getGuestId('single', idx);
-                    console.log('Checking single:', guestId, 'assigned:', guestAssignments[guestId]);
-                    if (guestAssignments[guestId] === undefined) {
-                        unassignedCount++;
-                        const badge = document.createElement('div');
-                        badge.className = 'guest-badge';
-                        badge.draggable = true;
-                        badge.dataset.guestId = guestId;
-                        badge.dataset.type = 'single';
-                        badge.dataset.idx = idx;
-                        badge.innerHTML = getGuestLabel('single', idx);
-                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
-                        badge.addEventListener('dragstart', handleDragStart);
-                        badge.addEventListener('dragend', handleDragEnd);
-                        cleanContainer.appendChild(badge);
-                    }
-                });
-                
-                console.log('Unassigned guests count:', unassignedCount);
-                
-                if (cleanContainer.children.length === 0) {
-                    cleanContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">All guests assigned</p>';
-                }
-            }
-            
-            function renderUnassignedGuestsDep() {
-                const container = document.getElementById('gi_unassigned_guests_dep');
-                if (!container) return;
-                
-                console.log('Rendering unassigned guests for departure. Current assignments:', guestAssignmentsDep);
-                
-                // Remove old listeners before re-adding
-                const newContainer = container.cloneNode(false);
-                container.parentNode.replaceChild(newContainer, container);
-                const cleanContainer = document.getElementById('gi_unassigned_guests_dep');
-                
-                // Setup drop zone for unassigned area
-                cleanContainer.addEventListener('dragover', handleDragOver);
-                cleanContainer.addEventListener('drop', handleDropToUnassignedDep);
-                
-                // Add all guests that are not assigned to any departure group
-                let unassignedCount = 0;
-                giGuestList.couples.forEach((c, idx) => {
-                    const guestId = getGuestId('couple', idx);
-                    if (guestAssignmentsDep[guestId] === undefined) {
-                        unassignedCount++;
-                        const badge = document.createElement('div');
-                        badge.className = 'guest-badge';
-                        badge.draggable = true;
-                        badge.dataset.guestId = guestId;
-                        badge.dataset.type = 'couple';
-                        badge.dataset.idx = idx;
-                        badge.innerHTML = getGuestLabel('couple', idx);
-                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
-                        badge.addEventListener('dragstart', handleDragStart);
-                        badge.addEventListener('dragend', handleDragEnd);
-                        cleanContainer.appendChild(badge);
-                    }
-                });
-                
-                giGuestList.singles.forEach((s, idx) => {
-                    const guestId = getGuestId('single', idx);
-                    if (guestAssignmentsDep[guestId] === undefined) {
-                        unassignedCount++;
-                        const badge = document.createElement('div');
-                        badge.className = 'guest-badge';
-                        badge.draggable = true;
-                        badge.dataset.guestId = guestId;
-                        badge.dataset.type = 'single';
-                        badge.dataset.idx = idx;
-                        badge.innerHTML = getGuestLabel('single', idx);
-                        badge.style.cssText = 'background: var(--surface); border: 2px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: move; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;';
-                        badge.addEventListener('dragstart', handleDragStart);
-                        badge.addEventListener('dragend', handleDragEnd);
-                        cleanContainer.appendChild(badge);
-                    }
-                });
-                
-                if (cleanContainer.children.length === 0) {
-                    cleanContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">All guests assigned</p>';
-                }
-            }
-            
-            function renderDepartureGroups() {
-                const container = document.getElementById('gi_departure_groups_list');
-                if (!container) return;
-                container.innerHTML = '';
-                
-                departureGroups.forEach((group, groupIdx) => {
-                    const card = document.createElement('div');
-                    card.className = 'departure-group-card';
-                    card.dataset.groupIdx = groupIdx;
-                    card.style.cssText = 'border: 2px solid var(--primary-color); border-radius: 10px; padding: 12px; background: var(--surface); transition: all 0.2s; position: relative;';
-                    
-                    // Make entire card a drop zone
-                    card.addEventListener('dragover', handleDragOverGroup);
-                    card.addEventListener('dragleave', handleDragLeaveGroup);
-                    card.addEventListener('drop', handleDropDep);
-                    
-                    const header = document.createElement('div');
-                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 2;';
-                    header.innerHTML = `
-                        <h4 style="margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--primary-color);"><i class="fas fa-plane-departure" style="margin-right: 4px; font-size: 0.9rem;"></i>Group ${groupIdx + 1}</h4>
-                        <button type="button" class="remove-group-dep" data-group-idx="${groupIdx}" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.85rem;" title="Remove Group">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `;
-                    card.appendChild(header);
-                    
-                    // Guest display area
-                    const guestsArea = document.createElement('div');
-                    guestsArea.className = 'departure-group-guests';
-                    guestsArea.style.cssText = 'background: var(--border-light); border: 2px dashed var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; pointer-events: none;';
-                    
-                    // Show assigned guests
-                    let hasGuests = false;
-                    Object.keys(guestAssignmentsDep).forEach(guestId => {
-                        if (guestAssignmentsDep[guestId] === groupIdx) {
-                            hasGuests = true;
-                            const [type, idx] = guestId.split('_');
-                            const badge = document.createElement('div');
-                            badge.className = 'guest-badge';
-                            badge.draggable = true;
-                            badge.dataset.guestId = guestId;
-                            badge.dataset.type = type;
-                            badge.dataset.idx = idx;
-                            badge.innerHTML = `
-                                ${getGuestLabel(type, parseInt(idx))}
-                                <button type="button" class="remove-guest-dep" data-guest-id="${guestId}" style="background: none; border: none; cursor: pointer; color: white; margin-left: 4px; padding: 0; font-size: 0.75rem;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            `;
-                            badge.style.cssText = 'background: var(--primary-light); color: white; border: 2px solid var(--primary-color); border-radius: 6px; padding: 6px 10px; cursor: move; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 3px; pointer-events: auto;';
-                            badge.addEventListener('dragstart', handleDragStart);
-                            badge.addEventListener('dragend', handleDragEnd);
-                            guestsArea.appendChild(badge);
-                        }
-                    });
-                    
-                    if (!hasGuests) {
-                        const placeholder = document.createElement('p');
-                        placeholder.style.cssText = 'color: var(--text-secondary); font-size: 0.85rem; margin: 0; pointer-events: none;';
-                        placeholder.textContent = 'Drop guests here';
-                        guestsArea.appendChild(placeholder);
-                    }
-                    
-                    card.appendChild(guestsArea);
-                    
-                    // Departure details form
-                    const detailsHTML = `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2;">
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Date</label><input type="date" class="dep-group-date" data-group-idx="${groupIdx}" value="${window.__lastDate__ || ''}" readonly style="background: var(--border-light); cursor: not-allowed; padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Time</label><input type="time" class="dep-group-time" data-group-idx="${groupIdx}" lang="en-GB" step="60" value="${group.time || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Flight</label><input type="text" class="dep-group-flight" data-group-idx="${groupIdx}" placeholder="e.g., EK 456" value="${group.flight || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Pickup Hotel</label><select class="dep-group-hotel" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Guide</label><select class="dep-group-guide" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Vehicle</label><select class="dep-group-vehicle" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                        </div>
-                    `;
-                    card.innerHTML += detailsHTML;
-                    container.appendChild(card);
-                    
-                    // Populate dropdowns
-                    const hotels = window.__hotels__ || [];
-                    const guides = window.__guides__ || [];
-                    const vehicles = window.__vehicles__ || [];
-                    
-                    const hotelSel = card.querySelector('.dep-group-hotel');
-                    hotels.forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; hotelSel.appendChild(o); });
-                    if (group.hotel_id) hotelSel.value = group.hotel_id;
-                    else if (window.__lastHotelId__) hotelSel.value = window.__lastHotelId__;
-                    
-                    const guideSel = card.querySelector('.dep-group-guide');
-                    guides.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; guideSel.appendChild(o); });
-                    if (group.guide_id) guideSel.value = group.guide_id;
-                    
-                    const vehicleSel = card.querySelector('.dep-group-vehicle');
-                    vehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.number_plate ? `${v.vehicle_name} (${v.number_plate})` : v.vehicle_name; vehicleSel.appendChild(o); });
-                    if (group.vehicle_id) vehicleSel.value = group.vehicle_id;
-                });
-                
-                // Wire remove buttons
-                container.querySelectorAll('.remove-group-dep').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
-                        // Unassign all guests from this group
-                        Object.keys(guestAssignmentsDep).forEach(gid => {
-                            if (guestAssignmentsDep[gid] === groupIdx) delete guestAssignmentsDep[gid];
-                        });
-                        // Remove group and reindex
-                        departureGroups.splice(groupIdx, 1);
-                        const newAssignments = {};
-                        Object.keys(guestAssignmentsDep).forEach(gid => {
-                            const oldIdx = guestAssignmentsDep[gid];
-                            if (oldIdx > groupIdx) newAssignments[gid] = oldIdx - 1;
-                            else newAssignments[gid] = oldIdx;
-                        });
-                        guestAssignmentsDep = newAssignments;
-                        renderDepartureGroups();
-                        renderUnassignedGuestsDep();
-                    });
-                });
-                
-                container.querySelectorAll('.remove-guest-dep').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const guestId = e.currentTarget.dataset.guestId;
-                        delete guestAssignmentsDep[guestId];
-                        renderDepartureGroups();
-                        renderUnassignedGuestsDep();
-                    });
-                });
-                
-                // Store group data on input change
-                container.querySelectorAll('input, select').forEach(input => {
-                    input.addEventListener('change', (e) => {
-                        const groupIdx = parseInt(e.target.dataset.groupIdx);
-                        if (!departureGroups[groupIdx]) return;
-                        if (e.target.classList.contains('dep-group-time')) departureGroups[groupIdx].time = e.target.value;
-                        else if (e.target.classList.contains('dep-group-flight')) departureGroups[groupIdx].flight = e.target.value;
-                        else if (e.target.classList.contains('dep-group-hotel')) departureGroups[groupIdx].hotel_id = e.target.value;
-                        else if (e.target.classList.contains('dep-group-guide')) departureGroups[groupIdx].guide_id = e.target.value;
-                        else if (e.target.classList.contains('dep-group-vehicle')) departureGroups[groupIdx].vehicle_id = e.target.value;
-                    });
-                });
-            }
-            
-            function renderArrivalGroups() {
-                const container = document.getElementById('gi_arrival_groups_list');
-                if (!container) return;
-                container.innerHTML = '';
-                
-                arrivalGroups.forEach((group, groupIdx) => {
-                    const card = document.createElement('div');
-                    card.className = 'arrival-group-card';
-                    card.dataset.groupIdx = groupIdx;
-                    card.style.cssText = 'border: 2px solid var(--primary-color); border-radius: 10px; padding: 12px; background: var(--surface); transition: all 0.2s; position: relative;';
-                    
-                    // Make entire card a drop zone
-                    card.addEventListener('dragover', handleDragOverGroup);
-                    card.addEventListener('dragleave', handleDragLeaveGroup);
-                    card.addEventListener('drop', handleDrop);
-                    
-                    const header = document.createElement('div');
-                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 2;';
-                    header.innerHTML = `
-                        <h4 style="margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--primary-color);"><i class="fas fa-plane-arrival" style="margin-right: 4px; font-size: 0.9rem;"></i>Group ${groupIdx + 1}</h4>
-                        <button type="button" class="remove-group" data-group-idx="${groupIdx}" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.85rem;" title="Remove Group">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `;
-                    card.appendChild(header);
-                    
-                    // Guest display area (not a separate drop zone)
-                    const guestsArea = document.createElement('div');
-                    guestsArea.className = 'arrival-group-guests';
-                    guestsArea.style.cssText = 'background: var(--border-light); border: 2px dashed var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; pointer-events: none;';
-                    
-                    // Show assigned guests
-                    let hasGuests = false;
-                    Object.keys(guestAssignments).forEach(guestId => {
-                        console.log('Checking if', guestId, 'is in group', groupIdx, ':', guestAssignments[guestId]);
-                        if (guestAssignments[guestId] === groupIdx) {
-                            hasGuests = true;
-                            const [type, idx] = guestId.split('_');
-                            const badge = document.createElement('div');
-                            badge.className = 'guest-badge';
-                            badge.draggable = true;
-                            badge.dataset.guestId = guestId;
-                            badge.dataset.type = type;
-                            badge.dataset.idx = idx;
-                            badge.innerHTML = `
-                                ${getGuestLabel(type, parseInt(idx))}
-                                <button type="button" class="remove-guest" data-guest-id="${guestId}" style="background: none; border: none; cursor: pointer; color: white; margin-left: 4px; padding: 0; font-size: 0.75rem;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            `;
-                            badge.style.cssText = 'background: var(--primary-light); color: white; border: 2px solid var(--primary-color); border-radius: 6px; padding: 6px 10px; cursor: move; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 3px; pointer-events: auto;';
-                            badge.addEventListener('dragstart', handleDragStart);
-                            badge.addEventListener('dragend', handleDragEnd);
-                            guestsArea.appendChild(badge);
-                        }
-                    });
-                    
-                    if (!hasGuests) {
-                        const placeholder = document.createElement('p');
-                        placeholder.style.cssText = 'color: var(--text-secondary); font-size: 0.85rem; margin: 0; pointer-events: none;';
-                        placeholder.textContent = 'Drop guests here';
-                        guestsArea.appendChild(placeholder);
-                    }
-                    
-                    card.appendChild(guestsArea);
-                    
-                    // Arrival details form
-                    const detailsHTML = `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2;">
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Date</label><input type="date" class="arr-group-date" data-group-idx="${groupIdx}" value="${window.__day2Date__ || ''}" readonly style="background: var(--border-light); cursor: not-allowed; padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Time</label><input type="time" class="arr-group-time" data-group-idx="${groupIdx}" lang="en-GB" step="60" value="${group.time || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Flight</label><input type="text" class="arr-group-flight" data-group-idx="${groupIdx}" placeholder="e.g., EK 123" value="${group.flight || ''}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"></div>
-                            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Hotel</label><select class="arr-group-hotel" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Guide</label><select class="arr-group-guide" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                            <div class="form-group" style="margin-bottom: 0;"><label style="font-size: 0.85rem; margin-bottom: 4px;">Vehicle</label><select class="arr-group-vehicle" data-group-idx="${groupIdx}" style="padding: 8px; font-size: 0.85rem; pointer-events: auto;"><option value="">-- Select --</option></select></div>
-                        </div>
-                    `;
-                    card.innerHTML += detailsHTML;
-                    container.appendChild(card);
-                    
-                    // Populate dropdowns
-                    const hotels = window.__hotels__ || [];
-                    const guides = window.__guides__ || [];
-                    const vehicles = window.__vehicles__ || [];
-                    
-                    const hotelSel = card.querySelector('.arr-group-hotel');
-                    hotels.forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; hotelSel.appendChild(o); });
-                    if (group.hotel_id) hotelSel.value = group.hotel_id;
-                    else if (window.__day2HotelId__) hotelSel.value = window.__day2HotelId__;
-                    
-                    const guideSel = card.querySelector('.arr-group-guide');
-                    guides.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; guideSel.appendChild(o); });
-                    if (group.guide_id) guideSel.value = group.guide_id;
-                    
-                    const vehicleSel = card.querySelector('.arr-group-vehicle');
-                    vehicles.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.number_plate ? `${v.vehicle_name} (${v.number_plate})` : v.vehicle_name; vehicleSel.appendChild(o); });
-                    if (group.vehicle_id) vehicleSel.value = group.vehicle_id;
-                });
-                
-                // Wire remove buttons
-                container.querySelectorAll('.remove-group').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
-                        // Unassign all guests from this group
-                        Object.keys(guestAssignments).forEach(gid => {
-                            if (guestAssignments[gid] === groupIdx) delete guestAssignments[gid];
-                        });
-                        // Remove group and reindex remaining groups
-                        arrivalGroups.splice(groupIdx, 1);
-                        const newAssignments = {};
-                        Object.keys(guestAssignments).forEach(gid => {
-                            const oldIdx = guestAssignments[gid];
-                            if (oldIdx > groupIdx) newAssignments[gid] = oldIdx - 1;
-                            else newAssignments[gid] = oldIdx;
-                        });
-                        guestAssignments = newAssignments;
-                        renderArrivalGroups();
-                        renderUnassignedGuests();
-                    });
-                });
-                
-                container.querySelectorAll('.remove-guest').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const guestId = e.currentTarget.dataset.guestId;
-                        delete guestAssignments[guestId];
-                        renderArrivalGroups();
-                        renderUnassignedGuests();
-                    });
-                });
-                
-                // Store group data on input change
-                container.querySelectorAll('input, select').forEach(input => {
-                    input.addEventListener('change', (e) => {
-                        const groupIdx = parseInt(e.target.dataset.groupIdx);
-                        if (!arrivalGroups[groupIdx]) return;
-                        if (e.target.classList.contains('arr-group-time')) arrivalGroups[groupIdx].time = e.target.value;
-                        else if (e.target.classList.contains('arr-group-flight')) arrivalGroups[groupIdx].flight = e.target.value;
-                        else if (e.target.classList.contains('arr-group-hotel')) arrivalGroups[groupIdx].hotel_id = e.target.value;
-                        else if (e.target.classList.contains('arr-group-guide')) arrivalGroups[groupIdx].guide_id = e.target.value;
-                        else if (e.target.classList.contains('arr-group-vehicle')) arrivalGroups[groupIdx].vehicle_id = e.target.value;
-                    });
-                });
-            }
-            
-            function handleDragStart(e) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', e.target.dataset.guestId);
-                e.target.style.opacity = '0.4';
-            }
-            
-            function handleDragEnd(e) {
-                e.target.style.opacity = '1';
-            }
-            
-            function handleDragOver(e) {
-                if (e.preventDefault) e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                return false;
-            }
-            
-            function handleDragOverGroup(e) {
-                if (e.preventDefault) e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                // Add visual feedback to entire card
-                const card = e.currentTarget;
-                if (card.classList.contains('arrival-group-card')) {
-                    card.style.background = 'rgba(99, 102, 241, 0.15)';
-                    card.style.borderColor = 'var(--primary-color)';
-                    card.style.borderWidth = '3px';
-                    card.style.transform = 'scale(1.02)';
-                    card.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
-                }
-                return false;
-            }
-            
-            function handleDragLeaveGroup(e) {
-                // Only remove if we're actually leaving the card (not entering a child)
-                if (e.currentTarget.contains(e.relatedTarget)) return;
-                
-                // Remove visual feedback
-                const card = e.currentTarget;
-                if (card.classList.contains('arrival-group-card')) {
-                    card.style.background = 'var(--surface)';
-                    card.style.borderColor = 'var(--primary-color)';
-                    card.style.borderWidth = '2px';
-                    card.style.transform = 'scale(1)';
-                    card.style.boxShadow = 'none';
-                }
-            }
-            
-            function handleDrop(e) {
-                if (e.stopPropagation) e.stopPropagation();
-                e.preventDefault();
-                
-                // Remove visual feedback
-                const card = e.currentTarget;
-                if (card.classList.contains('arrival-group-card')) {
-                    card.style.background = 'var(--surface)';
-                    card.style.borderColor = 'var(--primary-color)';
-                    card.style.borderWidth = '2px';
-                    card.style.transform = 'scale(1)';
-                    card.style.boxShadow = 'none';
-                }
-                
-                const guestId = e.dataTransfer.getData('text/plain');
-                const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
-                
-                console.log('Drop:', { guestId, groupIdx, currentAssignments: guestAssignments });
-                
-                if (!isNaN(groupIdx) && guestId) {
-                    // Assign guest to this group
-                    guestAssignments[guestId] = groupIdx;
-                    
-                    console.log('After assignment:', guestAssignments);
-                    
-                    // Re-render both areas
-                    renderUnassignedGuests();
-                    renderArrivalGroups();
-                }
-                
-                return false;
-            }
-            
-            function handleDropToUnassigned(e) {
-                if (e.stopPropagation) e.stopPropagation();
-                e.preventDefault();
-                
-                const guestId = e.dataTransfer.getData('text/plain');
-                
-                // Unassign guest
-                delete guestAssignments[guestId];
-                
-                renderArrivalGroups();
-                renderUnassignedGuests();
-                
-                return false;
-            }
-            
-            function handleDropToUnassignedDep(e) {
-                if (e.stopPropagation) e.stopPropagation();
-                e.preventDefault();
-                
-                const guestId = e.dataTransfer.getData('text/plain');
-                
-                // Unassign guest from departure
-                delete guestAssignmentsDep[guestId];
-                
-                renderDepartureGroups();
-                renderUnassignedGuestsDep();
-                
-                return false;
-            }
-            
-            function handleDropDep(e) {
-                if (e.stopPropagation) e.stopPropagation();
-                e.preventDefault();
-                
-                // Remove visual feedback
-                const card = e.currentTarget;
-                if (card.classList.contains('departure-group-card')) {
-                    card.style.background = 'var(--surface)';
-                    card.style.borderColor = 'var(--primary-color)';
-                    card.style.borderWidth = '2px';
-                    card.style.transform = 'scale(1)';
-                    card.style.boxShadow = 'none';
-                }
-                
-                const guestId = e.dataTransfer.getData('text/plain');
-                const groupIdx = parseInt(e.currentTarget.dataset.groupIdx);
-                
-                console.log('Drop departure:', { guestId, groupIdx, currentAssignments: guestAssignmentsDep });
-                
-                if (!isNaN(groupIdx) && guestId) {
-                    // Assign guest to this group
-                    guestAssignmentsDep[guestId] = groupIdx;
-                    
-                    console.log('After departure assignment:', guestAssignmentsDep);
-                    
-                    // Re-render both areas
-                    renderUnassignedGuestsDep();
-                    renderDepartureGroups();
-                }
-                
-                return false;
-            }
-            
-            document.getElementById('gi_create_arrival_group')?.addEventListener('click', () => {
-                arrivalGroups.push({ time: '', flight: '', hotel_id: '', guide_id: '', vehicle_id: '' });
-                renderArrivalGroups();
-            });
-            
-            document.getElementById('gi_create_departure_group')?.addEventListener('click', () => {
-                departureGroups.push({ time: '', flight: '', hotel_id: '', guide_id: '', vehicle_id: '' });
-                renderDepartureGroups();
-            });
-            
-            document.getElementById('gi_arrival_type')?.addEventListener('change', (e) => {
-                const val = e.target.value;
-                const singleDiv = document.getElementById('gi_single_arrival');
-                const multiDiv = document.getElementById('gi_multiple_arrival');
-                if (val === 'single') {
-                    singleDiv.style.display = 'grid';
-                    multiDiv.style.display = 'none';
-                } else {
-                    singleDiv.style.display = 'none';
-                    multiDiv.style.display = 'block';
-                    // Try to load saved arrival groups
-                    const trip = window.__trip__ || {};
-                    const saved = localStorage.getItem(`arrival_groups_${trip.id}`);
-                    if (saved) {
-                        try {
-                            const data = JSON.parse(saved);
-                            arrivalGroups = data.groups || [];
-                            guestAssignments = data.assignments || {};
-                            console.log('Loaded arrival groups from localStorage:', data);
-                        } catch(e) {
-                            console.error('Failed to parse saved arrival groups:', e);
-                        }
-                    }
-                    renderUnassignedGuests();
-                    renderArrivalGroups();
-                }
-            });
-            document.getElementById('gi_departure_type')?.addEventListener('change', (e) => {
-                const val = e.target.value;
-                const singleDiv = document.getElementById('gi_single_departure');
-                const multiDiv = document.getElementById('gi_multiple_departure');
-                if (val === 'single') {
-                    singleDiv.style.display = 'grid';
-                    multiDiv.style.display = 'none';
-                    // Set to last date
-                    const dd = document.getElementById('gi_departure_date'); if (dd && window.__lastDate__) dd.value = window.__lastDate__;
-                } else {
-                    singleDiv.style.display = 'none';
-                    multiDiv.style.display = 'block';
-                    // Try to load saved departure groups
-                    const trip = window.__trip__ || {};
-                    const saved = localStorage.getItem(`departure_groups_${trip.id}`);
-                    if (saved) {
-                        try {
-                            const data = JSON.parse(saved);
-                            departureGroups = data.groups || [];
-                            guestAssignmentsDep = data.assignments || {};
-                            console.log('Loaded departure groups from localStorage:', data);
-                        } catch(e) {
-                            console.error('Failed to parse saved departure groups:', e);
-                        }
-                    }
-                    renderUnassignedGuestsDep();
-                    renderDepartureGroups();
-                }
-            });
-            document.getElementById('gi_departure_same_as_arrival')?.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    const arrType = document.getElementById('gi_arrival_type')?.value || 'single';
-                    const depType = document.getElementById('gi_departure_type');
-                    
-                    if (depType) {
-                        depType.value = arrType;
-                        
-                        // If multiple, copy arrival groups to departure groups
-                        if (arrType === 'multiple') {
-                            // Deep copy arrival groups
-                            departureGroups = arrivalGroups.map(g => ({
-                                time: g.time || '',
-                                flight: g.flight || '',
-                                hotel_id: g.hotel_id || '',
-                                guide_id: g.guide_id || '',
-                                vehicle_id: g.vehicle_id || ''
-                            }));
-                            
-                            // Copy guest assignments
-                            guestAssignmentsDep = { ...guestAssignments };
-                            
-                            console.log('Copied arrival groups to departures:', { departureGroups, guestAssignmentsDep });
-                        }
-                        
-                        // Trigger the change event to render
-                        depType.dispatchEvent(new Event('change'));
-                    }
-                }
-            });
-            
-            function renderMultiArrival(){
-                const container = document.getElementById('gi_multi_arrival_list');
-                if (!container) return;
-                container.innerHTML = '';
-                const all = [...giGuestList.couples.map((c,i) => ({type:'couple', idx:i, label:`${c.name1||'Couple'} & ${c.name2||''}`})),
-                             ...giGuestList.singles.map((s,i) => ({type:'single', idx:i, label:s.name||'Single Guest'}))];
-                all.forEach(g => {
-                    const card = document.createElement('div');
-                    card.style.cssText = 'border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:12px; background:var(--surface);';
-                    card.innerHTML = `
-                      <div style="font-weight:600; margin-bottom:12px; color:var(--text-primary);"><i class="fas fa-user" style="color:var(--primary-color); margin-right:6px;"></i>${g.label}</div>
-                      <div class="guest-info-grid">
-                        <div class="form-group"><label>Arrival Date</label><input type="date" class="gi-marr-date" data-type="${g.type}" data-idx="${g.idx}"></div>
-                        <div class="form-group"><label>Arrival Time</label><input type="time" class="gi-marr-time" data-type="${g.type}" data-idx="${g.idx}" lang="en-GB" step="60"></div>
-                        <div class="form-group"><label>Flight Number</label><input type="text" class="gi-marr-flight" data-type="${g.type}" data-idx="${g.idx}" placeholder="e.g., EK 123"></div>
-                        <div class="form-group"><label>Drop-off Hotel</label><select class="gi-marr-hotel" data-type="${g.type}" data-idx="${g.idx}"><option value=\"\">-- Select --</option></select></div>
-                        <div class="form-group"><label>Guide</label><select class="gi-marr-guide" data-type="${g.type}" data-idx="${g.idx}"><option value="">-- Select --</option></select></div>
-                        <div class="form-group"><label>Vehicle</label><select class="gi-marr-vehicle" data-type="${g.type}" data-idx="${g.idx}"><option value="">-- Select --</option></select></div>
-                      </div>
-                    `;
-                    container.appendChild(card);
-                    // Lock date to Day 2
-                    const dt = card.querySelector('.gi-marr-date');
-                    if (dt && window.__day2Date__) {
-                        dt.value = window.__day2Date__;
-                        dt.setAttribute('readonly', 'readonly');
-                        dt.style.backgroundColor = 'var(--border-light)';
-                        dt.style.cursor = 'not-allowed';
-                    }
-                });
-                // Populate dropdowns
-                populateArrivalDepartureDropdowns();
-                // Wire overlap listeners
-                wireMultiArrivalListeners();
-            }
-            function renderMultiDeparture(){
-                const container = document.getElementById('gi_multi_departure_list');
-                if (!container) return;
-                container.innerHTML = '';
-                const all = [...giGuestList.couples.map((c,i) => ({type:'couple', idx:i, label:`${c.name1||'Couple'} & ${c.name2||''}`})),
-                             ...giGuestList.singles.map((s,i) => ({type:'single', idx:i, label:s.name||'Single Guest'}))];
-                all.forEach(g => {
-                    const card = document.createElement('div');
-                    card.style.cssText = 'border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:12px; background:var(--surface);';
-                    card.innerHTML = `
-                      <div style=\"font-weight:600; margin-bottom:12px; color:var(--text-primary);\"><i class=\"fas fa-user\" style=\"color:var(--primary-color); margin-right:6px;\"></i>${g.label}</div>
-                      <div class=\"guest-info-grid\">
-                        <div class=\"form-group\"><label>Departure Date</label><input type=\"date\" class=\"gi-mdep-date\" data-type=\"${g.type}\" data-idx=\"${g.idx}\"></div>
-                        <div class=\"form-group\"><label>Departure Time</label><input type=\"time\" class=\"gi-mdep-time\" data-type=\"${g.type}\" data-idx=\"${g.idx}\" lang=\"en-GB\" step=\"60\"></div>
-                        <div class=\"form-group\"><label>Flight Number</label><input type=\"text\" class=\"gi-mdep-flight\" data-type=\"${g.type}\" data-idx=\"${g.idx}\" placeholder=\"e.g., EK 456\"></div>
-                        <div class=\"form-group\"><label>Pickup Hotel</label><select class=\"gi-mdep-hotel\" data-type=\"${g.type}\" data-idx=\"${g.idx}\"><option value=\"\">-- Select --</option></select></div>
-                        <div class=\"form-group\"><label>Guide</label><select class=\"gi-mdep-guide\" data-type=\"${g.type}\" data-idx=\"${g.idx}\"><option value=\"\">-- Select --</option></select></div>
-                        <div class=\"form-group\"><label>Vehicle</label><select class=\"gi-mdep-vehicle\" data-type=\"${g.type}\" data-idx=\"${g.idx}\"><option value=\"\">-- Select --</option></select></div>
-                      </div>
-                    `;
-                    container.appendChild(card);
-                    // Lock date to last day
-                    const dt = card.querySelector('.gi-mdep-date');
-                    if (dt && window.__lastDate__) {
-                        dt.value = window.__lastDate__;
-                        dt.setAttribute('readonly', 'readonly');
-                        dt.style.backgroundColor = 'var(--border-light)';
-                        dt.style.cursor = 'not-allowed';
-                    }
-                });
-                // Populate dropdowns
-                populateArrivalDepartureDropdowns();
-            }
-            
-            // Populate hotel/guide/vehicle dropdowns
-            function populateArrivalDepartureDropdowns(){
-                const trip = window.__trip__ || {};
-                const hotels = window.__hotels__ || [];
-                const guides = window.__guides__ || [];
-                const vehicles = window.__vehicles__ || [];
-                
-                // Single arrival/departure
-                [document.getElementById('gi_arrival_hotel'), document.getElementById('gi_departure_hotel'), ...document.querySelectorAll('.gi-marr-hotel'), ...document.querySelectorAll('.gi-mdep-hotel')].forEach(sel => {
-                    if (!sel || sel.options.length > 1) return;
-                    hotels.forEach(h => { const o=document.createElement('option'); o.value=h.id; o.textContent=h.name; sel.appendChild(o); });
-                    // Default arrival drop-off hotel to Day 2 hotel
-                    if (sel.id === 'gi_arrival_hotel' && window.__day2HotelId__) sel.value = String(window.__day2HotelId__);
-                });
-                // Preselect vehicles with plates in option label
-                document.querySelectorAll('#gi_arrival_vehicle option, #gi_departure_vehicle option, .gi-marr-vehicle option, .gi-mdep-vehicle option').forEach(o=>{ /* labels already set */ });
-                [document.getElementById('gi_arrival_guide'), document.getElementById('gi_departure_guide'), ...document.querySelectorAll('.gi-marr-guide'), ...document.querySelectorAll('.gi-mdep-guide')].forEach(sel => {
-                    if (!sel || sel.options.length > 1) return;
-                    guides.forEach(g => { const o=document.createElement('option'); o.value=g.id; o.textContent=g.name; sel.appendChild(o); });
-                });
-                [document.getElementById('gi_arrival_vehicle'), document.getElementById('gi_departure_vehicle'), ...document.querySelectorAll('.gi-marr-vehicle'), ...document.querySelectorAll('.gi-mdep-vehicle')].forEach(sel => {
-                    if (!sel || sel.options.length > 1) return;
-                    vehicles.forEach(v => { const o=document.createElement('option'); o.value=v.id; o.textContent = v.number_plate ? `${v.vehicle_name} (${v.number_plate})` : v.vehicle_name; sel.appendChild(o); });
-                });
-                // Set defaults for multi-arrival hotel to Day 2 hotel
-                if (window.__day2HotelId__) {
-                    document.querySelectorAll('.gi-marr-hotel').forEach(sel => { sel.value = String(window.__day2HotelId__); });
-                }
-                // Set defaults for multi-departure hotel to last hotel
-                if (window.__lastHotelId__) {
-                    document.querySelectorAll('.gi-mdep-hotel').forEach(sel => { sel.value = String(window.__lastHotelId__); });
-                }
-            }
-            
-            function wireMultiArrivalListeners(){
-                const notice = (msg)=>{ if (window.showToast) showToast(msg,'warning'); else alert(msg); };
-                // Guide overlap check
-                document.querySelectorAll('.gi-marr-guide').forEach(sel => {
-                    sel.addEventListener('focus', e => { e.target.dataset.prev = e.target.value; });
-                    sel.addEventListener('change', e => {
-                        const val = e.target.value; if (!val) return;
-                        const all = Array.from(document.querySelectorAll('.gi-marr-guide')).filter(s => s.value === val);
-                        if (all.length > 1){
-                            const guides = window.__guides__ || [];
-                            const gObj = guides.find(g => String(g.id)===String(val));
-                            const times = all.map(s => {
-                                const idx = s.getAttribute('data-idx'); const type = s.getAttribute('data-type');
-                                const tEl = document.querySelector(`.gi-marr-time[data-type="${type}"][data-idx="${idx}"]`);
-                                return tEl?.value || '';
-                            }).filter(Boolean);
-                            const msg = `${gObj?.name||'Guide'} is already assigned${times.length?` at ${times.join(', ')}`:''}. Allow overlap?`;
-                            if (!confirm(msg)) { e.target.value = e.target.dataset.prev || ''; notice('Guide overlap not allowed'); }
-                        }
-                    });
-                });
-                // Vehicle overlap check
-                document.querySelectorAll('.gi-marr-vehicle').forEach(sel => {
-                    sel.addEventListener('focus', e => { e.target.dataset.prev = e.target.value; });
-                    sel.addEventListener('change', e => {
-                        const val = e.target.value; if (!val) return;
-                        const all = Array.from(document.querySelectorAll('.gi-marr-vehicle')).filter(s => s.value === val);
-                        if (all.length > 1){
-                            const vehicles = window.__vehicles__ || [];
-                            const vObj = vehicles.find(v => String(v.id)===String(val));
-                            const times = all.map(s => {
-                                const idx = s.getAttribute('data-idx'); const type = s.getAttribute('data-type');
-                                const tEl = document.querySelector(`.gi-marr-time[data-type="${type}"][data-idx="${idx}"]`);
-                                return tEl?.value || '';
-                            }).filter(Boolean);
-                            const name = vObj ? (vObj.number_plate ? `${vObj.vehicle_name} (${vObj.number_plate})` : vObj.vehicle_name) : 'Vehicle';
-                            const msg = `${name} is already assigned${times.length?` at ${times.join(', ')}`:''}. Allow overlap?`;
-                            if (!confirm(msg)) { e.target.value = e.target.dataset.prev || ''; notice('Vehicle overlap not allowed'); }
-                        }
-                    });
-                });
-            }
-
-            // Guest step toggle helpers
-            const giStep1El = () => document.getElementById('gi_step1');
-            const giStep2El = () => document.getElementById('gi_step2');
-            const giStep1Actions = () => document.getElementById('giStep1Actions');
-            const giStep2Actions = () => document.getElementById('giStep2Actions');
-            function showGuestStep(n){
-                const s1 = giStep1El(); const s2 = giStep2El();
-                const a1 = giStep1Actions(); const a2 = giStep2Actions();
-                if (!s1 || !s2) return;
-                if (n===1){ s1.style.display='block'; s2.style.display='none'; if (a1) a1.style.display='flex'; if (a2) a2.style.display='none'; }
-                else { s1.style.display='none'; s2.style.display='block'; if (a1) a1.style.display='none'; if (a2) a2.style.display='flex'; renderGuestList(); }
-            }
-
-            async function saveGuestInfo(proceed=false){
-                const trip = window.__trip__ || {};
-                const val = id => (document.getElementById(id)?.value||'').toString().trim();
-                const couples = giGuestList.couples.length;
-                const singles = giGuestList.singles.length;
-                const total_pax = couples*2 + singles;
-                const arrival_date = val('gi_arrival_date');
-                const departure_date = val('gi_departure_date');
-                const guest_status = val('gi_guest_status');
-                
-                console.log('Saving guest info:', { couples, singles, total_pax, guest_status, giGuestList });
-                
-                const params = new URLSearchParams();
-                params.set('id', trip.id);
-                params.set('customer_name', trip.customer_name||'');
-                params.set('tour_code', trip.tour_code||'');
-                params.set('trip_package_id', trip.trip_package_id);
-                params.set('start_date', (trip.start_date||arrival_date||''));
-                params.set('end_date', (trip.end_date||departure_date||''));
-                params.set('status', trip.status||'Pending');
-                params.set('arrival_date', arrival_date);
-                params.set('arrival_time', val('gi_arrival_time'));
-                params.set('arrival_flight', val('gi_arrival_flight'));
-                params.set('departure_date', departure_date);
-                params.set('departure_time', val('gi_departure_time'));
-                params.set('departure_flight', val('gi_departure_flight'));
-                params.set('couples_count', String(couples));
-                params.set('singles_count', String(singles));
-                params.set('total_pax', String(total_pax));
-                params.set('guest_status', guest_status);
-                try{
-                    const resp = await fetch(`${API_URL}?action=updateTrip`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() });
-                    const text = await resp.text();
-                    console.log('updateTrip response:', text);
-                    let js; try { js = JSON.parse(text); } catch(e){ console.error('Parse error:', e, text); showToast('Invalid response while saving guest info','error'); return; }
-                    if (js.status !== 'success'){ console.error('Save failed:', js); showToast(js.message||'Save failed','error'); return; }
-                    // Save per-person guest details (names + optional fields)
-                    try{
-                        const det = collectGuestDetails();
-                        console.log('Saving guest details:', det);
-                        const payload = { trip_id: Number(trip.id), couples_details: det.couples, singles_details: det.singles };
-                        const gResp = await fetch(`${API_URL}?action=saveTripGuests`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                        const gText = await gResp.text();
-                        console.log('saveTripGuests response:', gText);
-                        const gJs = JSON.parse(gText);
-                        if (gJs.status !== 'success') console.error('Guest save failed:', gJs);
-                    }catch(_e){ console.error('Guest save error:', _e); }
-                    // Save arrivals/departures if provided
-                    try{
-                        const arrType = (document.getElementById('gi_arrival_type')?.value)||'single';
-                        const depType = (document.getElementById('gi_departure_type')?.value)||'single';
-                        // Arrivals
-                        const arrivalsPayload = collectArrivalDetails(arrType, couples, singles);
-                        if (arrivalsPayload.arrivals.length>0){
-                            console.log('Saving arrivals:', arrivalsPayload);
-                            const aResp = await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(arrivalsPayload) });
-                            const aText = await aResp.text(); console.log('saveTripArrivals response:', aText);
-                        }
-                        // Save arrival groups data (for drag-and-drop system)
-                        if (arrType === 'multiple' && arrivalGroups.length > 0) {
-                            const groupsData = { trip_id: Number(trip.id||0), groups: arrivalGroups, assignments: guestAssignments };
-                            console.log('Saving arrival groups:', groupsData);
-                            localStorage.setItem(`arrival_groups_${trip.id}`, JSON.stringify(groupsData));
-                        }
-                        // Save departure groups data (for drag-and-drop system)
-                        if (depType === 'multiple' && departureGroups.length > 0) {
-                            const groupsData = { trip_id: Number(trip.id||0), groups: departureGroups, assignments: guestAssignmentsDep };
-                            console.log('Saving departure groups:', groupsData);
-                            localStorage.setItem(`departure_groups_${trip.id}`, JSON.stringify(groupsData));
-                        }
-                    }catch(e){ console.error('Arrival/Departure save error:', e); }
-                    // Update in-memory trip
-                    const couplesCount = giGuestList.couples.length;
-                    const singlesCount = giGuestList.singles.length;
-                    window.__trip__ = { ...trip, arrival_date, arrival_time: params.get('arrival_time'), arrival_flight: params.get('arrival_flight'), departure_date, departure_time: params.get('departure_time'), departure_flight: params.get('departure_flight'), couples_count: couplesCount, singles_count: singlesCount, total_pax: couplesCount*2 + singlesCount, guest_status: guest_status };
-                    showToast('Guest info saved','success');
-                    if (proceed) showItinerary();
-                }catch(err){ console.error('Save error:', err); showToast('Failed to save guest info: '+err.message,'error'); }
-            }
-            
-            async function saveGuestStatusThenShowStep2(){
-                const trip = window.__trip__ || {};
-                const params = new URLSearchParams();
-                params.set('id', trip.id);
-                params.set('customer_name', trip.customer_name||'');
-                params.set('tour_code', trip.tour_code||'');
-                params.set('trip_package_id', trip.trip_package_id);
-                params.set('start_date', trip.start_date||'');
-                params.set('end_date', trip.end_date||'');
-                params.set('status', trip.status||'Pending');
-                params.set('guest_status', (document.getElementById('gi_guest_status')?.value||'').trim());
-                try{
-                    const resp = await fetch(`${API_URL}?action=updateTrip`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() });
-                    const text = await resp.text();
-                    let js; try { js = JSON.parse(text); } catch(e){ showToast('Invalid response while saving status','error'); return; }
-                    if (js.status !== 'success'){ showToast(js.message||'Save failed','error'); return; }
-                    window.__trip__ = { ...trip, guest_status: params.get('guest_status') };
-                    showGuestStep(2);
-                }catch(err){ showToast('Failed to save status: '+err.message,'error'); }
-            }
-
-            document.getElementById('guestInfoSaveBtn')?.addEventListener('click', ()=> saveGuestInfo(false));
-            document.getElementById('guestInfoContinueBtn')?.addEventListener('click', ()=> saveGuestInfo(true));
-            document.getElementById('giNextBtn')?.addEventListener('click', saveGuestStatusThenShowStep2);
-            document.getElementById('giBackBtn')?.addEventListener('click', ()=> showGuestStep(1));
             
             const fetchItinerary = async () => {
                 try {
@@ -3036,34 +1473,6 @@
                     try {
                         // Guest info disabled for 2026/2027 files
                     } catch(_){}
-                    // Load existing guest details
-                    try {
-                        const gRes = await fetch(`${API_URL}?action=getTripGuests&trip_id=${tripId}&_=${Date.now()}`);
-                        const gJs = await gRes.json();
-                        if (gJs.status==='success'){
-                            const det = (gJs.data && gJs.data.details) ? gJs.data.details : { couples:[], singles:[] };
-                            // Populate giGuestList with fetched data
-                            giGuestList.couples = (det.couples||[]).map(c => ({ name1: c.name1||'', name2: c.name2||'', passport1: c.passport1||'', passport2: c.passport2||'', dob1: c.dob1||'', dob2: c.dob2||'', country: c.country||'', minimized: true }));
-                            giGuestList.singles = (det.singles||[]).map(s => ({ name: s.name||'', passport: s.passport||'', dob: s.dob||'', country: s.country||'', minimized: true }));
-                            // Auto-show guest step 2 if any guests exist
-                            if ((giGuestList.couples.length + giGuestList.singles.length) > 0) {
-                                renderGuestList();
-                                try { showGuestStep(2); } catch(e){}
-                            }
-                        }
-                    } catch(_){
-                        // If fetch failed, ensure UI still renders
-                        renderGuestList();
-                    }
-                    // Prefill arrivals if saved
-                    try {
-                        const aRes = await fetch(`${API_URL}?action=getTripArrivals&trip_id=${tripId}&_=${Date.now()}`);
-                        const aJs = await aRes.json();
-                        if (aJs.status==='success' && Array.isArray(aJs.data) && aJs.data.length>0){
-                            const sel = document.getElementById('gi_arrival_type'); if (sel){ sel.value = 'multiple'; sel.dispatchEvent(new Event('change')); }
-                            setTimeout(()=> prefillMultiArrivals(aJs.data), 0);
-                        }
-                    } catch(_e){}
                     // Build arrivals by date map for display with group codes A1, A2...
                     arrivalsByDate = {};
                     (arrivals||[]).forEach(a=>{
@@ -3142,7 +1551,15 @@
                     }
                     
                     summaryToggleBtn.addEventListener('click', () => {
-                        const nextMode = summaryToggleBtn.dataset.viewMode === 'details' ? 'summary' : 'details';
+                        const currentMode = summaryToggleBtn.dataset.viewMode || 'details';
+                        let nextMode;
+                        if (currentMode === 'details') {
+                            nextMode = 'summary';
+                        } else if (currentMode === 'summary') {
+                            nextMode = 'insights';
+                        } else {
+                            nextMode = 'details';
+                        }
                         toggleView(nextMode);
                     });
                     
@@ -4067,6 +2484,46 @@
                     </div>`;
                 });
                 if (!departuresHtml) departuresHtml = '<div class="insight-row">No departures recorded.</div>';
+                
+                // Build file records section grouped by package
+                let fileRecordsHtml = '';
+                const trip = window.__trip__ || {};
+                const packageName = trip.package_name || 'Unknown Package';
+                const fileName = trip.file_name || trip.tour_code || 'Unknown File';
+                
+                // Group itinerary days by date for file records
+                const daysByDate = {};
+                currentItineraryDays.forEach(day => {
+                    const date = day.day_date;
+                    if (!daysByDate[date]) daysByDate[date] = [];
+                    daysByDate[date].push(day);
+                });
+                
+                if (Object.keys(daysByDate).length > 0) {
+                    fileRecordsHtml += `
+                    <div class="file-records-package">
+                        <div class="package-header">
+                            <span class="package-badge">${packageName}</span>
+                        </div>`;
+                    
+                    Object.keys(daysByDate).sort().forEach(date => {
+                        const days = daysByDate[date];
+                        const dayNumbers = days.map(d => `Day ${d.day_number || 'N/A'}`).join(', ');
+                        const hotels = days.map(d => hotelName(d.hotel_id)).filter(h => h).join(', ') || '—';
+                        
+                        fileRecordsHtml += `
+                        <div class="file-record-row">
+                            <div><span class="date-badge">${date}</span><div class="meta">${dayNumbers}</div></div>
+                            <div><strong>File:</strong> ${fileName}<div class="meta">Hotels: ${hotels}</div></div>
+                            <div><strong>Days:</strong> ${days.length}<div class="meta">Package: ${packageName}</div></div>
+                        </div>`;
+                    });
+                    
+                    fileRecordsHtml += `</div>`;
+                } else {
+                    fileRecordsHtml = '<div class="insight-row">No file records available.</div>';
+                }
+                
                 insightsView.innerHTML = `
                     <div class="insights-sections">
                       <div class="insight-card">
@@ -4076,6 +2533,10 @@
                       <div class="insight-card">
                         <div class="head departure"><i class="fas fa-plane-departure"></i> Departures</div>
                         <div class="insight-list">${departuresHtml}</div>
+                      </div>
+                      <div class="insight-card file-records">
+                        <div class="head file-records-header"><i class="fas fa-folder-open"></i> File Records</div>
+                        <div class="insight-list file-records-list">${fileRecordsHtml}</div>
                       </div>
                     </div>`;
             };
@@ -4155,7 +2616,7 @@
                     summaryView.style.display = 'block';
                     insightsView.style.display = 'none';
                     summaryToggleBtn.classList.add('active');
-                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> <span>View Details</span>';
+                    summaryToggleBtn.innerHTML = '<i class="fas fa-chart-line"></i> <span>View Insights</span>';
                     summaryToggleBtn.dataset.viewMode = 'summary';
                     dayTabsContainer.parentNode.style.display = 'none';
                     renderSummaryCards(currentItineraryDays);
@@ -4163,9 +2624,9 @@
                     itineraryGrid.style.display = 'none';
                     summaryView.style.display = 'none';
                     insightsView.style.display = 'block';
-                    summaryToggleBtn.classList.remove('active');
-                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-check"></i> <span>View Summary</span>';
-                    summaryToggleBtn.dataset.viewMode = 'details';
+                    summaryToggleBtn.classList.add('active');
+                    summaryToggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> <span>View Details</span>';
+                    summaryToggleBtn.dataset.viewMode = 'insights';
                     dayTabsContainer.parentNode.style.display = 'none';
                     renderInsights();
                 } else {

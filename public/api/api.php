@@ -185,6 +185,12 @@ switch ($action) {
     case 'getNextTourCode':
         getNextTourCode($conn);
         break;
+    case 'analyzeImportFile':
+        analyzeImportFile($conn);
+        break;
+    case 'importPackages':
+        importPackages($conn);
+        break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Invalid action specified.']);
         break;
@@ -2410,5 +2416,271 @@ function saveTripGuests($conn){
         echo json_encode(['status'=>'success','message'=>'Guests saved','data'=>['couples_count'=>$cou,'singles_count'=>$sin,'total_pax'=>$pax]]);
     } catch (Exception $e) {
         echo json_encode(['status'=>'error','message'=>'Save guests error: '.$e->getMessage().' at line '.$e->getLine()]);
+    }
+}
+
+// ============= PACKAGE IMPORT FUNCTIONS =============
+
+function analyzeImportFile($conn) {
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded or upload error']);
+        return;
+    }
+    
+    $file = $_FILES['file'];
+    $fileName = $file['name'];
+    $filePath = $file['tmp_name'];
+    $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    
+    try {
+        if ($fileExtension === 'csv') {
+            // Handle CSV files
+            $data = analyzeCsvFile($filePath);
+        } else if (in_array($fileExtension, ['xlsx', 'xls'])) {
+            // Handle Excel files with PhpSpreadsheet
+            $data = analyzeExcelFile($filePath);
+        } else {
+            throw new Exception('Unsupported file format. Please upload CSV or Excel files.');
+        }
+        
+        echo json_encode([
+            'status' => 'success', 
+            'data' => $data,
+            'message' => 'File analyzed successfully'
+        ]);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'Error analyzing file: ' . $e->getMessage()
+        ]);
+    }
+}
+
+function analyzeCsvFile($filePath) {
+    $headers = [];
+    $sampleData = [];
+    
+    if (($handle = fopen($filePath, 'r')) !== FALSE) {
+        // Read headers from first row
+        $headers = fgetcsv($handle);
+        
+        // Read up to 5 sample rows
+        $rowCount = 0;
+        while (($row = fgetcsv($handle)) !== FALSE && $rowCount < 5) {
+            $sampleData[] = $row;
+            $rowCount++;
+        }
+        fclose($handle);
+    }
+    
+    return [
+        'headers' => $headers,
+        'sample_data' => $sampleData,
+        'total_rows' => $rowCount
+    ];
+}
+
+function analyzeExcelFile($filePath) {
+    // For now, we'll require PhpSpreadsheet to be installed
+    // You would need to run: composer require phpoffice/phpspreadsheet
+    
+    if (!class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+        throw new Exception('PhpSpreadsheet library not found. Please install it with: composer require phpoffice/phpspreadsheet');
+    }
+    
+    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+    $worksheet = $spreadsheet->getActiveSheet();
+    
+    // Get headers from first row
+    $headers = [];
+    $highestColumn = $worksheet->getHighestColumn();
+    $columnRange = range('A', $highestColumn);
+    
+    foreach ($columnRange as $column) {
+        $headers[] = $worksheet->getCell($column . '1')->getCalculatedValue();
+    }
+    
+    // Get sample data (up to 5 rows)
+    $sampleData = [];
+    $highestRow = min(6, $worksheet->getHighestRow()); // Max 5 sample rows + header
+    
+    for ($row = 2; $row <= $highestRow; $row++) {
+        $rowData = [];
+        foreach ($columnRange as $column) {
+            $rowData[] = $worksheet->getCell($column . $row)->getCalculatedValue();
+        }
+        $sampleData[] = $rowData;
+    }
+    
+    return [
+        'headers' => $headers,
+        'sample_data' => $sampleData,
+        'total_rows' => $worksheet->getHighestRow() - 1 // Exclude header row
+    ];
+}
+
+function importPackages($conn) {
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (!isset($data['mappings']) || !isset($data['data'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid import data']);
+        return;
+    }
+    
+    $mappings = $data['mappings'];
+    $importData = $data['data'];
+    
+    try {
+        $conn->begin_transaction();
+        
+        $packagesCreated = 0;
+        $daysImported = 0;
+        $processedPackages = [];
+        $startTime = microtime(true);
+        
+        foreach ($importData as $rowIndex => $row) {
+            $packageData = [];
+            $requirementsData = [];
+            
+            // Map the row data to our database fields
+            foreach ($mappings as $columnIndex => $mapping) {
+                $value = isset($row[$columnIndex]) ? trim($row[$columnIndex]) : '';
+                $dbField = $mapping['db_field'];
+                
+                switch ($dbField) {
+                    case 'package_name':
+                        $packageData['name'] = $value;
+                        break;
+                    case 'package_code':
+                        $packageData['code'] = $value;
+                        break;
+                    case 'total_days':
+                        $packageData['total_days'] = intval($value);
+                        break;
+                    case 'day_number':
+                        $requirementsData['day_number'] = intval($value);
+                        break;
+                    case 'hotel_name':
+                        $requirementsData['hotel_name'] = $value;
+                        break;
+                    case 'guide_required':
+                        $requirementsData['guide_required'] = (strtolower($value) === 'yes' || $value === '1');
+                        break;
+                    case 'vehicle_required':
+                        $requirementsData['vehicle_required'] = (strtolower($value) === 'yes' || $value === '1');
+                        break;
+                    case 'vehicle_type':
+                        $requirementsData['vehicle_type'] = $value;
+                        break;
+                    case 'services':
+                        $requirementsData['services'] = $value;
+                        break;
+                    case 'activities':
+                        $requirementsData['activities'] = $value;
+                        break;
+                }
+            }
+            
+            // Create or get package
+            $packageId = null;
+            $packageKey = $packageData['name'] . '_' . $packageData['code'];
+            
+            if (isset($processedPackages[$packageKey])) {
+                $packageId = $processedPackages[$packageKey];
+            } else {
+                // Create new package
+                if (empty($packageData['name'])) {
+                    continue; // Skip rows without package name
+                }
+                
+                $packageCode = $packageData['code'] ?: 'PKG_' . time();
+                $totalDays = $packageData['total_days'] ?: 1;
+                
+                $stmt = $conn->prepare("INSERT INTO trip_packages (name, code, No_of_Days, description) VALUES (?, ?, ?, ?)");
+                $description = 'Imported package';
+                $stmt->bind_param('ssis', $packageData['name'], $packageCode, $totalDays, $description);
+                
+                if ($stmt->execute()) {
+                    $packageId = $conn->insert_id;
+                    $processedPackages[$packageKey] = $packageId;
+                    $packagesCreated++;
+                } else {
+                    throw new Exception('Failed to create package: ' . $stmt->error);
+                }
+                $stmt->close();
+            }
+            
+            // Add day requirements if we have day data
+            if ($packageId && !empty($requirementsData['day_number'])) {
+                $dayNumber = $requirementsData['day_number'];
+                $hotelId = null;
+                
+                // Try to find hotel by name
+                if (!empty($requirementsData['hotel_name'])) {
+                    $hotelStmt = $conn->prepare("SELECT id FROM hotels WHERE name LIKE ?");
+                    $hotelName = '%' . $requirementsData['hotel_name'] . '%';
+                    $hotelStmt->bind_param('s', $hotelName);
+                    $hotelStmt->execute();
+                    $hotelResult = $hotelStmt->get_result();
+                    if ($hotelRow = $hotelResult->fetch_assoc()) {
+                        $hotelId = $hotelRow['id'];
+                    }
+                    $hotelStmt->close();
+                }
+                
+                // Insert or update day requirements
+                $reqStmt = $conn->prepare("
+                    INSERT INTO trip_package_requirements 
+                    (trip_package_id, day_number, hotel_id, guide_required, vehicle_required, vehicle_type, day_services, day_notes) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    hotel_id = VALUES(hotel_id),
+                    guide_required = VALUES(guide_required),
+                    vehicle_required = VALUES(vehicle_required),
+                    vehicle_type = VALUES(vehicle_type),
+                    day_services = VALUES(day_services),
+                    day_notes = VALUES(day_notes)
+                ");
+                
+                $guideRequired = $requirementsData['guide_required'] ? 1 : 0;
+                $vehicleRequired = $requirementsData['vehicle_required'] ? 1 : 0;
+                $vehicleType = $requirementsData['vehicle_type'] ?: null;
+                $services = $requirementsData['services'] ?: '';
+                $notes = $requirementsData['activities'] ?: '';
+                
+                $reqStmt->bind_param('iiiissss', 
+                    $packageId, $dayNumber, $hotelId, $guideRequired, $vehicleRequired, $vehicleType, $services, $notes
+                );
+                
+                if ($reqStmt->execute()) {
+                    $daysImported++;
+                } else {
+                    throw new Exception('Failed to create day requirements: ' . $reqStmt->error);
+                }
+                $reqStmt->close();
+            }
+        }
+        
+        $conn->commit();
+        $processingTime = round((microtime(true) - $startTime) * 1000) . 'ms';
+        
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Packages imported successfully',
+            'data' => [
+                'packages_created' => $packagesCreated,
+                'days_imported' => $daysImported,
+                'processing_time' => $processingTime
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Import failed: ' . $e->getMessage()
+        ]);
     }
 }

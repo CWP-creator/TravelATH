@@ -335,6 +335,8 @@
         }
 
         .actions .fa-route { color: var(--primary-color); }
+        .actions .fa-file-export { color: #10b981; }
+        .actions .fa-clone { color: #8b5cf6; }
         .actions .fa-pencil { color: var(--warning-color); }
         .actions .fa-trash { color: var(--error-color); }
         
@@ -933,7 +935,11 @@
                 <div class="trips-container">
                     <div class="trips-header">
                         <h2>Trip Packages Management</h2>
-                        <button id="addPackageBtn" class="btn-add"><i class="fas fa-plus"></i> Add Package</button>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button id="templateDownloadBtn" class="btn-add" style="background-color: #6366f1;"><i class="fas fa-download"></i> Template Download</button>
+                            <button id="importPackageBtn" class="btn-add" style="background-color: #059669;"><i class="fas fa-upload"></i> Import Packages</button>
+                            <button id="addPackageBtn" class="btn-add"><i class="fas fa-plus"></i> Add Package</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table id="packagesTable">
@@ -1154,23 +1160,6 @@
                         </div>
                     </div>
 
-                    <details>
-                        <summary>Optional details</summary>
-                        <div class="form-grid" style="margin-top:8px;">
-                            <div class="form-group">
-                                <label for="passport_no">Passport No</label>
-                                <input type="text" id="passport_no" name="passport_no">
-                            </div>
-                            <div class="form-group">
-                                <label for="address">Address</label>
-                                <input type="text" id="address" name="address">
-                            </div>
-                        </div>
-                        <div id="package_description_container" class="form-group" style="display: none; margin-top:8px;">
-                            <label>Package Details</label>
-                            <div id="package_description"></div>
-                        </div>
-                    </details>
                 </div>
 
                 <div class="section-card" id="guestDetailsCard">
@@ -1579,6 +1568,97 @@
       </div>
     </div>
 
+    <!-- Package Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="close-btn" data-modal="importModal">&times;</span>
+            <h2 id="importModalTitle">Import Packages</h2>
+            
+            <div id="importStep1" class="import-step">
+                <h3>Step 1: Upload File</h3>
+                <div class="form-group">
+                    <label for="importFile">Select Excel or CSV file to import:</label>
+                    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;">
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="importModal">Cancel</button>
+                    <button type="button" id="analyzeFileBtn" class="btn-save btn">Analyze File</button>
+                </div>
+            </div>
+            
+            <div id="importStep2" class="import-step" style="display: none;">
+                <h3>Step 2: Map Columns</h3>
+                <p>Map your file columns to our database fields:</p>
+                <div id="columnMappingContainer"></div>
+                <div class="form-buttons">
+                    <button type="button" id="backToStep1" class="btn-cancel btn">Back</button>
+                    <button type="button" id="saveAndImportBtn" class="btn-save btn">Import Data</button>
+                </div>
+            </div>
+            
+            <div id="importStep3" class="import-step" style="display: none;">
+                <h3>Step 3: Import Results</h3>
+                <div id="importResults"></div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-save btn" data-modal="importModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Styles -->
+    <style>
+        .import-step {
+            min-height: 300px;
+        }
+        .column-mapping {
+            display: grid;
+            grid-template-columns: 1fr 50px 1fr;
+            gap: 15px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+        .file-column {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .mapping-arrow {
+            text-align: center;
+            color: var(--text-light);
+        }
+        .db-field-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .preview-data {
+            background: #f1f5f9;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        .import-success {
+            color: var(--success-color);
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid var(--success-color);
+        }
+        .import-error {
+            color: var(--error-color);
+            background: #fef2f2;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid var(--error-color);
+        }
+    </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -2033,8 +2113,8 @@
                         <td>${pkg.code || 'N/A'}</td>
                         <td>${pkg.No_of_Days || 'N/A'}</td>
                         <td class="actions">
+                            <a href="#" class="btn-export-package" data-id="${pkg.id}" title="Export Package Details"><i class="fas fa-file-export"></i></a>
                             <a href="#" class="btn-duplicate-package" data-id="${pkg.id}" title="Duplicate Package"><i class="fas fa-clone"></i></a>
-                            <a href="#" class="btn-create-trip-from-package" data-id="${pkg.id}" title="Create Trip from Package"><i class="fas fa-route"></i></a>
                             <a href="#" class="btn-delete-package" data-id="${pkg.id}" title="Delete Package"><i class="fas fa-trash"></i></a>
                         </td>
                     `;
@@ -2669,6 +2749,14 @@
             });
             document.getElementById('addTripBtn2').addEventListener('click', () => document.getElementById('addTripBtn').click());
 
+            document.getElementById('importPackageBtn').addEventListener('click', () => {
+                document.getElementById('importFile').value = '';
+                document.getElementById('importStep1').style.display = 'block';
+                document.getElementById('importStep2').style.display = 'none';
+                document.getElementById('importStep3').style.display = 'none';
+                openModal('importModal');
+            });
+
             document.getElementById('addPackageBtn').addEventListener('click', () => {
                 document.getElementById('packageForm').reset();
                 document.getElementById('packageId').value = '';
@@ -2677,6 +2765,293 @@
                 const dupBanner = document.getElementById('packageDuplicateBanner'); if (dupBanner) dupBanner.style.display = 'none';
                 openModal('packageModal');
             });
+
+            document.getElementById('templateDownloadBtn').addEventListener('click', () => {
+                // Create template CSV with headers and sample data
+                const headers = [
+                    'Package ID', 'Package Name', 'Package Code', 'Total Days', 
+                    'Day Number', 'Hotel Name', 'Guide Required', 'Vehicle Required', 
+                    'Vehicle Type', 'Services', 'Activities/Notes'
+                ];
+                
+                // Create sample data rows to show the expected format
+                const sampleRows = [
+                    [
+                        '1', // Package ID - Unique identifier for the package
+                        'Athens City Break', // Package Name - Descriptive name of the tour package
+                        'ACB', // Package Code - Short code/abbreviation for the package
+                        '3', // Total Days - Number of days in the package
+                        '1', // Day Number - Sequential day number (1, 2, 3, etc.)
+                        'Hotel Grande Bretagne', // Hotel Name - Name of the hotel for this day
+                        'Yes', // Guide Required - Yes/No if guide is needed
+                        'Yes', // Vehicle Required - Yes/No if vehicle is needed
+                        'arrival', // Vehicle Type - arrival/departure/tour/intercity/other
+                        'B', // Services - B=Breakfast, L=Lunch, D=Dinner (comma separated)
+                        'Airport pickup and check-in' // Activities/Notes - Description of day activities
+                    ],
+                    [
+                        '1', // Same package, different day
+                        'Athens City Break',
+                        'ACB',
+                        '3',
+                        '2', // Day 2
+                        'Hotel Grande Bretagne',
+                        'Yes',
+                        'Yes',
+                        'tour', // Tour vehicle type
+                        'B, L, D', // All meals included
+                        'Full day Acropolis and Ancient Agora tour with lunch'
+                    ],
+                    [
+                        '1', // Same package, final day
+                        'Athens City Break',
+                        'ACB',
+                        '3',
+                        '3', // Day 3
+                        'Hotel Grande Bretagne',
+                        'No', // No guide needed for departure
+                        'Yes',
+                        'departure', // Departure vehicle type
+                        'B', // Only breakfast
+                        'Hotel checkout and airport transfer'
+                    ],
+                    [
+                        '2', // Different package example
+                        'Greek Islands Adventure',
+                        'GIA',
+                        '5',
+                        '1',
+                        'Mykonos Bay Hotel',
+                        'Yes',
+                        'No', // No vehicle needed (walking tour)
+                        '', // Empty vehicle type when not required
+                        'B, D', // Breakfast and dinner
+                        'Arrival and Mykonos town walking tour'
+                    ]
+                ];
+                
+                // Add instructional comments as additional rows
+                const instructionRows = [
+                    [''],
+                    ['INSTRUCTIONS:'],
+                    ['• Package ID: Use same ID for all days of one package'],
+                    ['• Day Number: Sequential numbering (1, 2, 3, etc.)'],
+                    ['• Guide/Vehicle Required: Enter "Yes" or "No"'],
+                    ['• Vehicle Type: arrival, departure, tour, intercity, other'],
+                    ['• Services: B (Breakfast), L (Lunch), D (Dinner)'],
+                    ['• Use commas to separate multiple services (B, L, D)'],
+                    ['• Activities/Notes: Describe the day\'s itinerary'],
+                    ['• Hotel Name: Must match existing hotel names in system']
+                ];
+                
+                // Combine headers, sample data, and instructions
+                const csvContent = [
+                    headers.join(','),
+                    ...sampleRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')),
+                    ...instructionRows.map(row => row.join(','))
+                ].join('\n');
+                
+                // Create and download template file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                const filename = `package_template_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showToast('Package template downloaded successfully!', 'success');
+            });
+
+            // Import functionality
+            let importFileHeaders = [];
+            let importFileData = [];
+            let columnMappings = {};
+
+            // Database field options for mapping
+            const dbFields = [
+                { value: '', text: '-- Skip this column --' },
+                { value: 'package_name', text: 'Package Name' },
+                { value: 'package_code', text: 'Package Code' },
+                { value: 'total_days', text: 'Total Days' },
+                { value: 'day_number', text: 'Day Number' },
+                { value: 'hotel_name', text: 'Hotel Name' },
+                { value: 'guide_required', text: 'Guide Required (Yes/No)' },
+                { value: 'vehicle_required', text: 'Vehicle Required (Yes/No)' },
+                { value: 'vehicle_type', text: 'Vehicle Type' },
+                { value: 'services', text: 'Services (B,L,D)' },
+                { value: 'activities', text: 'Activities/Notes' }
+            ];
+
+            document.getElementById('analyzeFileBtn').addEventListener('click', async () => {
+                const fileInput = document.getElementById('importFile');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showToast('Please select a file to analyze.', 'error');
+                    return;
+                }
+                
+                showToast('Analyzing file...', 'info');
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    const response = await fetch(`${API_URL}?action=analyzeImportFile`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        importFileHeaders = result.data.headers;
+                        importFileData = result.data.sample_data;
+                        
+                        renderColumnMapping();
+                        
+                        document.getElementById('importStep1').style.display = 'none';
+                        document.getElementById('importStep2').style.display = 'block';
+                        
+                        showToast('File analyzed successfully!', 'success');
+                    } else {
+                        showToast(result.message || 'Failed to analyze file', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error analyzing file: ' + error.message, 'error');
+                }
+            });
+
+            function renderColumnMapping() {
+                const container = document.getElementById('columnMappingContainer');
+                container.innerHTML = '';
+                
+                importFileHeaders.forEach((header, index) => {
+                    const mappingDiv = document.createElement('div');
+                    mappingDiv.className = 'column-mapping';
+                    
+                    // Auto-suggest mapping based on header name
+                    let suggestedField = '';
+                    const headerLower = header.toLowerCase();
+                    if (headerLower.includes('package') && headerLower.includes('name')) suggestedField = 'package_name';
+                    else if (headerLower.includes('package') && headerLower.includes('code')) suggestedField = 'package_code';
+                    else if (headerLower.includes('day') && (headerLower.includes('total') || headerLower.includes('count'))) suggestedField = 'total_days';
+                    else if (headerLower.includes('day') && (headerLower.includes('number') || headerLower.includes('no'))) suggestedField = 'day_number';
+                    else if (headerLower.includes('hotel')) suggestedField = 'hotel_name';
+                    else if (headerLower.includes('guide')) suggestedField = 'guide_required';
+                    else if (headerLower.includes('vehicle') || headerLower.includes('transport')) suggestedField = 'vehicle_required';
+                    else if (headerLower.includes('service') || headerLower.includes('meal')) suggestedField = 'services';
+                    else if (headerLower.includes('activity') || headerLower.includes('program') || headerLower.includes('note')) suggestedField = 'activities';
+                    
+                    let selectOptions = dbFields.map(field => 
+                        `<option value="${field.value}" ${field.value === suggestedField ? 'selected' : ''}>${field.text}</option>`
+                    ).join('');
+                    
+                    // Get sample data for preview
+                    const sampleData = importFileData.length > 0 ? importFileData[0][index] || '' : '';
+                    
+                    mappingDiv.innerHTML = `
+                        <div>
+                            <div class="file-column">${header}</div>
+                            <div class="preview-data">Sample: ${sampleData}</div>
+                        </div>
+                        <div class="mapping-arrow">→</div>
+                        <div>
+                            <select class="db-field-select" data-column="${index}">
+                                ${selectOptions}
+                            </select>
+                        </div>
+                    `;
+                    
+                    container.appendChild(mappingDiv);
+                });
+            }
+
+            document.getElementById('backToStep1').addEventListener('click', () => {
+                document.getElementById('importStep2').style.display = 'none';
+                document.getElementById('importStep1').style.display = 'block';
+            });
+
+            document.getElementById('saveAndImportBtn').addEventListener('click', async () => {
+                // Collect column mappings
+                columnMappings = {};
+                const selects = document.querySelectorAll('.db-field-select');
+                
+                selects.forEach(select => {
+                    const columnIndex = select.dataset.column;
+                    const dbField = select.value;
+                    if (dbField) {
+                        columnMappings[columnIndex] = {
+                            file_header: importFileHeaders[columnIndex],
+                            db_field: dbField
+                        };
+                    }
+                });
+                
+                if (Object.keys(columnMappings).length === 0) {
+                    showToast('Please map at least one column to import data.', 'error');
+                    return;
+                }
+                
+                showToast('Importing data...', 'info');
+                
+                try {
+                    const response = await fetch(`${API_URL}?action=importPackages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            mappings: columnMappings,
+                            data: importFileData
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    // Show results
+                    const resultsDiv = document.getElementById('importResults');
+                    
+                    if (result.status === 'success') {
+                        const stats = result.data;
+                        resultsDiv.innerHTML = `
+                            <div class="import-success">
+                                <h4>Import Completed Successfully!</h4>
+                                <p><strong>Packages Created:</strong> ${stats.packages_created || 0}</p>
+                                <p><strong>Total Days Imported:</strong> ${stats.days_imported || 0}</p>
+                                <p><strong>Processing Time:</strong> ${stats.processing_time || 'N/A'}</p>
+                            </div>
+                        `;
+                        
+                        showToast('Data imported successfully!', 'success');
+                        
+                        // Refresh packages data
+                        fetchPackages();
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div class="import-error">
+                                <h4>Import Failed</h4>
+                                <p>${result.message}</p>
+                                ${result.errors ? '<ul>' + result.errors.map(err => `<li>${err}</li>`).join('') + '</ul>' : ''}
+                            </div>
+                        `;
+                        
+                        showToast(result.message || 'Import failed', 'error');
+                    }
+                    
+                    document.getElementById('importStep2').style.display = 'none';
+                    document.getElementById('importStep3').style.display = 'block';
+                    
+                } catch (error) {
+                    showToast('Error importing data: ' + error.message, 'error');
+                }
+            });
+
 
             document.getElementById('addHotelBtn').addEventListener('click', () => {
                 document.getElementById('hotelForm').reset();
@@ -2996,10 +3371,6 @@
                         const newId = (!packageId && result.data && result.data.id) ? result.data.id : (packageId || null);
                         closeModal('packageModal');
                         await fetchPackages();
-                        // After creating a package, ask to create a trip from it via notification
-                        if (!packageId && newId) {
-                            showActionToast('Package created. Create a trip from it now?', 'Create Trip', () => openTripModalForPackage(newId));
-                        }
                     } else {
                         showToast(result.message, 'error');
                     }
@@ -3851,21 +4222,6 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 fetchGuestsForTrip(trip.id);
             }
 
-            function openTripModalForPackage(pkgId){
-                // Reset trip form as Add Trip
-                document.getElementById('tripForm').reset();
-                document.getElementById('tripIdHidden').value = '';
-                document.getElementById('tripIdDisplay').value = '';
-                document.getElementById('fileIdGroup').style.display = 'none';
-                document.getElementById('modalTitle').textContent = 'Add Trip';
-                // Select the package
-                const pkgSelect = document.getElementById('trip_package_id');
-                if (pkgSelect){
-                    pkgSelect.value = String(pkgId);
-                    pkgSelect.dispatchEvent(new Event('change'));
-                }
-                openModal('tripModal');
-            }
 
             async function openPackageEditModal(pkg){
                 document.getElementById('packageModalTitle').textContent = 'Edit Package';
@@ -3948,17 +4304,91 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                     openTripById(id);
                 }
 
-                if (target.classList.contains('btn-create-trip-from-package')) {
-                    e.preventDefault();
-                    const pkg = packagesData.find(p => p.id == id);
-                    if (pkg) {
-                        openTripModalForPackage(pkg.id);
-                    }
-                }
-
                 if (target.classList.contains('btn-duplicate-trip')) {
                     e.preventDefault();
                     await duplicateTrip(id);
+                }
+
+                if (target.classList.contains('btn-export-package')) {
+                    e.preventDefault();
+                    const pkg = packagesData.find(p => p.id == id);
+                    if (!pkg) return;
+                    
+                    try {
+                        showToast(`Preparing ${pkg.name} details for export...`, 'info');
+                        
+                        // Fetch detailed requirements for this specific package
+                        const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
+                        const result = await response.json();
+                        
+                        // Create CSV headers for detailed export
+                        const headers = [
+                            'Package ID', 'Package Name', 'Package Code', 'Total Days', 
+                            'Day Number', 'Hotel Name', 'Guide Required', 'Vehicle Required', 
+                            'Vehicle Type', 'Services', 'Activities/Notes'
+                        ];
+                        
+                        const csvRows = [];
+                        
+                        if (result.status === 'success' && result.data && result.data.length > 0) {
+                            // Process each day's requirements
+                            result.data.forEach(req => {
+                                // Find hotel name
+                                const hotel = hotelsData.find(h => h.id == req.hotel_id);
+                                const hotelName = hotel ? hotel.name : (req.hotel_id ? `Hotel ID: ${req.hotel_id}` : 'No Hotel');
+                                
+                                csvRows.push([
+                                    pkg.id || '',
+                                    pkg.name || '',
+                                    pkg.code || '',
+                                    pkg.No_of_Days || '',
+                                    req.day_number || '',
+                                    hotelName,
+                                    req.guide_required === '1' || req.guide_required === 1 ? 'Yes' : 'No',
+                                    req.vehicle_required === '1' || req.vehicle_required === 1 ? 'Yes' : 'No',
+                                    req.vehicle_type || '',
+                                    req.day_services || '',
+                                    req.day_notes || ''
+                                ]);
+                            });
+                        } else {
+                            // Package has no detailed requirements, add basic info only
+                            csvRows.push([
+                                pkg.id || '',
+                                pkg.name || '',
+                                pkg.code || '',
+                                pkg.No_of_Days || '',
+                                'No detailed requirements',
+                                '', '', '', '', '', ''
+                            ]);
+                        }
+                        
+                        // Combine headers and rows
+                        const csvContent = [
+                            headers.join(','),
+                            ...csvRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+                        ].join('\n');
+                        
+                        // Create and download file
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.setAttribute('href', url);
+                        const packageName = (pkg.name || 'Package').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                        const filename = `${packageName}_details_${new Date().toISOString().slice(0, 10)}.csv`;
+                        link.setAttribute('download', filename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        showToast(`${pkg.name} details exported successfully!`, 'success');
+                        
+                    } catch (error) {
+                        console.error('Export error:', error);
+                        showToast('Error exporting package details: ' + error.message, 'error');
+                    }
                 }
 
                 if (target.classList.contains('btn-duplicate-package')) {
