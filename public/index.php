@@ -568,6 +568,15 @@
             font-size: 0.9rem;
             margin-top: 5px;
         }
+
+        .filter-select {
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-color);
+            font-weight: 500;
+        }
         
         @media screen and (max-width: 768px) {
             .requirement-grid {
@@ -812,7 +821,7 @@
             <li class="nav-section">
                 <a class="section-toggle" data-toggle="reports">
                     <i class="fas fa-chart-bar fa-fw"></i> 
-                    <span class="link-text">Insights</span>
+                    <span class="link-text">Report</span>
                     <i class="fas fa-chevron-down toggle-arrow"></i>
                 </a>
                 <ul class="nav-submenu" id="reportsSubmenu">
@@ -908,7 +917,15 @@
             <section id="tripsSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
-                        <h2>All Trips</h2>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <select id="tripsPackageFilter" class="filter-select">
+                                <option value="">All Packages</option>
+                            </select>
+                            <select id="tripsGroupFilter" class="filter-select">
+                                <option value="">All Groups</option>
+                            </select>
+                            <button id="clearTripsFilter" class="btn-add" style="background-color: var(--text-light);"><i class="fas fa-times"></i> Remove Filters</button>
+                        </div>
                         <button id="addTripBtn2" class="btn-add"><i class="fas fa-plus"></i> New Trip</button>
                     </div>
                     <div class="table-container">
@@ -916,7 +933,7 @@
                             <thead>
                                 <tr>
                                     <th>File ID</th>
-                                    <th>CUSTOMER</th>
+                                    <th>Group Name</th>
                                     <th>TOUR CODE</th>
                                     <th>PACKAGE</th>
                                     <th>START DATE</th>
@@ -1044,6 +1061,7 @@
                 </div>
             </section>
 
+
             <section id="vehiclerecordsSection" class="content-section">
                 <div class="trips-container">
                     <div class="trips-header">
@@ -1069,7 +1087,7 @@
                 <div class="trips-container">
                     <div class="trips-header">
                         <h2>Hotel Booking Records</h2>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; align-items:center;">
                             <select id="filterStatus" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
                                 <option value="">All Status</option>
                                 <option value="Active">Active</option>
@@ -1077,6 +1095,7 @@
                                 <option value="Pending">Pending</option>
                             </select>
                             <input type="month" id="filterMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                            <button id="clearHotelRecordsFilter" class="btn-add" style="background-color: var(--text-light);"><i class="fas fa-times"></i> Remove Filters</button>
                         </div>
                     </div>
                     <div id="hotelRecordsContainer" class="hotel-records-container">
@@ -1089,7 +1108,7 @@
                 <div class="trips-container">
                     <div class="trips-header">
                         <h2>Guide Assignment Records</h2>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; align-items:center;">
                             <select id="guideFilterStatus" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
                                 <option value="">All Status</option>
                                 <option value="Active">Active</option>
@@ -1097,6 +1116,7 @@
                                 <option value="Pending">Pending</option>
                             </select>
                             <input type="month" id="guideFilterMonth" class="btn-add" style="padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: white; color: var(--text-color);">
+                            <button id="clearGuideRecordsFilter" class="btn-add" style="background-color: var(--text-light);"><i class="fas fa-times"></i> Remove Filters</button>
                         </div>
                     </div>
                     <div id="guideRecordsContainer" class="hotel-records-container">
@@ -1580,7 +1600,7 @@
             let hotelRecordsData = [];
             let guideRecordsData = [];
 
-    async function logout() {
+    window.logout = async function() {
         if (confirm('Are you sure you want to logout?')) {
             try {
                 // Show loading state
@@ -1704,6 +1724,7 @@
             // Month inputs default to current
             const nowMonth = new Date().toISOString().slice(0,7);
             const insM = document.getElementById('insightsMonth'); if (insM) { insM.value = nowMonth; insM.addEventListener('change', fetchInsights); }
+            
 
             // Initialize sidebar - expand Entry section by default
             const entryToggle = document.querySelector('[data-toggle="entry"]');
@@ -1755,6 +1776,25 @@
                             const days = pkg.No_of_Days ? ` (${pkg.No_of_Days} Days)` : '';
                             select.innerHTML += `<option value="${pkg.id}" data-description="${pkg.description || ''}" data-days="${pkg.No_of_Days || ''}">${pkg.name}${days}</option>`;
                         });
+                        // Populate trips package filter
+                        const tripsFilter = document.getElementById('tripsPackageFilter');
+                        if (tripsFilter) {
+                            tripsFilter.innerHTML = '<option value="">All Packages</option>';
+                            packagesData.forEach(pkg => {
+                                tripsFilter.innerHTML += `<option value="${pkg.id}">${pkg.name}${pkg.code ? ` (${pkg.code})` : ''}</option>`;
+                            });
+                            tripsFilter.addEventListener('change', filterAllTrips);
+                        }
+                        // Populate trips group name filter
+                        const groupFilter = document.getElementById('tripsGroupFilter');
+                        if (groupFilter) {
+                            const groupNames = [...new Set(tripsData.map(t => t.customer_name || t.file_name).filter(Boolean))].sort();
+                            groupFilter.innerHTML = '<option value="">All Groups</option>';
+                            groupNames.forEach(name => {
+                                groupFilter.innerHTML += `<option value="${name}">${name}</option>`;
+                            });
+                            groupFilter.addEventListener('change', filterAllTrips);
+                        }
                     }
                 } catch (error) {
                     showToast('Error fetching packages.', 'error');
@@ -1815,6 +1855,8 @@
                     showToast('Error fetching guides.', 'error');
                 }
             };
+            
+            
 
             async function fetchHotelRecords() {
                 try {
@@ -2004,6 +2046,24 @@
                     tbody.appendChild(row);
                 });
             };
+
+            function filterAllTrips() {
+                const selectedPackageId = document.getElementById('tripsPackageFilter').value;
+                const selectedGroupName = document.getElementById('tripsGroupFilter').value;
+                const tbody = document.querySelector('#allTripsTable tbody');
+                
+                let filteredTrips = tripsData;
+
+                if (selectedPackageId) {
+                    filteredTrips = filteredTrips.filter(trip => String(trip.trip_package_id) === String(selectedPackageId));
+                }
+
+                if (selectedGroupName) {
+                    filteredTrips = filteredTrips.filter(trip => (trip.customer_name || trip.file_name) === selectedGroupName);
+                }
+
+                renderTrips(filteredTrips, tbody);
+            }
 
                 function renderPackages(packages) {
                 const tbody = document.querySelector('#packagesTable tbody');
@@ -2339,10 +2399,10 @@
                 const descriptionContainer = document.getElementById('package_description_container');
                 const descriptionBox = document.getElementById('package_description');
 
-                if (description && description.trim() !== '') {
-                    descriptionBox.textContent = description;
+                if (descriptionContainer && description && description.trim() !== '') {
+                    if (descriptionBox) descriptionBox.textContent = description;
                     descriptionContainer.style.display = 'block';
-                } else {
+                } else if (descriptionContainer) {
                     descriptionContainer.style.display = 'none';
                 }
                 calculateDepartureDate();
@@ -2630,8 +2690,6 @@
                 document.getElementById('tripIdDisplay').value = '';
                 document.getElementById('fileIdGroup').style.display = 'none';
                 document.getElementById('modalTitle').textContent = 'Add Trip';
-                
-                document.getElementById('package_description_container').style.display = 'none';
 
                 // Creation-lite: hide Guest Details and Arrival/Departure sections & controls
                 const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = 'none';
@@ -2655,7 +2713,21 @@
 
                 openModal('tripModal');
             });
-            document.getElementById('addTripBtn2').addEventListener('click', () => document.getElementById('addTripBtn').click());
+
+            document.getElementById('addTripBtn2').addEventListener('click', () => {
+                // Get the selected package from the filter on the trips page
+                const selectedPackageId = document.getElementById('tripsPackageFilter').value;
+
+                // Trigger the standard "add trip" modal opening logic
+                document.getElementById('addTripBtn').click();
+
+                // If a package was selected in the filter, pre-select it in the modal
+                if (selectedPackageId) {
+                    const packageSelectInModal = document.getElementById('trip_package_id');
+                    packageSelectInModal.value = selectedPackageId;
+                    packageSelectInModal.dispatchEvent(new Event('change')); // Trigger change to update dependent fields
+                }
+            });
 
 
             document.getElementById('addPackageBtn').addEventListener('click', () => {
@@ -3888,6 +3960,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 document.getElementById('tripIdHidden').value = trip.id;
                 document.getElementById('tripIdDisplay').value = '';
                 document.getElementById('fileIdGroup').style.display = 'none';
+                document.getElementById('file_name').value = trip.customer_name || '';
                 document.getElementById('company').value = (trip.company || '');
                 const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 const gd = document.getElementById('guest_details'); if (gd) gd.value = (trip.guest_details || '');
@@ -3898,7 +3971,11 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 document.getElementById('tour_code').value = trip.tour_code || '';
                 document.getElementById('passport_no').value = (trip.passport_no || '');
                 document.getElementById('address').value = (trip.address || '');
-                document.getElementById('trip_package_id').value = trip.trip_package_id;
+                // Set package by name since trip has package_name
+                const pkg = packagesData.find(p => p.name === trip.package_name);
+                if (pkg) {
+                    document.getElementById('trip_package_id').value = pkg.id;
+                }
                 // Dates
                 document.getElementById('start_date').value = (trip.start_date || '');
                 document.getElementById('end_date').value = (trip.end_date || '');
@@ -3982,14 +4059,8 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 const trip = tripsData.find(t => t.id == id);
                 if (!trip){ showToast('Trip not found','error'); return; }
                 populateTripForm(trip);
-                // Ensure all sections visible for editing
-                document.getElementById('tripForm')?.classList.remove('creation-lite');
-                const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = '';
-                const s2 = document.getElementById('tripStep2'); if (s2) s2.style.display = '';
-                const s3 = document.getElementById('tripStep3'); if (s3) s3.style.display = '';
-                const c2 = document.getElementById('controlsStep2'); if (c2) c2.style.display = 'flex';
-                const c3 = document.getElementById('controlsStep3'); if (c3) c3.style.display = 'flex';
-                const next1 = document.getElementById('btnStepNext1'); if (next1) next1.style.display = '';
+                // Use same lite format as create
+                document.getElementById('tripForm')?.classList.add('creation-lite');
                 openModal('tripModal');
             }
 
@@ -4427,6 +4498,29 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             // Add event listeners for guide filters
             document.getElementById('guideFilterStatus').addEventListener('change', filterGuideRecords);
             document.getElementById('guideFilterMonth').addEventListener('change', filterGuideRecords);
+
+            // --- Clear Filter Buttons ---
+            document.getElementById('clearTripsFilter').addEventListener('click', () => {
+                document.getElementById('tripsPackageFilter').value = '';
+                document.getElementById('tripsGroupFilter').value = '';
+                filterAllTrips();
+                showToast('Trip filters cleared.', 'info');
+            });
+
+            document.getElementById('clearHotelRecordsFilter').addEventListener('click', () => {
+                document.getElementById('filterStatus').value = '';
+                document.getElementById('filterMonth').value = '';
+                filterHotelRecords();
+                showToast('Hotel record filters cleared.', 'info');
+            });
+
+            document.getElementById('clearGuideRecordsFilter').addEventListener('click', () => {
+                document.getElementById('guideFilterStatus').value = '';
+                document.getElementById('guideFilterMonth').value = '';
+                filterGuideRecords();
+                showToast('Guide record filters cleared.', 'info');
+            });
+
 
             // Day roster filters
             const drMonth = document.getElementById('dayRosterMonth');
