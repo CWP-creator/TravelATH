@@ -304,6 +304,37 @@
             font-size: 0.9rem;
             color: var(--text-light);
         }
+        
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 25px;
+        }
+        
+        th.sortable:hover {
+            background-color: #e9ecef;
+        }
+        
+        th.sortable .sort-arrow {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: var(--text-light);
+            transition: transform 0.2s ease;
+        }
+        
+        th.sortable.sort-asc .sort-arrow {
+            color: var(--primary-color);
+            transform: translateY(-50%) rotate(0deg);
+        }
+        
+        th.sortable.sort-desc .sort-arrow {
+            color: var(--primary-color);
+            transform: translateY(-50%) rotate(180deg);
+        }
 
         tr {
             transition: background-color 0.3s ease;
@@ -607,6 +638,7 @@
         .action-toast .btn-primary { background: var(--primary-color); color: #fff; }
         .action-toast .btn-secondary { background: #374151; color: #e5e7eb; }
 
+        /* Tablet Styles */
         @media screen and (max-width: 992px) {
             .sidebar {
                 width: 70px;
@@ -620,7 +652,7 @@
                 justify-content: center;
             }
             .sidebar-nav li a .link-text { display: none; }
-            
+
             /* Hide collapsible functionality on small screens */
             .section-toggle .link-text { display: none; }
             .toggle-arrow { display: none; }
@@ -638,7 +670,36 @@
                 width: calc(100% - 70px);
                 margin-left: 70px;
             }
+
+            /* Make tables more responsive */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table {
+                min-width: 600px; /* Ensure minimum width for readability */
+            }
+
+            /* Adjust stats cards for tablet */
+            .stats-cards {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            /* Adjust modal sizes */
+            #tripModal .modal-content {
+                max-width: 90vw;
+                margin: 5% auto;
+            }
+
+            .arrival-drawer {
+                width: 80vw;
+                max-width: 500px;
+            }
         }
+
+        /* Mobile Styles */
         @media screen and (max-width: 768px) {
             body { flex-direction: column; }
             .sidebar {
@@ -658,15 +719,275 @@
                 width: 100%;
                 margin-left: 0;
             }
-            .top-header { height: auto; flex-direction: column; padding: 15px; gap: 15px; }
-            .header-stats { gap: 15px; }
+            .top-header {
+                height: auto;
+                flex-direction: column;
+                padding: 15px;
+                gap: 15px;
+                text-align: center;
+            }
+            .header-title {
+                font-size: 1.2rem;
+            }
+            .header-stats {
+                gap: 15px;
+                justify-content: center;
+            }
+            .stat-item {
+                text-align: center;
+            }
+            .stat-item .label {
+                display: block;
+                margin-top: 2px;
+            }
+
             .main-content { padding: 15px; }
-            .stats-cards { gap: 15px; }
+            .stats-cards {
+                gap: 15px;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+            .stat-card h3 {
+                font-size: 0.9rem;
+            }
+            .stat-card .value {
+                font-size: 1.8rem;
+            }
+
+            /* Improve table responsiveness */
+            .table-container {
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 12px 8px;
+            }
+
+            /* Make action buttons more touch-friendly */
+            .actions a {
+                padding: 8px;
+                font-size: 1.1rem;
+            }
+
+            /* Adjust modal for mobile */
+            .modal-content {
+                margin: 10px;
+                padding: 20px;
+                max-width: none;
+                width: calc(100vw - 20px);
+            }
+
+            #tripModal .modal-content {
+                max-width: 95vw;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .arrival-drawer {
+                width: 95vw;
+                max-width: none;
+                height: 80vh;
+                left: 2.5vw;
+                top: 100px;
+            }
+
+            /* Adjust form elements for mobile */
+            .form-group input, .form-group select {
+                padding: 12px;
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+
+            .btn-add {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+
+            /* Stack form grids on mobile */
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            /* Adjust counter rows for mobile */
+            .counter-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .counter {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Make services block more mobile-friendly */
+            .services-block {
+                padding: 12px;
+            }
+
+            .services-block label {
+                margin: 4px 0;
+            }
+
+            /* Adjust toast positioning for mobile */
+            .toast {
+                left: 50%;
+                transform: translateX(-50%);
+                width: 90%;
+                max-width: 400px;
+            }
+
+            /* Adjust action toast for mobile */
+            .action-toast {
+                left: 10px;
+                right: 10px;
+                width: auto;
+            }
         }
 
+        /* Small Mobile Styles */
         @media screen and (max-width: 576px) {
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                text-align: center;
+            }
+
+            .header-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .stat-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: left;
+            }
+
+            .stat-item .label {
+                margin-top: 0;
+            }
+
+            /* Make buttons stack on very small screens */
+            .trips-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .trips-header h2 {
+                text-align: center;
+                margin-bottom: 0;
+            }
+
+            /* Adjust modal content for small screens */
+            .modal-content h2 {
+                font-size: 1.4rem;
+            }
+
+            .section-card h4 {
+                font-size: 0.9rem;
+            }
+
+            /* Make form buttons stack */
+            .form-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .form-buttons button {
+                width: 100%;
+            }
+
+            /* Adjust hotel records for mobile */
+            .booking-item {
+                padding: 12px;
+            }
+
+            .booking-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .booking-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Extra small screens */
+        @media screen and (max-width: 480px) {
+            .main-content {
+                padding: 10px;
+            }
+
+            .top-header {
+                padding: 10px;
+            }
+
+            .header-title {
+                font-size: 1.1rem;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-card .value {
+                font-size: 1.6rem;
+            }
+
+            /* Adjust table for very small screens */
+            th, td {
+                padding: 8px 4px;
+                font-size: 0.8rem;
+            }
+
+            .status {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+
+            /* Make modal even more compact */
+            .modal-content {
+                padding: 15px;
+            }
+
+            #tripModal .modal-content {
+                padding: 15px;
+            }
+
+            .section-card {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            /* Adjust arrival drawer for small screens */
+            .arrival-drawer {
+                width: 100vw;
+                left: 0;
+                top: 80px;
+                height: 85vh;
             }
         }
 
@@ -936,7 +1257,7 @@
                                     <th>Group Name</th>
                                     <th>TOUR CODE</th>
                                     <th>PACKAGE</th>
-                                    <th>START DATE</th>
+                                    <th class="sortable sort-asc" id="sortStartDate">START DATE <i class="fas fa-arrow-up sort-arrow"></i></th>
                                     <th>END DATE</th>
                                     <th>STATUS</th>
                                     <th>ACTIONS</th>
@@ -1154,6 +1475,12 @@
                         <div class="form-group">
                             <label for="file_name">File Name</label>
                             <input type="text" id="file_name" name="file_name" placeholder="e.g. Smith Family 2027" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="trip_package_id">Tour Name (Package)</label>
+                            <select id="trip_package_id" name="trip_package_id" required>
+                                <option value="">Select Package</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="tour_code">Tour File No</label>
@@ -1783,16 +2110,15 @@
                             packagesData.forEach(pkg => {
                                 tripsFilter.innerHTML += `<option value="${pkg.id}">${pkg.name}${pkg.code ? ` (${pkg.code})` : ''}</option>`;
                             });
-                            tripsFilter.addEventListener('change', filterAllTrips);
+                            tripsFilter.addEventListener('change', () => {
+                                updateGroupFilter();
+                                filterAllTrips();
+                            });
                         }
                         // Populate trips group name filter
                         const groupFilter = document.getElementById('tripsGroupFilter');
                         if (groupFilter) {
-                            const groupNames = [...new Set(tripsData.map(t => t.customer_name || t.file_name).filter(Boolean))].sort();
-                            groupFilter.innerHTML = '<option value="">All Groups</option>';
-                            groupNames.forEach(name => {
-                                groupFilter.innerHTML += `<option value="${name}">${name}</option>`;
-                            });
+                            updateGroupFilter();
                             groupFilter.addEventListener('change', filterAllTrips);
                         }
                     }
@@ -2016,21 +2342,32 @@
             }
 
             // --- UI Rendering ---
-            function renderTrips(trips, tbody) {
+            let tripsSortOrder = 'asc'; // Track current sort order for start_date
+            
+            function renderTrips(trips, tbody, skipSort = false) {
                 tbody.innerHTML = '';
                 if (!trips || trips.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
                     return;
                 }
-                // Sort trips in ascending order by ID
-                const sortedTrips = [...trips].sort((a, b) => a.id - b.id);
+                // Sort trips based on current sort order (by start_date)
+                let sortedTrips;
+                if (skipSort) {
+                    sortedTrips = [...trips];
+                } else {
+                    sortedTrips = [...trips].sort((a, b) => {
+                        const dateA = new Date(a.start_date || '9999-12-31');
+                        const dateB = new Date(b.start_date || '9999-12-31');
+                        return tripsSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+                    });
+                }
                 sortedTrips.forEach(trip => {
                     const row = document.createElement('tr');
                     row.setAttribute('data-id', trip.id);
                     row.classList.add('trip-row');
                     row.innerHTML = `
                         <td>#${String(trip.id).padStart(3, '0')}</td>
-                        <td>${trip.customer_name}</td>
+                        <td>${trip.file_name || trip.customer_name}</td>
                         <td>${trip.tour_code || 'N/A'}</td>
                         <td>${trip.package_name}</td>
                         <td>${trip.start_date}</td>
@@ -2047,6 +2384,36 @@
                 });
             };
 
+            function updateGroupFilter() {
+                const groupFilter = document.getElementById('tripsGroupFilter');
+                if (!groupFilter) return;
+                
+                const selectedPackageId = document.getElementById('tripsPackageFilter').value;
+                const currentGroupValue = groupFilter.value;
+                
+                // Filter trips by selected package first
+                let relevantTrips = tripsData;
+                if (selectedPackageId) {
+                    relevantTrips = tripsData.filter(trip => String(trip.trip_package_id) === String(selectedPackageId));
+                }
+                
+                // Get unique group names from relevant trips
+                const groupNames = [...new Set(relevantTrips.map(t => t.customer_name || t.file_name).filter(Boolean))].sort();
+                
+                // Update the group filter options
+                groupFilter.innerHTML = '<option value="">All Groups</option>';
+                groupNames.forEach(name => {
+                    groupFilter.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                
+                // Restore selection if still valid
+                if (currentGroupValue && groupNames.includes(currentGroupValue)) {
+                    groupFilter.value = currentGroupValue;
+                } else {
+                    groupFilter.value = '';
+                }
+            }
+            
             function filterAllTrips() {
                 const selectedPackageId = document.getElementById('tripsPackageFilter').value;
                 const selectedGroupName = document.getElementById('tripsGroupFilter').value;
@@ -2063,6 +2430,22 @@
                 }
 
                 renderTrips(filteredTrips, tbody);
+            }
+            
+            // Add sort handler for START DATE column (attach immediately since we're already in DOMContentLoaded)
+            const sortStartDateHeader = document.getElementById('sortStartDate');
+            if (sortStartDateHeader) {
+                sortStartDateHeader.addEventListener('click', function() {
+                    // Toggle sort order
+                    tripsSortOrder = tripsSortOrder === 'asc' ? 'desc' : 'asc';
+                    
+                    // Update visual indicator
+                    this.classList.remove('sort-asc', 'sort-desc');
+                    this.classList.add(tripsSortOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+                    
+                    // Re-render the current filtered trips
+                    filterAllTrips();
+                });
             }
 
                 function renderPackages(packages) {
@@ -4057,10 +4440,13 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
 
             function openTripById(id){
                 const trip = tripsData.find(t => t.id == id);
+                if (!trip) { showToast('Trip not found', 'error'); return; }
                 if (!trip){ showToast('Trip not found','error'); return; }
+                
+                // When editing, we want the full form, not the 'lite' version.
+                document.getElementById('tripForm')?.classList.remove('creation-lite');
+                
                 populateTripForm(trip);
-                // Use same lite format as create
-                document.getElementById('tripForm')?.classList.add('creation-lite');
                 openModal('tripModal');
             }
 

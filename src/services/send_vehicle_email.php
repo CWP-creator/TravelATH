@@ -31,6 +31,7 @@ set_error_handler(function($severity, $message, $file, $line) {
 });
 
 require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/../../config/db_connect.php';
 
 function respond($status, $message, $extra = []) {
     while (ob_get_level() > 0) { ob_end_clean(); }

@@ -1,3 +1,7 @@
+<?php 
+require_once '../utils/check_session.php';
+require_once '../src/services/db_connect.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -931,53 +935,756 @@
             box-shadow: 0 0 0 2px var(--primary-color);
         }
 
+        /* Tablet Styles */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 15px 15px;
+            }
+
+            .page-header {
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .trip-info h1 {
+                font-size: 1.2rem;
+            }
+
+            .tabs-and-toggle {
+                margin-bottom: 15px;
+            }
+
+            .day-tabs-nav {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .itinerary-grid, .summary-view-wrapper {
+                padding: 25px;
+                min-height: 600px;
+            }
+
+            .assignments-grid {
+                gap: 12px;
+            }
+
+            .hotel-fields {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .room-quantities-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            /* Adjust summary cards for tablet */
+            .summary-card-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 8px;
+            }
+
+            .summary-card {
+                min-width: 200px;
+            }
+
+            /* Make form actions more compact */
+            .form-actions-buttons {
+                gap: 10px;
+            }
+
+            .btn-save, .btn-export {
+                padding: 12px 18px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Mobile Styles */
         @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+                max-width: none;
+            }
+
+            .page-header {
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .trip-info {
+                text-align: center;
+            }
+
+            .trip-info h1 {
+                font-size: 1.1rem;
+            }
+
+            .trip-meta {
+                justify-content: center;
+            }
+
+            .btn-back {
+                align-self: center;
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+
             .tabs-and-toggle {
                 flex-direction: column;
                 align-items: stretch;
+                margin-bottom: 15px;
+                border-bottom: none;
             }
+
             .day-tabs-wrapper {
                 margin-right: 0;
                 margin-bottom: 10px;
+                position: relative;
+                overflow: hidden;
             }
+
             .day-tabs-nav {
                 padding-left: 0;
                 padding-right: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
+
             .tab-scroll-btn {
-                display: none;
+                display: none; /* Hide scroll buttons on mobile */
             }
+
+            .tab-button {
+                flex-shrink: 0;
+                white-space: nowrap;
+                padding: 12px 18px;
+                font-size: 0.9rem;
+                margin-right: 8px;
+            }
+
+            .tab-button.active {
+                padding: 12px 18px;
+            }
+
+            .summary-toggle-btn {
+                align-self: center;
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+
+            .itinerary-grid, .summary-view-wrapper {
+                padding: 15px;
+                min-height: 500px;
+                border-radius: 10px;
+            }
+
+            .day-content-wrapper > div:first-child {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+
             .assignments-grid {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
+
             .hotel-group, .hotel-fields {
                 grid-column: span 1;
                 grid-template-columns: 1fr;
             }
-            .itinerary-grid, .summary-view-wrapper {
-                padding: 20px;
-                min-height: 550px; 
+
+            .hotel-fields {
+                gap: 10px;
             }
+
+            .room-quantities-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .room-quantity-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .room-quantity-item label {
+                margin: 0;
+                font-size: 0.8rem;
+            }
+
+            .room-quantity-item input {
+                width: 100%;
+                padding: 6px;
+                font-size: 0.85rem;
+            }
+
+            .form-group textarea {
+                min-height: 120px;
+                font-size: 0.9rem;
+            }
+
             .form-actions {
+                padding: 15px 10px;
                 flex-direction: column;
                 gap: 10px;
-                padding: 15px;
             }
+
+            .save-info {
+                text-align: center;
+                margin-bottom: 5px;
+            }
+
             .form-actions-buttons {
                 width: 100%;
                 justify-content: space-between;
                 flex-wrap: wrap;
                 gap: 8px;
             }
+
             .btn-save, .btn-export {
                 flex: 1;
                 min-width: calc(50% - 4px);
-                padding: 10px 8px;
+                padding: 12px 8px;
                 font-size: 0.85rem;
             }
+
             .btn-save {
                 flex-basis: 100%;
                 order: 4;
+            }
+
+            /* Adjust summary view for mobile */
+            .summary-card-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .summary-card {
+                min-width: auto;
+                padding: 12px;
+            }
+
+            .summary-header {
+                font-size: 0.8rem;
+                padding-bottom: 3px;
+            }
+
+            .summary-item {
+                font-size: 0.75rem;
+                padding: 1px 0;
+            }
+
+            .summary-value {
+                font-size: 0.75rem;
+                max-width: 70%;
+            }
+
+            .summary-notes {
+                font-size: 0.75rem;
+                max-width: 70%;
+            }
+
+            /* Adjust insights view for mobile */
+            .insights-sections {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .insight-card {
+                border-radius: 8px;
+            }
+
+            .insight-card .head {
+                padding: 8px 10px;
+                font-size: 0.9rem;
+            }
+
+            .insight-list {
+                padding: 6px 10px;
+            }
+
+            .insight-row {
+                grid-template-columns: 100px 1fr;
+                gap: 8px;
+                padding: 6px;
+                font-size: 0.85rem;
+            }
+
+            .file-record-row {
+                grid-template-columns: 100px 1fr;
+                gap: 8px;
+                padding: 6px;
+                font-size: 0.85rem;
+            }
+
+            /* Adjust report modals for mobile */
+            .report-modal .report-card {
+                width: 95vw;
+                max-height: 80vh;
+            }
+
+            .report-header {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .report-body {
+                padding: 10px 12px;
+            }
+
+            .report-row {
+                padding: 8px;
+                margin: 6px 0;
+            }
+
+            .kv {
+                gap: 8px 12px;
+                font-size: 0.85rem;
+            }
+
+            /* Adjust email status panel for mobile */
+            .email-status-panel {
+                right: 10px;
+                bottom: 80px;
+                width: calc(100vw - 20px);
+                max-width: 400px;
+            }
+
+            .email-status-header {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+
+            .email-status-body {
+                padding: 6px 10px;
+            }
+
+            .email-status-item {
+                padding: 6px 2px;
+                font-size: 0.85rem;
+            }
+
+            /* Adjust mini modal for mobile */
+            .mini-modal .content {
+                width: 90vw;
+                max-width: 350px;
+            }
+
+            .mini-modal .header {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+
+            .mini-modal .body {
+                padding: 12px;
+            }
+
+            .mini-modal .footer {
+                padding: 8px 12px;
+            }
+
+            /* Adjust toast for mobile */
+            .toast {
+                width: 90%;
+                max-width: 350px;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 20px;
+            }
+        }
+
+        /* Small Mobile Styles */
+        @media (max-width: 576px) {
+            .container {
+                padding: 8px;
+            }
+
+            .page-header {
+                margin-bottom: 10px;
+            }
+
+            .trip-info h1 {
+                font-size: 1rem;
+            }
+
+            .trip-meta {
+                font-size: 0.75rem;
+            }
+
+            .btn-back {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+
+            .tab-button {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+                margin-right: 6px;
+            }
+
+            .tab-button.active {
+                padding: 10px 14px;
+            }
+
+            .summary-toggle-btn {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+
+            .itinerary-grid, .summary-view-wrapper {
+                padding: 12px;
+                min-height: 450px;
+            }
+
+            .day-content-wrapper > div:first-child {
+                font-size: 0.95rem;
+            }
+
+            .section-card {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+
+            .form-group label {
+                font-size: 0.8rem;
+            }
+
+            .custom-select select {
+                padding: 6px 8px;
+                font-size: 0.85rem;
+            }
+
+            .form-group textarea {
+                min-height: 100px;
+                padding: 10px;
+                font-size: 0.85rem;
+            }
+
+            .services-block {
+                padding: 10px;
+            }
+
+            .services-block label {
+                font-size: 0.8rem;
+                margin: 3px 0;
+            }
+
+            .form-actions {
+                padding: 12px 8px;
+            }
+
+            .btn-save, .btn-export {
+                padding: 10px 6px;
+                font-size: 0.8rem;
+            }
+
+            .summary-card {
+                padding: 10px;
+            }
+
+            .summary-header {
+                font-size: 0.75rem;
+            }
+
+            .summary-item {
+                font-size: 0.7rem;
+            }
+
+            /* Adjust insights for small screens */
+            .insight-row, .file-record-row {
+                grid-template-columns: 80px 1fr;
+                padding: 4px;
+                font-size: 0.8rem;
+            }
+
+            .insight-card .head {
+                font-size: 0.85rem;
+            }
+
+            /* Make report modals more compact */
+            .report-modal .report-card {
+                width: 100vw;
+                margin: 10px;
+                max-height: 85vh;
+            }
+
+            .report-row {
+                padding: 6px;
+                margin: 4px 0;
+            }
+
+            .kv div {
+                min-width: 40%;
+            }
+
+            /* Adjust email panel for small screens */
+            .email-status-panel {
+                right: 5px;
+                bottom: 70px;
+                width: calc(100vw - 10px);
+            }
+
+            .mini-modal .content {
+                width: 95vw;
+            }
+
+            /* Adjust toast for small screens */
+            .toast {
+                width: 95%;
+                bottom: 15px;
+            }
+        }
+
+        /* Extra Small Screens */
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+
+            .page-header {
+                margin-bottom: 8px;
+            }
+
+            .header-top {
+                gap: 8px;
+            }
+
+            .trip-info h1 {
+                font-size: 0.95rem;
+            }
+
+            .trip-meta {
+                font-size: 0.7rem;
+            }
+
+            .btn-back {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+
+            .tabs-and-toggle {
+                margin-bottom: 10px;
+            }
+
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+                margin-right: 4px;
+            }
+
+            .tab-button.active {
+                padding: 8px 12px;
+            }
+
+            .summary-toggle-btn {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+
+            .itinerary-grid, .summary-view-wrapper {
+                padding: 10px;
+                min-height: 400px;
+            }
+
+            .assignments-grid {
+                gap: 10px;
+            }
+
+            .section-card {
+                padding: 10px;
+                margin-bottom: 8px;
+            }
+
+            .form-group {
+                gap: 3px;
+            }
+
+            .form-group label {
+                font-size: 0.75rem;
+            }
+
+            .custom-select select {
+                padding: 5px 7px;
+                font-size: 0.8rem;
+            }
+
+            .form-group textarea {
+                min-height: 80px;
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+
+            .services-block {
+                padding: 8px;
+            }
+
+            .services-block label {
+                font-size: 0.75rem;
+                margin: 2px 0;
+            }
+
+            .room-quantities-grid {
+                gap: 8px;
+            }
+
+            .room-quantity-item input {
+                padding: 5px;
+                font-size: 0.8rem;
+            }
+
+            .form-actions {
+                padding: 10px 6px;
+            }
+
+            .save-info {
+                font-size: 0.8rem;
+            }
+
+            .btn-save, .btn-export {
+                padding: 8px 4px;
+                font-size: 0.75rem;
+            }
+
+            .summary-card-grid {
+                gap: 8px;
+            }
+
+            .summary-card {
+                padding: 8px;
+            }
+
+            .summary-header {
+                font-size: 0.7rem;
+            }
+
+            .summary-item {
+                font-size: 0.65rem;
+                padding: 0;
+            }
+
+            .summary-value, .summary-notes {
+                font-size: 0.65rem;
+                max-width: 65%;
+            }
+
+            /* Adjust insights for very small screens */
+            .insights-sections {
+                gap: 10px;
+            }
+
+            .insight-card {
+                border-radius: 6px;
+            }
+
+            .insight-card .head {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+            }
+
+            .insight-list {
+                padding: 4px 8px;
+                gap: 6px;
+            }
+
+            .insight-row, .file-record-row {
+                grid-template-columns: 70px 1fr;
+                gap: 6px;
+                padding: 3px;
+                font-size: 0.75rem;
+            }
+
+            .date-badge {
+                font-size: 0.7rem;
+            }
+
+            /* Make report modals very compact */
+            .report-modal .report-card {
+                margin: 5px;
+                max-height: 90vh;
+            }
+
+            .report-header {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+
+            .report-body {
+                padding: 8px 10px;
+            }
+
+            .report-row {
+                padding: 4px;
+                margin: 3px 0;
+                font-size: 0.8rem;
+            }
+
+            .kv {
+                gap: 6px 8px;
+                font-size: 0.8rem;
+            }
+
+            /* Adjust email panel for very small screens */
+            .email-status-panel {
+                right: 2px;
+                bottom: 60px;
+                width: calc(100vw - 4px);
+            }
+
+            .email-status-header {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+            }
+
+            .email-status-body {
+                padding: 4px 8px;
+            }
+
+            .email-status-item {
+                padding: 4px 1px;
+                font-size: 0.8rem;
+            }
+
+            .mini-modal .content {
+                width: 100vw;
+                margin: 10px;
+            }
+
+            .mini-modal .header {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+
+            .mini-modal .body {
+                padding: 10px;
+            }
+
+            .mini-modal .footer {
+                padding: 6px 10px;
+            }
+
+            .mini-modal .btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            /* Adjust toast for very small screens */
+            .toast {
+                width: 98%;
+                bottom: 10px;
+                font-size: 0.85rem;
+                padding: 10px 20px;
             }
         }
     </style>
@@ -1513,6 +2220,7 @@
                     }
                     
                     document.getElementById('tripTitle').textContent = `${trip.file_name || trip.tour_code || 'Trip'} — ${trip.package_name}`;
+                    document.getElementById('tripTitle').textContent = trip.file_name || trip.tour_code || 'Trip Details';
                     document.getElementById('tripMeta').innerHTML = `
                         <div class="trip-meta-item">
                             <i class="far fa-calendar"></i>
