@@ -1477,12 +1477,6 @@
                             <input type="text" id="file_name" name="file_name" placeholder="e.g. Smith Family 2027" required>
                         </div>
                         <div class="form-group">
-                            <label for="trip_package_id">Tour Name (Package)</label>
-                            <select id="trip_package_id" name="trip_package_id" required>
-                                <option value="">Select Package</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label for="tour_code">Tour File No</label>
                             <input type="text" id="tour_code" name="tour_code" placeholder="e.g. T-0001">
                         </div>
@@ -2788,9 +2782,14 @@
                 } else if (descriptionContainer) {
                     descriptionContainer.style.display = 'none';
                 }
-                calculateDepartureDate();
-                // Auto-generate Tour File No from package code (only for new trip)
+                
+                // Only calculate dates if we're not editing (preserve existing dates when editing)
                 const isEditing = !!document.getElementById('tripIdHidden').value;
+                if (!isEditing) {
+                    calculateDepartureDate();
+                }
+                
+                // Auto-generate Tour File No from package code (only for new trip)
                 const pkgId = this.value;
                 if (pkgId){
                   if (!isEditing){
@@ -2810,7 +2809,9 @@
                       const d1 = (jr.data||[]).find(r=> String(r.day_number)==='1' && r.hotel_id);
                       firstDayHotelId = d1 && d1.hotel_id ? String(d1.hotel_id) : null;
                       renderArrivalGroups();
-                      calculateEndFromStart();
+                      if (!isEditing) {
+                          calculateEndFromStart();
+                      }
                     }
                   }catch(e){ firstDayHotelId = null; }
                 }
@@ -4339,64 +4340,37 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             document.getElementById('btnStepBack3')?.addEventListener('click', ()=> setTripStep(2));
 
             async function populateTripForm(trip){
-                document.getElementById('modalTitle').textContent = 'Edit Trip';
+                document.getElementById('modalTitle').textContent = 'Edit Trip • File #' + String(trip.id).padStart(3, '0');
                 document.getElementById('tripIdHidden').value = trip.id;
-                document.getElementById('tripIdDisplay').value = '';
-                document.getElementById('fileIdGroup').style.display = 'none';
-                document.getElementById('file_name').value = trip.customer_name || '';
-                document.getElementById('company').value = (trip.company || '');
-                const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
-                const gd = document.getElementById('guest_details'); if (gd) gd.value = (trip.guest_details || '');
-                const totalPaxEl = document.getElementById('total_pax');
-                if (totalPaxEl) { totalPaxEl.value = (trip.total_pax != null ? trip.total_pax : ''); }
-                const countryEl = document.getElementById('country');
-                if (countryEl && countryEl.tagName.toLowerCase()==='select') countryEl.value = (trip.country || ''); else document.getElementById('country').value = (trip.country || '');
+                document.getElementById('tripIdDisplay').value = '#' + String(trip.id).padStart(3, '0');
+                document.getElementById('fileIdGroup').style.display = 'block';
+                
+                // Populate all fields from trip data
+                document.getElementById('file_name').value = trip.file_name || trip.customer_name || '';
                 document.getElementById('tour_code').value = trip.tour_code || '';
-                document.getElementById('passport_no').value = (trip.passport_no || '');
-                document.getElementById('address').value = (trip.address || '');
-                // Set package by name since trip has package_name
-                const pkg = packagesData.find(p => p.name === trip.package_name);
-                if (pkg) {
-                    document.getElementById('trip_package_id').value = pkg.id;
+                
+                // Set package by ID if available, otherwise try to find by name
+                const pkgId = trip.trip_package_id || (packagesData.find(p => p.name === trip.package_name)?.id);
+                if (pkgId) {
+                    document.getElementById('trip_package_id').value = pkgId;
+                    // Trigger change event to update dependent fields
+                    document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
                 }
-                // Dates
+                
+                // Set status
+                document.getElementById('status').value = trip.status || 'Pending';
+                
+                // Set dates
                 document.getElementById('start_date').value = (trip.start_date || '');
                 document.getElementById('end_date').value = (trip.end_date || '');
-                document.getElementById('arrival_date').value = (trip.arrival_date || '');
-                document.getElementById('arrival_time').value = (trip.arrival_time || '');
-                document.getElementById('arrival_flight').value = (trip.arrival_flight || '');
-                const depD = document.getElementById('departure_date'); if (depD) depD.value = (trip.departure_date || '');
-                const depT = document.getElementById('departure_time'); if (depT) depT.value = (trip.departure_time || '');
-                const depF = document.getElementById('departure_flight'); if (depF) depF.value = (trip.departure_flight || '');
-                document.getElementById('status').value = trip.status;
-                // Pax breakdown (optional columns)
-                const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
-                if (ccEl && typeof trip.couples_count !== 'undefined') ccEl.value = trip.couples_count ?? 0;
-                if (scEl && typeof trip.singles_count !== 'undefined') scEl.value = trip.singles_count ?? 0;
-                updateTotalPax(); renderGuestNameInputs();
-                document.getElementById('trip_package_id').dispatchEvent(new Event('change'));
-                updateCompanyMode();
+                
+                // Update day badges if dates are set
+                updateDayBadge('arrival_date','arrivalDayBadge');
+                
+                // Keep the form in "lite" mode (same as new file creation)
+                document.getElementById('tripForm').classList.add('creation-lite');
+                
                 setTripStep(1);
-                // Load arrivals (kept hidden for Individual)
-                tripArrivalsState = [];
-                renderArrivalGroups();
-                fetchArrivalsForTrip(trip.id);
-                tripDeparturesState = [];
-                renderDepartureGroups();
-                fetchDeparturesForTrip(trip.id);
-                // Determine Day 1 hotel from itinerary
-                try{
-                    const r = await fetch(`${API_URL}?action=getItinerary&trip_id=${trip.id}&_=${Date.now()}`);
-                    const j = await r.json();
-                    if (j.status==='success'){
-                        itineraryDaysCache = j.data.itinerary_days||[];
-                        const d = itineraryDaysCache[0];
-                        firstDayHotelId = d && d.hotel_id ? String(d.hotel_id) : null;
-                        renderArrivalGroups();
-                    }
-                }catch(e){ firstDayHotelId = null; itineraryDaysCache = []; }
-                // Load guests
-                fetchGuestsForTrip(trip.id);
             }
 
 
@@ -4441,11 +4415,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             function openTripById(id){
                 const trip = tripsData.find(t => t.id == id);
                 if (!trip) { showToast('Trip not found', 'error'); return; }
-                if (!trip){ showToast('Trip not found','error'); return; }
-                
-                // When editing, we want the full form, not the 'lite' version.
-                document.getElementById('tripForm')?.classList.remove('creation-lite');
-                
+
                 populateTripForm(trip);
                 openModal('tripModal');
             }

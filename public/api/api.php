@@ -394,6 +394,67 @@ function addTrip($conn) {
         $trip_id = $conn->insert_id;
         $stmt->close();
 
+        // Automatically create itinerary days from package requirements
+        try {
+            // Get package requirements
+            $req_stmt = $conn->prepare("SELECT day_number, hotel_id, guide_required, vehicle_required, vehicle_type, day_services, day_notes FROM package_day_requirements WHERE trip_package_id = ? ORDER BY day_number");
+            if ($req_stmt) {
+                $req_stmt->bind_param("i", $trip_package_id);
+                $req_stmt->execute();
+                $req_result = $req_stmt->get_result();
+                
+                $start_date_obj = new DateTime($start_date);
+                $day_counter = 1;
+                $days_created = 0;
+                
+                while ($req_row = $req_result->fetch_assoc()) {
+                    $offset = max(0, intval($req_row['day_number']) - 1);
+                    $day_date = clone $start_date_obj;
+                    $day_date->modify('+' . $offset . ' days');
+                    $day_date_str = $day_date->format('Y-m-d');
+                    
+                    // Insert itinerary day
+                    $day_stmt = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, hotel_id, guide_id, vehicle_id, notes, services_provided, day_type) VALUES (?, ?, ?, NULL, NULL, ?, ?, 'normal')");
+                    if ($day_stmt) {
+                        $hotel_id = $req_row['hotel_id'] ?: null;
+                        $notes = $req_row['day_notes'] ?: '';
+                        $services = $req_row['day_services'] ?: '';
+                        
+                        $day_stmt->bind_param("isiss", $trip_id, $day_date_str, $hotel_id, $notes, $services);
+                        $day_stmt->execute();
+                        $day_stmt->close();
+                        $days_created++;
+                    }
+                    
+                    $day_counter++;
+                }
+                $req_stmt->close();
+                
+                // If no days were created from package requirements, create basic days based on trip duration
+                if ($days_created === 0) {
+                    $start_date_obj = new DateTime($start_date);
+                    $end_date_obj = new DateTime($end_date);
+                    $trip_duration = $start_date_obj->diff($end_date_obj)->days + 1;
+                    
+                    for ($i = 0; $i < $trip_duration; $i++) {
+                        $day_date = clone $start_date_obj;
+                        $day_date->modify('+' . $i . ' days');
+                        $day_date_str = $day_date->format('Y-m-d');
+                        
+                        $day_stmt = $conn->prepare("INSERT INTO itinerary_days (trip_id, day_date, hotel_id, guide_id, vehicle_id, notes, services_provided, day_type) VALUES (?, ?, NULL, NULL, NULL, '', '', 'normal')");
+                        if ($day_stmt) {
+                            $day_stmt->bind_param("is", $trip_id, $day_date_str);
+                            $day_stmt->execute();
+                            $day_stmt->close();
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // Log error but don't fail the trip creation
+            error_log("Failed to create itinerary days: " . $e->getMessage());
+        }
+
         $conn->commit();
         echo json_encode(['status' => 'success', 'message' => 'Trip created successfully.', 'data' => ['id' => $trip_id]]);
     } catch (Exception $e) {
@@ -405,7 +466,8 @@ function addTrip($conn) {
 
 function updateTrip($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-    $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
+    $file_name = isset($_POST['file_name']) ? trim($_POST['file_name']) : '';
+    $customer_name = $file_name; // Keep synced with file_name
     $tour_code = isset($_POST['tour_code']) ? trim($_POST['tour_code']) : '';
     $trip_package_id = isset($_POST['trip_package_id']) ? intval($_POST['trip_package_id']) : 0;
     $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
@@ -458,6 +520,7 @@ function updateTrip($conn) {
     if ($resCols) { while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; } }
 
     $fields = [
+        'file_name' => $file_name,
         'customer_name' => $customer_name,
         'tour_code' => $tour_code,
         'trip_package_id' => $trip_package_id,

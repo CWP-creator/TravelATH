@@ -2135,28 +2135,103 @@ require_once '../src/services/db_connect.php';
             const fetchItinerary = async () => {
                 try {
                     console.log('Starting fetchItinerary...');
+                    console.log('Trip ID:', tripId);
+                    console.log('API URL:', API_URL);
+                    
                     if (!tripId) {
+                        console.error('No trip ID provided');
                         itineraryGrid.innerHTML = '<div class="error-message">No trip ID provided. Please go back and select a trip.</div>';
                         return;
                     }
 
                     const cacheBuster = new Date().getTime();
-                    const response = await fetch(`${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`, { headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, cache: 'no-store' });
+                    const url = `${API_URL}?action=getItinerary&trip_id=${tripId}&_=${cacheBuster}`;
+                    console.log('Fetching URL:', url);
+                    
+                    const response = await fetch(url, { headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, cache: 'no-store' });
+                    console.log('Response status:', response.status);
+                    console.log('Response ok:', response.ok);
+                    
                     const text = await response.text();
+                    console.log('Response text length:', text.length);
+                    console.log('Response text preview:', text.substring(0, 200));
+                    
                     let result;
-                    try { result = JSON.parse(text); } catch(e){
+                    try { 
+                        result = JSON.parse(text); 
+                        console.log('Parsed JSON result:', result);
+                    } catch(e){
                         console.error('Non-JSON response for getItinerary:', text.substring(0,500));
                         itineraryGrid.innerHTML = `<div class=\"error-message\">Server returned invalid response.<br><small>${text.substring(0,200).replace(/</g,'&lt;')}</small></div>`;
                         return;
                     }
                     
                     if (result.status !== 'success') {
-                        itineraryGrid.innerHTML = `<div class=\"error-message\">${result.message}</div>`;
+                        console.error('API returned error:', result.message);
+                        let errorMessage = result.message;
+                        
+                        // Provide more specific error messages
+                        if (result.message.includes('Trip not found')) {
+                            errorMessage = `Trip not found. Please check if the trip ID ${tripId} exists in the database.`;
+                        } else if (result.message.includes('Invalid Trip ID')) {
+                            errorMessage = 'Invalid trip ID provided. Please go back and select a valid trip.';
+                        } else if (result.message.includes('Database')) {
+                            errorMessage = 'Database error occurred. Please contact the administrator.';
+                        }
+                        
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">
+                            <h3>Failed to Load Itinerary</h3>
+                            <p>${errorMessage}</p>
+                            <p><strong>Trip ID:</strong> ${tripId}</p>
+                            <p><strong>Error Details:</strong> ${result.message}</p>
+                            <button onclick=\"window.history.back()\" class=\"btn-back\" style=\"margin-top: 10px;\">Go Back</button>
+                        </div>`;
                         return;
                     }
 
-                    console.log('API response received:', result);
+                    console.log('API response received successfully:', result);
                     const { trip, itinerary_days, guides, vehicles, hotels, arrivals, departures } = result.data;
+                    
+                    // Validate that we have the required data
+                    if (!trip) {
+                        console.error('No trip data received');
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">
+                            <h3>Failed to Load Itinerary</h3>
+                            <p>No trip data received from the server.</p>
+                            <p><strong>Trip ID:</strong> ${tripId}</p>
+                            <button onclick=\"window.history.back()\" class=\"btn-back\" style=\"margin-top: 10px;\">Go Back</button>
+                        </div>`;
+                        return;
+                    }
+                    
+                    if (!itinerary_days || !Array.isArray(itinerary_days)) {
+                        console.error('Invalid itinerary_days data:', itinerary_days);
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">
+                            <h3>Failed to Load Itinerary</h3>
+                            <p>Invalid itinerary data received from the server.</p>
+                            <p><strong>Trip ID:</strong> ${tripId}</p>
+                            <p><strong>Itinerary Days:</strong> ${itinerary_days ? 'Not an array' : 'Missing'}</p>
+                            <button onclick=\"window.history.back()\" class=\"btn-back\" style=\"margin-top: 10px;\">Go Back</button>
+                        </div>`;
+                        return;
+                    }
+                    
+                    console.log('Trip data validated successfully:', trip);
+                    console.log('Itinerary days count:', itinerary_days.length);
+                    
+                    // Check if itinerary days is empty
+                    if (itinerary_days.length === 0) {
+                        console.log('No itinerary days found for this trip');
+                        itineraryGrid.innerHTML = `<div class=\"error-message\">
+                            <h3>No Itinerary Days Found</h3>
+                            <p>This trip doesn't have any itinerary days set up yet.</p>
+                            <p><strong>Trip:</strong> ${trip.file_name || trip.tour_code || 'Unknown'}</p>
+                            <p><strong>Package:</strong> ${trip.package_name || 'Unknown'}</p>
+                            <p>You may need to create itinerary days for this trip first.</p>
+                            <button onclick=\"window.history.back()\" class=\"btn-back\" style=\"margin-top: 10px;\">Go Back</button>
+                        </div>`;
+                        return;
+                    }
                     
                     allGuides = guides;
                     allVehicles = vehicles;
@@ -2220,7 +2295,6 @@ require_once '../src/services/db_connect.php';
                     }
                     
                     document.getElementById('tripTitle').textContent = `${trip.file_name || trip.tour_code || 'Trip'} — ${trip.package_name}`;
-                    document.getElementById('tripTitle').textContent = trip.file_name || trip.tour_code || 'Trip Details';
                     document.getElementById('tripMeta').innerHTML = `
                         <div class="trip-meta-item">
                             <i class="far fa-calendar"></i>
@@ -2293,9 +2367,28 @@ require_once '../src/services/db_connect.php';
             };
 
             const renderItinerary = (itinerary_days) => {
+                console.log('renderItinerary called with:', itinerary_days);
+                console.log('itinerary_days length:', itinerary_days ? itinerary_days.length : 'null/undefined');
+                
+                if (!itinerary_days || !Array.isArray(itinerary_days)) {
+                    console.error('Invalid itinerary_days data:', itinerary_days);
+                    itineraryGrid.innerHTML = '<div class="error-message">Invalid itinerary data received.</div>';
+                    return;
+                }
+                
+                if (itinerary_days.length === 0) {
+                    console.log('No itinerary days found');
+                    itineraryGrid.innerHTML = '<div class="error-message">No itinerary days found for this trip.</div>';
+                    return;
+                }
+                
                 itineraryGrid.innerHTML = '';
                 let dayCounter = 1;
-                itinerary_days.forEach(day => {
+                console.log('Starting to render', itinerary_days.length, 'days');
+                
+                itinerary_days.forEach((day, index) => {
+                    console.log(`Rendering day ${index + 1}:`, day);
+                    
                     const dayContentWrapper = document.createElement('div');
                     dayContentWrapper.className = 'day-content-wrapper';
                     dayContentWrapper.dataset.dayId = day.id;
@@ -2627,6 +2720,8 @@ require_once '../src/services/db_connect.php';
                     
                     dayCounter++;
                 });
+                
+                console.log('renderItinerary completed successfully. Rendered', dayCounter - 1, 'days');
             };
 
             const createSelectOptions = (items, selectedId, type) => {
