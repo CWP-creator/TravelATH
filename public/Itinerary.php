@@ -251,10 +251,11 @@ require_once '../src/services/db_connect.php';
         .insights-view-wrapper { display:none; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); min-height: 400px; }
         .insights-sections { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
         .insight-card { border:1px solid var(--border); border-radius:10px; background:#fafafa; overflow:hidden; }
-        .insight-card .head { padding:10px 12px; font-weight:800; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px; }
+        .insight-card .head { padding:10px 12px; font-weight:800; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px; position:relative; }
         .insight-card .head.arrival { background:#e6f4ea; color:#166534; }
         .insight-card .head.departure { background:#eef2ff; color:#1e40af; }
         .insight-card .head.file-records-header { background:#fff3e0; color:#e65100; }
+        .insight-card .head.pax-header { background:#f3e5f5; color:#6a1b9a; }
         .insight-list { padding: 8px 12px; display:flex; flex-direction:column; gap:8px; }
         .insight-row { display:grid; grid-template-columns: 110px 1fr 1fr; gap:10px; align-items:center; padding:8px; background:#fff; border:1px solid var(--border-light); border-radius:8px; }
         .insight-row .meta { font-size:0.85rem; color:var(--text-secondary); }
@@ -266,8 +267,40 @@ require_once '../src/services/db_connect.php';
         .package-badge { display:inline-block; padding:4px 12px; border-radius:6px; font-weight:700; font-size:0.8rem; background:#fff3e0; color:#e65100; border:1px solid #ffcc80; }
         .file-record-row { display:grid; grid-template-columns: 110px 1fr 1fr; gap:10px; align-items:center; padding:8px; background:#fff; border:1px solid var(--border-light); border-radius:8px; margin-bottom: 6px; }
         .date-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-weight:800; font-size:0.72rem; background:#e8f5e8; color:#2e7d32; border:1px solid #c8e6c9; }
-        @media (max-width: 1200px){ .insights-sections{ grid-template-columns:1fr 1fr; } .insight-card.file-records { grid-column: span 2; } }
-        @media (max-width: 900px){ .insights-sections{ grid-template-columns:1fr; } .insight-card.file-records { grid-column: span 1; } }
+        
+        /* PAX Details Styles */
+        .pax-section { margin-bottom: 24px; }
+        .pax-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; padding: 12px; }
+        .pax-card { background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px; box-shadow: var(--shadow-sm); position:relative; }
+        .pax-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border-light); }
+        .pax-file-name { font-weight:700; font-size:0.9rem; color:var(--text-primary); }
+        .pax-amendment-icon { cursor:pointer; color:#ab47bc; font-size:0.85rem; opacity:0.7; transition: opacity 0.2s; }
+        .pax-amendment-icon:hover { opacity:1; }
+        .pax-rooms-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+        .pax-room-item { display:flex; flex-direction:column; gap:4px; }
+        .pax-room-label { font-size:0.75rem; color:var(--text-secondary); font-weight:600; text-transform:uppercase; }
+        .pax-room-input { width:100%; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem; transition: border-color 0.2s; }
+        .pax-room-input:focus { outline:none; border-color:var(--primary-color); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .pax-room-input:disabled { background:#f9fafb; color:var(--text-secondary); cursor:not-allowed; }
+        
+        /* Amendment Modal */
+        .amendment-modal { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1300; }
+        .amendment-modal.active { display:flex; }
+        .amendment-content { width:400px; max-height:70vh; background:#fff; border-radius:12px; box-shadow: var(--shadow-md); overflow:hidden; }
+        .amendment-header { padding:12px 16px; background:#f3e5f5; color:#6a1b9a; font-weight:800; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e1bee7; }
+        .amendment-body { padding:16px; max-height:60vh; overflow-y:auto; }
+        .amendment-item { padding:10px; margin-bottom:8px; background:#fafafa; border:1px solid var(--border-light); border-radius:8px; }
+        .amendment-item-header { font-weight:700; margin-bottom:6px; color:var(--text-primary); }
+        .amendment-change { display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin:4px 0; }
+        .amendment-change .old { text-decoration:line-through; color:#ef4444; }
+        .amendment-change .arrow { color:var(--text-light); }
+        .amendment-change .new { color:#10b981; font-weight:600; }
+        .amendment-timestamp { font-size:0.7rem; color:var(--text-light); margin-top:6px; }
+        .amendment-close { cursor:pointer; color:#6b7280; font-size:1.1rem; }
+        .amendment-close:hover { color:#111827; }
+        
+        @media (max-width: 1200px){ .insights-sections{ grid-template-columns:1fr 1fr; } .insight-card.file-records { grid-column: span 2; } .pax-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); } }
+        @media (max-width: 900px){ .insights-sections{ grid-template-columns:1fr; } .insight-card.file-records { grid-column: span 1; } .pax-grid { grid-template-columns: 1fr; } }
 
         .day-content-wrapper {
             display: none;
@@ -1868,6 +1901,19 @@ require_once '../src/services/db_connect.php';
       </div>
     </div>
 
+    <!-- Amendment Modal -->
+    <div id="amendmentModal" class="amendment-modal" aria-hidden="true">
+        <div class="amendment-content">
+            <div class="amendment-header">
+                <span><i class="fas fa-file-pen"></i> PAX Amendments</span>
+                <span class="amendment-close" id="amendmentClose"><i class="fas fa-times"></i></span>
+            </div>
+            <div class="amendment-body" id="amendmentBody">
+                <p style="text-align:center; color:var(--text-light);">No amendments recorded</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Email Status Panel -->
     <div id="emailStatusPanel" class="email-status-panel">
         <div class="email-status-header">
@@ -3337,7 +3383,84 @@ require_once '../src/services/db_connect.php';
                     fileRecordsHtml = '<div class="insight-row">No file records available.</div>';
                 }
                 
+                // Build PAX Details section
+                const paxData = window.__paxDetails__ || {};
+                let paxHtml = '';
+                
+                if (Object.keys(paxData).length > 0) {
+                    Object.entries(paxData).forEach(([fileId, data]) => {
+                        const hasAmendments = data.amendments && data.amendments.length > 0;
+                        const amendmentIcon = hasAmendments 
+                            ? `<i class="fas fa-file-pen pax-amendment-icon" data-file-id="${fileId}" title="View Amendments"></i>`
+                            : '';
+                        
+                        paxHtml += `
+                        <div class="pax-card">
+                            <div class="pax-card-header">
+                                <span class="pax-file-name">${data.file_name || 'File ' + fileId}</span>
+                                ${amendmentIcon}
+                            </div>
+                            <div class="pax-rooms-grid">
+                                <div class="pax-room-item">
+                                    <label class="pax-room-label">Double</label>
+                                    <input type="number" class="pax-room-input" value="${data.double || 0}" min="0" max="50" data-file-id="${fileId}" data-room-type="double">
+                                </div>
+                                <div class="pax-room-item">
+                                    <label class="pax-room-label">Single</label>
+                                    <input type="number" class="pax-room-input" value="${data.single || 0}" min="0" max="50" data-file-id="${fileId}" data-room-type="single">
+                                </div>
+                                <div class="pax-room-item">
+                                    <label class="pax-room-label">Triple</label>
+                                    <input type="number" class="pax-room-input" value="${data.triple || 0}" min="0" max="50" data-file-id="${fileId}" data-room-type="triple">
+                                </div>
+                                <div class="pax-room-item">
+                                    <label class="pax-room-label">Twin</label>
+                                    <input type="number" class="pax-room-input" value="${data.twin || 0}" min="0" max="50" data-file-id="${fileId}" data-room-type="twin">
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    // Default PAX card for current trip
+                    const trip = window.__trip__ || {};
+                    const fileName = trip.file_name || trip.tour_code || 'Current Trip';
+                    const tripId = trip.id || '';
+                    
+                    paxHtml = `
+                    <div class="pax-card">
+                        <div class="pax-card-header">
+                            <span class="pax-file-name">${fileName}</span>
+                        </div>
+                        <div class="pax-rooms-grid">
+                            <div class="pax-room-item">
+                                <label class="pax-room-label">Double</label>
+                                <input type="number" class="pax-room-input" value="0" min="0" max="50" data-file-id="${tripId}" data-room-type="double">
+                            </div>
+                            <div class="pax-room-item">
+                                <label class="pax-room-label">Single</label>
+                                <input type="number" class="pax-room-input" value="0" min="0" max="50" data-file-id="${tripId}" data-room-type="single">
+                            </div>
+                            <div class="pax-room-item">
+                                <label class="pax-room-label">Triple</label>
+                                <input type="number" class="pax-room-input" value="0" min="0" max="50" data-file-id="${tripId}" data-room-type="triple">
+                            </div>
+                            <div class="pax-room-item">
+                                <label class="pax-room-label">Twin</label>
+                                <input type="number" class="pax-room-input" value="0" min="0" max="50" data-file-id="${tripId}" data-room-type="twin">
+                            </div>
+                        </div>
+                    </div>`;
+                }
+                
                 insightsView.innerHTML = `
+                    <div class="pax-section">
+                        <div class="insight-card" style="grid-column: 1 / -1;">
+                            <div class="head pax-header">
+                                <i class="fas fa-users"></i> PAX Details
+                            </div>
+                            <div class="pax-grid">${paxHtml}</div>
+                        </div>
+                    </div>
                     <div class="insights-sections">
                       <div class="insight-card">
                         <div class="head arrival"><i class="fas fa-plane-arrival"></i> Arrivals</div>
@@ -3352,7 +3475,129 @@ require_once '../src/services/db_connect.php';
                         <div class="insight-list file-records-list">${fileRecordsHtml}</div>
                       </div>
                     </div>`;
+                
+                // Setup PAX input change handlers
+                setupPaxHandlers();
             };
+            
+            const setupPaxHandlers = () => {
+                // Handle PAX input changes
+                document.querySelectorAll('.pax-room-input').forEach(input => {
+                    input.addEventListener('change', function() {
+                        const fileId = this.dataset.fileId;
+                        const roomType = this.dataset.roomType;
+                        const value = parseInt(this.value) || 0;
+                        
+                        // Track the change for amendments
+                        trackPaxAmendment(fileId, roomType, value);
+                    });
+                });
+                
+                // Handle amendment icon clicks
+                document.querySelectorAll('.pax-amendment-icon').forEach(icon => {
+                    icon.addEventListener('click', function() {
+                        const fileId = this.dataset.fileId;
+                        showAmendmentModal(fileId);
+                    });
+                });
+            };
+            
+            const trackPaxAmendment = (fileId, roomType, newValue) => {
+                // Initialize paxDetails if not exists
+                if (!window.__paxDetails__) window.__paxDetails__ = {};
+                if (!window.__paxDetails__[fileId]) {
+                    const trip = window.__trip__ || {};
+                    window.__paxDetails__[fileId] = {
+                        file_name: trip.file_name || trip.tour_code || 'File ' + fileId,
+                        double: 0,
+                        single: 0,
+                        triple: 0,
+                        twin: 0,
+                        amendments: []
+                    };
+                }
+                
+                const oldValue = window.__paxDetails__[fileId][roomType] || 0;
+                
+                if (oldValue !== newValue) {
+                    // Record amendment
+                    const amendment = {
+                        room_type: roomType,
+                        old_value: oldValue,
+                        new_value: newValue,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    if (!window.__paxDetails__[fileId].amendments) {
+                        window.__paxDetails__[fileId].amendments = [];
+                    }
+                    window.__paxDetails__[fileId].amendments.push(amendment);
+                    
+                    // Update value
+                    window.__paxDetails__[fileId][roomType] = newValue;
+                    
+                    // Re-render to show amendment icon
+                    renderInsights();
+                }
+            };
+            
+            const showAmendmentModal = (fileId) => {
+                const modal = document.getElementById('amendmentModal');
+                const body = document.getElementById('amendmentBody');
+                
+                if (!window.__paxDetails__ || !window.__paxDetails__[fileId] || !window.__paxDetails__[fileId].amendments) {
+                    body.innerHTML = '<p style="text-align:center; color:var(--text-light);">No amendments recorded</p>';
+                    modal.classList.add('active');
+                    return;
+                }
+                
+                const data = window.__paxDetails__[fileId];
+                let amendmentsHtml = '';
+                
+                const items = [];
+                data.amendments.forEach((amendment, idx) => {
+                    const date = new Date(amendment.timestamp);
+                    const timeStr = date.toLocaleString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    items.push(`
+                    <div class="amendment-item">
+                        <div class="amendment-item-header">Change #${idx + 1} <span style="font-weight:400; color: var(--text-light);">by ${amendment.user_name || 'Unknown'}</span> - ${amendment.room_type.charAt(0).toUpperCase() + amendment.room_type.slice(1)} Rooms</div>
+                        <div class="amendment-change">
+                            <span class="old">${amendment.old_value}</span>
+                            <span class="arrow"><i class="fas fa-arrow-right"></i></span>
+                            <span class="new">${amendment.new_value}</span>
+                        </div>
+                        <div class="amendment-timestamp"><i class="fas fa-clock"></i> ${timeStr}</div>
+                    </div>`);
+                });
+                // Arrange two per row: 1 left, 2 right; then 3 left, 4 right; etc.
+                let arranged = '';
+                for (let i = 0; i < items.length; i += 2) {
+                    if (items[i+1] !== undefined) {
+                        arranged += items[i] + items[i+1];
+                    } else {
+                        arranged += items[i];
+                    }
+                }
+                body.innerHTML = `<div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">${arranged}</div>`;
+                modal.classList.add('active');
+            };
+            
+            // Amendment modal close handler
+            document.getElementById('amendmentClose').addEventListener('click', () => {
+                document.getElementById('amendmentModal').classList.remove('active');
+            });
+            
+            // Close modal on backdrop click
+            document.getElementById('amendmentModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
 
             const renderSummaryCards = (daysData) => {
                 let html = '<div class="summary-card-grid">';

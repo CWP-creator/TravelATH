@@ -194,6 +194,18 @@ switch ($action) {
     case 'importPackages':
         importPackages($conn);
         break;
+    case 'getPaxDetails':
+        getPaxDetails($conn);
+        break;
+    case 'savePaxDetails':
+        savePaxDetails($conn);
+        break;
+    case 'getPaxAmendments':
+        getPaxAmendments($conn);
+        break;
+    case 'updateItineraryRooms':
+        updateItineraryRooms($conn);
+        break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Invalid action specified.']);
         break;
@@ -801,8 +813,24 @@ function updateItinerary($conn) {
             while ($r = $resCols->fetch_assoc()) { $cols[strtolower($r['Field'])] = true; }
         }
 
+        // Track affected trip IDs to sync PAX after updates
+        $affectedTrips = [];
+
         foreach($itinerary_days as $day) {
             $id = intval($day['id']);
+
+            // Resolve trip_id for this day (so we can recalc PAX later)
+            $tidStmt = $conn->prepare("SELECT trip_id FROM itinerary_days WHERE id = ?");
+            if ($tidStmt) {
+                $tidStmt->bind_param('i', $id);
+                $tidStmt->execute();
+                $tidRes = $tidStmt->get_result();
+                if ($tidRes && $tidRes->num_rows > 0) {
+                    $tidRow = $tidRes->fetch_assoc();
+                    $affectedTrips[intval($tidRow['trip_id'])] = true;
+                }
+                $tidStmt->close();
+            }
 
             // Base fields always safe
             $fields = [
@@ -871,6 +899,85 @@ function updateItinerary($conn) {
                 throw new Exception('Execute failed: ' . $stmt->error);
             }
             $stmt->close();
+        }
+
+        // After updating itinerary days, sync pax_details with max room counts from itinerary for affected trips
+        if (!empty($affectedTrips)) {
+            // Ensure pax tables exist
+            if (function_exists('ensurePaxDetailsTable')) { ensurePaxDetailsTable($conn); }
+            $userId = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
+            $userName = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : null;
+
+            foreach (array_keys($affectedTrips) as $tripId) {
+                // Compute max rooms across all days
+                $daysStmt = $conn->prepare("SELECT room_type_data FROM itinerary_days WHERE trip_id = ? AND room_type_data IS NOT NULL");
+                $roomMax = ['double'=>0,'single'=>0,'triple'=>0,'twin'=>0];
+                if ($daysStmt) {
+                    $daysStmt->bind_param('i', $tripId);
+                    $daysStmt->execute();
+                    $daysRes = $daysStmt->get_result();
+                    while ($row = $daysRes->fetch_assoc()) {
+                        $data = json_decode($row['room_type_data'], true);
+                        if (is_array($data)) {
+                            foreach (['double','single','triple','twin'] as $k) {
+                                $val = intval($data[$k] ?? 0);
+                                if ($val > $roomMax[$k]) { $roomMax[$k] = $val; }
+                            }
+                        }
+                    }
+                    $daysStmt->close();
+                }
+
+                // Fetch existing pax_details
+                $exStmt = $conn->prepare("SELECT double_rooms, single_rooms, triple_rooms, twin_rooms FROM pax_details WHERE trip_id = ?");
+                $existing = null;
+                if ($exStmt) {
+                    $exStmt->bind_param('i', $tripId);
+                    $exStmt->execute();
+                    $exRes = $exStmt->get_result();
+                    $existing = $exRes && $exRes->num_rows > 0 ? $exRes->fetch_assoc() : null;
+                    $exStmt->close();
+                }
+
+                // Upsert pax_details with computed max
+                $upSql = "INSERT INTO pax_details (trip_id, double_rooms, single_rooms, triple_rooms, twin_rooms, updated_at)
+                          VALUES (?, ?, ?, ?, ?, NOW())
+                          ON DUPLICATE KEY UPDATE
+                          double_rooms = VALUES(double_rooms),
+                          single_rooms = VALUES(single_rooms),
+                          triple_rooms = VALUES(triple_rooms),
+                          twin_rooms = VALUES(twin_rooms),
+                          updated_at = NOW()";
+                $up = $conn->prepare($upSql);
+                if ($up) {
+                    $up->bind_param('iiiii', $tripId, $roomMax['double'], $roomMax['single'], $roomMax['triple'], $roomMax['twin']);
+                    $up->execute();
+                    $up->close();
+                }
+
+                // Log amendments if values changed
+                if ($existing) {
+                    $map = [
+                        ['type'=>'double','field'=>'double_rooms'],
+                        ['type'=>'single','field'=>'single_rooms'],
+                        ['type'=>'triple','field'=>'triple_rooms'],
+                        ['type'=>'twin','field'=>'twin_rooms'],
+                    ];
+                    foreach ($map as $m) {
+                        $old = intval($existing[$m['field']] ?? 0);
+                        $new = intval($roomMax[$m['type']] ?? 0);
+                        if ($old !== $new) {
+                            $insAm = $conn->prepare("INSERT INTO pax_amendments (trip_id, room_type, old_value, new_value, user_id, user_name, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                            if ($insAm) {
+                                $rt = $m['type'];
+                                $insAm->bind_param('isiiis', $tripId, $rt, $old, $new, $userId, $userName);
+                                $insAm->execute();
+                                $insAm->close();
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         $conn->commit();
@@ -2655,5 +2762,310 @@ function importPackages($conn) {
             'status' => 'error',
             'message' => 'Import failed: ' . $e->getMessage()
         ]);
+    }
+}
+
+// ============= PAX DETAILS FUNCTIONS =============
+
+function getPaxDetails($conn) {
+    $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
+    
+    if ($trip_id === 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Trip ID is required']);
+        return;
+    }
+    
+    // Check if pax_details table exists, create if not
+    ensurePaxDetailsTable($conn);
+    
+    // Get trip details
+    $tripSql = "SELECT id, file_name, tour_code FROM trips WHERE id = ?";
+    $tripStmt = $conn->prepare($tripSql);
+    $tripStmt->bind_param('i', $trip_id);
+    $tripStmt->execute();
+    $tripResult = $tripStmt->get_result();
+    $trip = $tripResult->fetch_assoc();
+    
+    if (!$trip) {
+        echo json_encode(['status' => 'error', 'message' => 'Trip not found']);
+        return;
+    }
+    
+    // Calculate room totals from itinerary_days and get hotel names
+    $daysSql = "SELECT id.room_type_data, id.hotel_id, h.name as hotel_name 
+                FROM itinerary_days id 
+                LEFT JOIN hotels h ON id.hotel_id = h.id 
+                WHERE id.trip_id = ? AND id.room_type_data IS NOT NULL";
+    $daysStmt = $conn->prepare($daysSql);
+    $daysStmt->bind_param('i', $trip_id);
+    $daysStmt->execute();
+    $daysResult = $daysStmt->get_result();
+    
+    $roomTotals = ['double' => 0, 'single' => 0, 'triple' => 0, 'twin' => 0];
+    $maxRooms = ['double' => 0, 'single' => 0, 'triple' => 0, 'twin' => 0];
+    $hotels = [];
+    
+    while ($dayRow = $daysResult->fetch_assoc()) {
+        if ($dayRow['room_type_data']) {
+            $roomData = json_decode($dayRow['room_type_data'], true);
+            if ($roomData) {
+                // Track the maximum of each room type across all days
+                foreach (['double', 'single', 'triple', 'twin'] as $type) {
+                    $count = intval($roomData[$type] ?? 0);
+                    if ($count > $maxRooms[$type]) {
+                        $maxRooms[$type] = $count;
+                    }
+                }
+            }
+        }
+        // Collect unique hotel names
+        if ($dayRow['hotel_name'] && !in_array($dayRow['hotel_name'], $hotels)) {
+            $hotels[] = $dayRow['hotel_name'];
+        }
+    }
+    
+    // Check if there's saved PAX details (manual overrides)
+    $sql = "SELECT * FROM pax_details WHERE trip_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $trip_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $savedPax = $result->fetch_assoc();
+    
+    // Use saved values if they exist, otherwise use calculated max from itinerary
+    $paxDetails = [
+        $trip_id => [
+            'trip_id' => $trip_id,
+            'file_name' => $trip['file_name'] ?: $trip['tour_code'] ?: 'File ' . $trip_id,
+            'double' => $savedPax ? intval($savedPax['double_rooms']) : $maxRooms['double'],
+            'single' => $savedPax ? intval($savedPax['single_rooms']) : $maxRooms['single'],
+            'triple' => $savedPax ? intval($savedPax['triple_rooms']) : $maxRooms['triple'],
+            'twin' => $savedPax ? intval($savedPax['twin_rooms']) : $maxRooms['twin'],
+            'hotels' => $hotels, // Include hotel names
+            'amendments' => [],
+            'from_itinerary' => !$savedPax // Flag to indicate if values are from itinerary
+        ]
+    ];
+    
+    // Get amendments for this trip
+    $amendSql = "SELECT * FROM pax_amendments WHERE trip_id = ? ORDER BY created_at ASC";
+    $amendStmt = $conn->prepare($amendSql);
+    $amendStmt->bind_param('i', $trip_id);
+    $amendStmt->execute();
+    $amendResult = $amendStmt->get_result();
+    
+    while ($amendRow = $amendResult->fetch_assoc()) {
+        $paxDetails[$trip_id]['amendments'][] = [
+            'room_type' => $amendRow['room_type'],
+            'old_value' => intval($amendRow['old_value']),
+            'new_value' => intval($amendRow['new_value']),
+            'timestamp' => $amendRow['created_at'],
+            'user_id' => isset($amendRow['user_id']) ? intval($amendRow['user_id']) : null,
+            'user_name' => $amendRow['user_name'] ?? null
+        ];
+    }
+    
+    echo json_encode(['status' => 'success', 'data' => $paxDetails]);
+}
+
+function savePaxDetails($conn) {
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (!isset($data['trip_id']) || !isset($data['pax_data'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid data']);
+        return;
+    }
+    
+    $trip_id = intval($data['trip_id']);
+    $pax_data = $data['pax_data'];
+    
+    // Check if pax_details table exists, create if not
+    ensurePaxDetailsTable($conn);
+    
+    try {
+        $conn->begin_transaction();
+        
+        // Get existing values for amendment tracking
+        $existingSql = "SELECT * FROM pax_details WHERE trip_id = ?";
+        $existingStmt = $conn->prepare($existingSql);
+        $existingStmt->bind_param('i', $trip_id);
+        $existingStmt->execute();
+        $existingResult = $existingStmt->get_result();
+        $existing = $existingResult->fetch_assoc();
+        
+        // Upsert pax_details
+        $double = intval($pax_data['double'] ?? 0);
+        $single = intval($pax_data['single'] ?? 0);
+        $triple = intval($pax_data['triple'] ?? 0);
+        $twin = intval($pax_data['twin'] ?? 0);
+        
+        $upsertSql = "INSERT INTO pax_details (trip_id, double_rooms, single_rooms, triple_rooms, twin_rooms, updated_at) 
+                      VALUES (?, ?, ?, ?, ?, NOW()) 
+                      ON DUPLICATE KEY UPDATE 
+                      double_rooms = VALUES(double_rooms), 
+                      single_rooms = VALUES(single_rooms), 
+                      triple_rooms = VALUES(triple_rooms), 
+                      twin_rooms = VALUES(twin_rooms), 
+                      updated_at = NOW()";
+        $upsertStmt = $conn->prepare($upsertSql);
+        $upsertStmt->bind_param('iiiii', $trip_id, $double, $single, $triple, $twin);
+        $upsertStmt->execute();
+        
+        // Track amendments if values changed
+        if ($existing) {
+            $roomTypes = ['double', 'single', 'triple', 'twin'];
+            $dbFields = ['double_rooms', 'single_rooms', 'triple_rooms', 'twin_rooms'];
+            
+            foreach ($roomTypes as $idx => $roomType) {
+                $dbField = $dbFields[$idx];
+                $oldValue = intval($existing[$dbField]);
+                $newValue = intval($pax_data[$roomType] ?? 0);
+                
+                if ($oldValue !== $newValue) {
+                    // Capture the user making this change, if available
+                    $userId = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
+                    $userName = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : null;
+
+                    $amendSql = "INSERT INTO pax_amendments (trip_id, room_type, old_value, new_value, user_id, user_name, created_at) 
+                                VALUES (?, ?, ?, ?, ?, ?, NOW())";
+                    $amendStmt = $conn->prepare($amendSql);
+                    $amendStmt->bind_param('isiiis', $trip_id, $roomType, $oldValue, $newValue, $userId, $userName);
+                    $amendStmt->execute();
+                }
+            }
+        }
+        
+        $conn->commit();
+        echo json_encode(['status' => 'success', 'message' => 'PAX details saved']);
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['status' => 'error', 'message' => 'Save failed: ' . $e->getMessage()]);
+    }
+}
+
+function getPaxAmendments($conn) {
+    $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
+    
+    if ($trip_id === 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Trip ID is required']);
+        return;
+    }
+    
+    ensurePaxDetailsTable($conn);
+    
+    $sql = "SELECT * FROM pax_amendments WHERE trip_id = ? ORDER BY created_at DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $trip_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $amendments = [];
+    while ($row = $result->fetch_assoc()) {
+        $userName = $row['user_name'] ?? '';
+        if (($userName === '' || $userName === null) && !empty($row['user_id'])) {
+            $uStmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+            if ($uStmt) {
+                $uid = intval($row['user_id']);
+                $uStmt->bind_param('i', $uid);
+                $uStmt->execute();
+                $uRes = $uStmt->get_result();
+                if ($uRes && $uRes->num_rows > 0) {
+                    $uRow = $uRes->fetch_assoc();
+                    $userName = $uRow['name'] ?? $userName;
+                }
+                $uStmt->close();
+            }
+        }
+        $amendments[] = [
+            'room_type' => $row['room_type'],
+            'old_value' => intval($row['old_value']),
+            'new_value' => intval($row['new_value']),
+            'timestamp' => $row['created_at'],
+            'user_id' => isset($row['user_id']) ? intval($row['user_id']) : null,
+            'user_name' => $userName ?: null
+        ];
+    }
+    
+    echo json_encode(['status' => 'success', 'data' => $amendments]);
+}
+
+function ensurePaxDetailsTable($conn) {
+    // Create pax_details table if it doesn't exist
+    $createPaxDetailsTable = "
+        CREATE TABLE IF NOT EXISTS pax_details (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            trip_id INT NOT NULL,
+            double_rooms INT DEFAULT 0,
+            single_rooms INT DEFAULT 0,
+            triple_rooms INT DEFAULT 0,
+            twin_rooms INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_trip (trip_id),
+            FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ";
+    $conn->query($createPaxDetailsTable);
+    
+    // Create pax_amendments table if it doesn't exist (includes user columns for fresh installs)
+    $createPaxAmendmentsTable = "
+        CREATE TABLE IF NOT EXISTS pax_amendments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            trip_id INT NOT NULL,
+            room_type VARCHAR(20) NOT NULL,
+            old_value INT NOT NULL,
+            new_value INT NOT NULL,
+            user_id INT NULL,
+            user_name VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+            INDEX idx_trip_created (trip_id, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ";
+    $conn->query($createPaxAmendmentsTable);
+
+    // Ensure user tracking columns exist for existing installations
+    $res1 = $conn->query("SHOW COLUMNS FROM pax_amendments LIKE 'user_id'");
+    if (!$res1 || $res1->num_rows === 0) {
+        $conn->query("ALTER TABLE pax_amendments ADD COLUMN user_id INT NULL AFTER new_value");
+    }
+    $res2 = $conn->query("SHOW COLUMNS FROM pax_amendments LIKE 'user_name'");
+    if (!$res2 || $res2->num_rows === 0) {
+        $conn->query("ALTER TABLE pax_amendments ADD COLUMN user_name VARCHAR(255) NULL AFTER user_id");
+    }
+}
+
+function updateItineraryRooms($conn) {
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (!isset($data['trip_id']) || !isset($data['room_data'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid data']);
+        return;
+    }
+    
+    $trip_id = intval($data['trip_id']);
+    $room_data = $data['room_data'];
+    
+    // Build room_type_data JSON
+    $room_json = json_encode([
+        'double' => intval($room_data['double'] ?? 0),
+        'twin' => intval($room_data['twin'] ?? 0),
+        'single' => intval($room_data['single'] ?? 0),
+        'triple' => intval($room_data['triple'] ?? 0)
+    ]);
+    
+    try {
+        // Update all itinerary days for this trip with new room counts
+        $sql = "UPDATE itinerary_days SET room_type_data = ? WHERE trip_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('si', $room_json, $trip_id);
+        $stmt->execute();
+        
+        echo json_encode(['status' => 'success', 'message' => 'Itinerary rooms updated']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Update failed: ' . $e->getMessage()]);
     }
 }

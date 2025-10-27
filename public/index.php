@@ -1147,6 +1147,9 @@
                 </ul>
             </li>
             
+            <!-- PAX Details (standalone) -->
+            <li><a data-section="paxdetails"><i class="fas fa-users fa-fw"></i> <span class="link-text">PAX Details</span></a></li>
+            
             <!-- Reports Section -->
             <li class="nav-section">
                 <a class="section-toggle" data-toggle="reports">
@@ -1391,6 +1394,24 @@
                 </div>
             </section>
 
+            <section id="paxdetailsSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <select id="paxPackageFilter" class="filter-select">
+                                <option value="">All Packages</option>
+                            </select>
+                            <select id="paxGroupFilter" class="filter-select">
+                                <option value="">All Groups</option>
+                            </select>
+                            <button id="clearPaxFilter" class="btn-add" style="background-color: var(--text-light);"><i class="fas fa-times"></i> Remove Filters</button>
+                        </div>
+                    </div>
+                    <div id="paxDetailsContainer" class="hotel-records-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- PAX details will be rendered here -->
+                    </div>
+                </div>
+            </section>
 
             <section id="vehiclerecordsSection" class="content-section">
                 <div class="trips-container">
@@ -2084,6 +2105,14 @@
                         case 'guides':
                             fetchGuides();
                             break;
+                        case 'paxdetails':
+                            // Ensure packages loaded for filters
+                            if (!packagesData || packagesData.length === 0) {
+                                fetchPackages().then(fetchPaxDetails);
+                            } else {
+                                fetchPaxDetails();
+                            }
+                            break;
                     }
                 });
             });
@@ -2232,6 +2261,409 @@
                     }
                 } catch (error) {
                     showToast('Error fetching guides.', 'error');
+                }
+            };
+            
+            async function fetchPaxDetails() {
+                try {
+                    const paxPackageFilter = document.getElementById('paxPackageFilter');
+                    const paxGroupFilter = document.getElementById('paxGroupFilter');
+                    const clearPaxFilter = document.getElementById('clearPaxFilter');
+                    
+                    const response = await fetch(`${API_URL}?action=getTrips`);
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        let trips = result.data;
+                        
+                        // Populate package filter (only once)
+                        if (paxPackageFilter.options.length === 1 && packagesData && packagesData.length > 0) {
+                            packagesData.forEach(pkg => {
+                                const option = document.createElement('option');
+                                option.value = pkg.id;
+                                option.textContent = pkg.name + (pkg.code ? ` (${pkg.code})` : '');
+                                paxPackageFilter.appendChild(option);
+                            });
+                        }
+                        
+                        // Populate group filter based on selected package
+                        const updatePaxGroupFilter = () => {
+                            const selectedPackageId = paxPackageFilter.value;
+                            paxGroupFilter.innerHTML = '<option value="">All Groups</option>';
+                            
+                            let filteredTrips = trips;
+                            if (selectedPackageId) {
+                                filteredTrips = trips.filter(t => String(t.trip_package_id) === String(selectedPackageId));
+                            }
+                            
+                            const uniqueGroups = [...new Set(filteredTrips.map(t => t.file_name).filter(Boolean))];
+                            uniqueGroups.sort().forEach(group => {
+                                const option = document.createElement('option');
+                                option.value = group;
+                                option.textContent = group;
+                                paxGroupFilter.appendChild(option);
+                            });
+                        };
+                        
+                        updatePaxGroupFilter();
+                        
+                        // Apply filters - IMPORTANT: Keep the filtered value
+                        const selectedPackageId = paxPackageFilter.value;
+                        const selectedGroup = paxGroupFilter.value;
+                        
+                        console.log('Filters:', { selectedPackageId, selectedGroup, totalTrips: trips.length });
+                        
+                        if (selectedPackageId) {
+                            trips = trips.filter(t => String(t.trip_package_id) === String(selectedPackageId));
+                            console.log('After package filter:', trips.length);
+                        }
+                        
+                        if (selectedGroup && selectedGroup !== '') {
+                            trips = trips.filter(t => {
+                                const match = t.file_name === selectedGroup;
+                                console.log('Checking trip:', t.file_name, '===', selectedGroup, '?', match);
+                                return match;
+                            });
+                            console.log('After group filter:', trips.length, trips.map(t => t.file_name));
+                        }
+                        
+                        // Fetch PAX details for each trip
+                        const paxPromises = trips.map(async (trip) => {
+                            try {
+                                const paxResp = await fetch(`${API_URL}?action=getPaxDetails&trip_id=${trip.id}`);
+                                const paxResult = await paxResp.json();
+                                if (paxResult.status === 'success' && paxResult.data[trip.id]) {
+                                    return { ...trip, paxData: paxResult.data[trip.id] };
+                                }
+                                return { ...trip, paxData: { double: 0, single: 0, triple: 0, twin: 0, amendments: [] } };
+                            } catch (e) {
+                                return { ...trip, paxData: { double: 0, single: 0, triple: 0, twin: 0, amendments: [] } };
+                            }
+                        });
+                        
+                        const tripsWithPax = await Promise.all(paxPromises);
+                        renderPaxDetails(tripsWithPax);
+                    }
+                    
+                    // Setup filter event listeners (only once)
+                    if (!paxPackageFilter.dataset.listenerAdded) {
+                        paxPackageFilter.addEventListener('change', async () => {
+                            // Update group filter when package changes - fetch fresh data
+                            const selectedPackageId = paxPackageFilter.value;
+                            const response = await fetch(`${API_URL}?action=getTrips`);
+                            const result = await response.json();
+                            
+                            if (result.status === 'success') {
+                                let allTrips = result.data;
+                                paxGroupFilter.innerHTML = '<option value="">All Groups</option>';
+                                
+                                let filteredTrips = allTrips;
+                                if (selectedPackageId) {
+                                    filteredTrips = allTrips.filter(t => String(t.trip_package_id) === String(selectedPackageId));
+                                }
+                                
+                                const uniqueGroups = [...new Set(filteredTrips.map(t => t.file_name).filter(Boolean))];
+                                uniqueGroups.sort().forEach(group => {
+                                    const option = document.createElement('option');
+                                    option.value = group;
+                                    option.textContent = group;
+                                    paxGroupFilter.appendChild(option);
+                                });
+                            }
+                            
+                            fetchPaxDetails();
+                        });
+                        
+                        paxGroupFilter.addEventListener('change', fetchPaxDetails);
+                        
+                        clearPaxFilter.addEventListener('click', async () => {
+                            paxPackageFilter.value = '';
+                            paxGroupFilter.value = '';
+                            
+                            // Reset group filter to show all groups
+                            const response = await fetch(`${API_URL}?action=getTrips`);
+                            const result = await response.json();
+                            if (result.status === 'success') {
+                                const allTrips = result.data;
+                                paxGroupFilter.innerHTML = '<option value="">All Groups</option>';
+                                const uniqueGroups = [...new Set(allTrips.map(t => t.file_name).filter(Boolean))];
+                                uniqueGroups.sort().forEach(group => {
+                                    const option = document.createElement('option');
+                                    option.value = group;
+                                    option.textContent = group;
+                                    paxGroupFilter.appendChild(option);
+                                });
+                            }
+                            
+                            fetchPaxDetails();
+                        });
+                        
+                        paxPackageFilter.dataset.listenerAdded = 'true';
+                    }
+                    
+                } catch (error) {
+                    showToast('Error fetching PAX details.', 'error');
+                }
+            };
+            
+            function renderPaxDetails(trips) {
+                const container = document.getElementById('paxDetailsContainer');
+                container.innerHTML = '';
+                
+                if (!trips || trips.length === 0) {
+                    container.innerHTML = '<div class="no-records" style="grid-column: 1 / -1;">No trips found with the selected filters.</div>';
+                    return;
+                }
+                
+                // Sort trips by start date
+                const sortedTrips = [...trips].sort((a, b) => {
+                    const dateA = new Date(a.start_date || '1970-01-01');
+                    const dateB = new Date(b.start_date || '1970-01-01');
+                    return dateA - dateB;
+                });
+                
+                sortedTrips.forEach(trip => {
+                    const paxData = trip.paxData || { double: 0, single: 0, triple: 0, twin: 0, amendments: [] };
+                    const hasAmendments = paxData.amendments && paxData.amendments.length > 0;
+                    
+                    const tripCard = document.createElement('div');
+                    tripCard.className = 'hotel-group';
+                    tripCard.style.marginBottom = '20px';
+                    
+                    const tripHeader = document.createElement('div');
+                    tripHeader.className = 'hotel-header';
+                    tripHeader.style.background = '#f3e5f5';
+                    tripHeader.style.color = '#6a1b9a';
+                    tripHeader.innerHTML = `
+                        <i class="fas fa-users"></i>
+                        <strong>File #${trip.id}:</strong> ${trip.file_name || trip.tour_code || 'Unnamed'} | ${trip.package_name}
+                        <span style="margin-left: 10px; font-size: 0.85rem; opacity: 0.8;">${trip.start_date} to ${trip.end_date}</span>
+                        ${hasAmendments ? `<i class="fas fa-file-pen" style="margin-left: auto; cursor: pointer; opacity: 0.7;" data-trip-id="${trip.id}" title="View Amendments"></i>` : ''}
+                    `;
+                    
+                    const paxForm = document.createElement('div');
+                    paxForm.className = 'hotel-bookings';
+                    paxForm.style.display = 'grid';
+                    paxForm.style.gridTemplateColumns = 'repeat(auto-fit, minmax(200px, 1fr))';
+                    paxForm.style.gap = '15px';
+                    paxForm.style.padding = '20px';
+                    
+                    ['double', 'single', 'triple', 'twin'].forEach(roomType => {
+                        const formGroup = document.createElement('div');
+                        formGroup.innerHTML = `
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px;">
+                                ${roomType.charAt(0).toUpperCase() + roomType.slice(1)} Rooms
+                            </label>
+                            <input type="number" 
+                                   class="pax-input" 
+                                   data-trip-id="${trip.id}" 
+                                   data-room-type="${roomType}" 
+                                   value="${paxData[roomType] || 0}" 
+                                   min="0" 
+                                   max="50"
+                                   style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem;">
+                        `;
+                        paxForm.appendChild(formGroup);
+                    });
+                    
+                    const saveButton = document.createElement('button');
+                    saveButton.className = 'btn-add';
+                    saveButton.innerHTML = '<i class="fas fa-save"></i> Save PAX Details';
+                    saveButton.style.gridColumn = '1 / -1';
+                    saveButton.style.marginTop = '10px';
+                    saveButton.dataset.tripId = trip.id;
+                    paxForm.appendChild(saveButton);
+                    
+                    tripCard.appendChild(tripHeader);
+                    tripCard.appendChild(paxForm);
+                    container.appendChild(tripCard);
+                });
+                
+                // Setup save handlers
+                document.querySelectorAll('.pax-input').forEach(input => {
+                    input.addEventListener('change', function() {
+                        const tripId = this.dataset.tripId;
+                        const saveBtn = document.querySelector(`button[data-trip-id="${tripId}"]`);
+                        if (saveBtn) {
+                            saveBtn.style.background = 'var(--warning-color)';
+                            saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Unsaved Changes';
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('button[data-trip-id]').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const tripId = this.dataset.tripId;
+                        await savePaxDetailsForTrip(tripId, this);
+                    });
+                });
+                
+                // Amendment icon handlers
+                document.querySelectorAll('.fa-file-pen[data-trip-id]').forEach(icon => {
+                    icon.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        const tripId = this.dataset.tripId;
+                        await showPaxAmendments(tripId);
+                    });
+                });
+            };
+            
+            async function savePaxDetailsForTrip(tripId, buttonEl) {
+                try {
+                    const inputs = document.querySelectorAll(`.pax-input[data-trip-id="${tripId}"]`);
+                    const paxData = {};
+                    inputs.forEach(input => {
+                        paxData[input.dataset.roomType] = parseInt(input.value) || 0;
+                    });
+                    
+                    buttonEl.disabled = true;
+                    buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    
+                    // Save to PAX details table
+                    const response = await fetch(`${API_URL}?action=savePaxDetails`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trip_id: parseInt(tripId), pax_data: paxData })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        // Also update all itinerary days with these room counts
+                        const itineraryResponse = await fetch(`${API_URL}?action=updateItineraryRooms`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                trip_id: parseInt(tripId), 
+                                room_data: paxData 
+                            })
+                        });
+                        
+                        const itineraryResult = await itineraryResponse.json();
+                        
+                        if (itineraryResult.status === 'success') {
+                            showToast('PAX details and itinerary updated successfully', 'success');
+                        } else {
+                            showToast('PAX saved but itinerary update failed: ' + (itineraryResult.message || ''), 'warning');
+                        }
+                        
+                        buttonEl.innerHTML = '<i class="fas fa-check"></i> Saved';
+                        buttonEl.style.background = 'var(--success-color)';
+                        
+                        // Refresh to show amendment icon if needed
+                        setTimeout(() => fetchPaxDetails(), 1000);
+                    } else {
+                        showToast(result.message || 'Failed to save PAX details', 'error');
+                        buttonEl.innerHTML = '<i class="fas fa-save"></i> Save PAX Details';
+                        buttonEl.style.background = '';
+                    }
+                } catch (error) {
+                    showToast('Error saving PAX details: ' + error.message, 'error');
+                    buttonEl.innerHTML = '<i class="fas fa-save"></i> Save PAX Details';
+                    buttonEl.style.background = '';
+                } finally {
+                    buttonEl.disabled = false;
+                }
+            };
+            
+            async function showPaxAmendments(tripId) {
+                try {
+                    const response = await fetch(`${API_URL}?action=getPaxAmendments&trip_id=${tripId}`);
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        const amendments = result.data;
+                        let html = '';
+                        
+                        if (amendments.length === 0) {
+                            html = '<div style="text-align:center; padding:20px; color:var(--text-light);">No amendments recorded</div>';
+                        } else {
+                            // Group amendments by timestamp
+                            const groupedByTime = {};
+                            amendments.forEach(amendment => {
+                                const timestamp = amendment.timestamp;
+                                if (!groupedByTime[timestamp]) {
+                                    groupedByTime[timestamp] = [];
+                                }
+                                groupedByTime[timestamp].push(amendment);
+                            });
+                            
+                            // Build each change block first
+                            const blocks = [];
+                            let changeNumber = 1;
+                            Object.keys(groupedByTime).sort().reverse().forEach(timestamp => {
+                                const changes = groupedByTime[timestamp];
+                                const date = new Date(timestamp);
+                                const timeStr = date.toLocaleString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                });
+                                const groupUser = (changes[0] && (changes[0].user_name || changes[0].user)) ? (changes[0].user_name || changes[0].user) : 'Unknown';
+                                
+                                let block = `
+                                    <div style="padding: 15px; background: #fafafa; border: 1px solid var(--border-color); border-radius: 8px;">
+                                        <div style="font-weight: 700; margin-bottom: 8px; color: #6a1b9a;">Change #${changeNumber} <span style=\"font-weight: 400; color: var(--text-light);\">by ${groupUser}</span></div>
+                                        <div style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 10px;"><i class="fas fa-clock"></i> ${timeStr}</div>
+                                        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px;">
+                                `;
+                                changes.forEach(amendment => {
+                                    block += `
+                                        <div style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff;">
+                                            <span style="font-weight: 600; min-width: 60px; color: var(--text-secondary);">${amendment.room_type.charAt(0).toUpperCase() + amendment.room_type.slice(1)}:</span>
+                                            <span style="text-decoration: line-through; color: #ef4444;">${amendment.old_value}</span>
+                                            <span style="color: var(--text-light);"><i class="fas fa-arrow-right"></i></span>
+                                            <span style="color: #10b981; font-weight: 600;">${amendment.new_value}</span>
+                                        </div>`;
+                                });
+                                block += `</div></div>`;
+                                blocks.push(block);
+                                changeNumber++;
+                            });
+
+                            // Arrange blocks two per row: 1 left, 2 right; then 3 left, 4 right; etc.
+                            html = '<div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">';
+                            for (let i = 0; i < blocks.length; i += 2) {
+                                if (blocks[i+1] !== undefined) {
+                                    html += blocks[i] + blocks[i+1];
+                                } else {
+                                    html += blocks[i];
+                                }
+                            }
+                            html += '</div>';
+                        }
+                        
+                        // Show modal
+                        const modal = document.createElement('div');
+                        modal.id = 'paxAmendmentModal';
+                        modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                        modal.innerHTML = `
+                            <div style="background: white; border-radius: 12px; padding: 24px; width: 90vw; max-width: 900px; max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow); overflow-wrap: anywhere; word-break: break-word;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid #f3e5f5;">
+                                    <h3 style="margin: 0; color: #6a1b9a; font-size: 1.1rem;"><i class="fas fa-file-pen"></i> PAX Amendments - File #${tripId}</h3>
+                                    <button id="closeAmendmentModal" style="background: none; border: none; font-size: 1.6rem; cursor: pointer; color: #666; line-height: 1;">&times;</button>
+                                </div>
+                                ${html}
+                            </div>
+                        `;
+                        
+                        // Attach to DOM before querying elements
+                        document.body.appendChild(modal);
+                        
+                        // Close button handler (guard if not found)
+                        const closeBtn = modal.querySelector('#closeAmendmentModal');
+                        if (closeBtn) {
+                            closeBtn.addEventListener('click', () => { modal.remove(); });
+                        }
+                        
+                        // Click outside to close
+                        modal.addEventListener('click', (e) => {
+                            if (e.target === modal) modal.remove();
+                        });
+                    }
+                } catch (error) {
+                    showToast('Error loading amendments: ' + error.message, 'error');
                 }
             };
             
