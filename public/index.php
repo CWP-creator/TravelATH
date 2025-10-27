@@ -352,6 +352,14 @@
         .status-Active { background-color: #e0f8e9; color: #4CAF50; }
         .status-Completed { background-color: #e9ecef; color: #6c757d; }
         .status-Pending { background-color: #fff3e0; color: #ff9800; }
+        .status-Cancelled { background-color: #fee2e2; color: #b91c1c; font-weight: 700; }
+        
+        .cancelled-message {
+            color: #dc2626;
+            font-weight: 700;
+            font-size: 1.1em;
+            text-align: center;
+        }
 
         .row-status-Available { background-color: var(--row-available-bg); }
         .row-status-Not-Available { background-color: var(--row-not-available-bg); }
@@ -1220,7 +1228,7 @@
                             <thead>
                                 <tr>
                                     <th>FILE ID</th>
-                                    <th>CUSTOMER</th>
+                                    <th>Group-Name</th>
                                     <th>TOUR CODE</th>
                                     <th>PACKAGE</th>
                                     <th>START DATE</th>
@@ -1488,6 +1496,15 @@
                                 <option value="Completed">Completed</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="company_top">Company</label>
+                            <select id="company_top" name="company">
+                                <option value="">Select Company</option>
+                                <option value="ASI">ASI</option>
+                                <option value="WWW">WWW</option>
+                                <option value="Others">Others</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -1504,13 +1521,13 @@
 
                 <div class="section-card" id="guestDetailsCard">
                     <h4><i class="fas fa-user"></i> Guest Details</h4>
-                <div class="form-group">
-                        <label for="company">Company</label>
-                        <select id="company" name="company">
+                    <div class="form-group">
+                        <label for="company_old">Company</label>
+                        <select id="company_old" name="company_old">
                             <option value="">Select Company</option>
-                            <option value="Individual">Individual</option>
                             <option value="ASI">ASI</option>
-                            <option value="Booking">Booking</option>
+                            <option value="WWW">WWW</option>
+                            <option value="Others">Others</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1838,6 +1855,28 @@
     
     <div id="toast" class="toast"></div>
 
+    <!-- Export Format Modal -->
+    <div id="exportFormatModal" class="mini-modal" aria-hidden="true" style="display:none;">
+      <div class="content">
+        <div class="header">
+          <span>Export Package</span>
+          <span id="exportFormatClose" class="close"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="body">
+          <div style="margin-bottom:8px;">Choose export format:</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" data-export-format="csv">CSV</button>
+            <button class="btn btn-primary" data-export-format="xls">Excel (.xls)</button>
+            <button class="btn btn-primary" data-export-format="json">JSON</button>
+            <button class="btn btn-primary" data-export-format="pdf">PDF</button>
+          </div>
+        </div>
+        <div class="footer">
+          <button id="exportFormatCancel" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Missing Assignment Modal -->
     <style>
       .mini-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items:center; justify-content:center; z-index: 1200; }
@@ -1920,6 +1959,7 @@
             let packagesData = [];
             let hotelRecordsData = [];
             let guideRecordsData = [];
+            let __exportPkgId = null;
 
     window.logout = async function() {
         if (confirm('Are you sure you want to logout?')) {
@@ -2356,24 +2396,44 @@
                     });
                 }
                 sortedTrips.forEach(trip => {
+                    const isCancelled = String(trip.status||'').toLowerCase()==='cancelled' || String(trip.status||'').trim()==='';
                     const row = document.createElement('tr');
                     row.setAttribute('data-id', trip.id);
                     row.classList.add('trip-row');
-                    row.innerHTML = `
-                        <td>#${String(trip.id).padStart(3, '0')}</td>
-                        <td>${trip.file_name || trip.customer_name}</td>
-                        <td>${trip.tour_code || 'N/A'}</td>
-                        <td>${trip.package_name}</td>
-                        <td>${trip.start_date}</td>
-                        <td>${trip.end_date}</td>
-                        <td><span class=\"status status-${trip.status}\">${trip.status}</span></td>
-                        <td class=\"actions\">
-                            <a href=\"#\" class=\"btn-edit-trip\" data-id=\"${trip.id}\" title=\"Edit Trip\"><i class=\"fas fa-pencil\"></i></a>
-                            <a href=\"#\" class=\"btn-duplicate-trip\" data-id=\"${trip.id}\" title=\"Duplicate Trip\"><i class=\"fas fa-clone\"></i></a>
-                            <a href=\"#\" class=\"btn-delete-trip\" data-id=\"${trip.id}\"><i class=\"fas fa-trash\"></i></a>
-                        </td>
-                    `;
-                    row.addEventListener('dblclick', () => { window.location.href = `Itinerary.php?trip_id=${trip.id}`; });
+                    const fileIdCell = `#${String(trip.id).padStart(3, '0')}`;
+                    
+                    if (isCancelled) {
+                        // For cancelled trips, show file ID, group name, and "File Cancelled" message
+                        const nameCell = trip.file_name || trip.customer_name || '';
+                        row.innerHTML = `
+                            <td>${fileIdCell}</td>
+                            <td>${nameCell}</td>
+                            <td colspan="5" class="cancelled-message">File Cancelled</td>
+                            <td class="actions"></td>
+                        `;
+                    } else {
+                        // For active trips, show all information
+                        const nameCell = trip.file_name || trip.customer_name || '';
+                        const tourCell = trip.tour_code || '';
+                        const pkgCell = trip.package_name || '';
+                        const startCell = trip.start_date || '';
+                        const endCell = trip.end_date || '';
+                        row.innerHTML = `
+                            <td>${fileIdCell}</td>
+                            <td>${nameCell}</td>
+                            <td>${tourCell}</td>
+                            <td>${pkgCell}</td>
+                            <td>${startCell}</td>
+                            <td>${endCell}</td>
+                            <td><span class=\"status status-${String(trip.status||'').trim().replace(/\s+/g,'-')}\">${String(trip.status||'')}</span></td>
+                            <td class=\"actions\">
+                                <a href=\"#\" class=\"btn-edit-trip\" data-id=\"${trip.id}\" title=\"Edit Trip\"><i class=\"fas fa-pencil\"></i></a>
+                                <a href=\"#\" class=\"btn-duplicate-trip\" data-id=\"${trip.id}\" title=\"Duplicate Trip\"><i class=\"fas fa-clone\"></i></a>
+                                <a href=\"#\" class=\"btn-delete-trip\" data-id=\"${trip.id}\" title=\"Cancel Trip\"><i class=\"fas fa-ban\"></i></a>
+                            </td>
+                        `;
+                        row.addEventListener('dblclick', () => { window.location.href = `Itinerary.php?trip_id=${trip.id}`; });
+                    }
                     tbody.appendChild(row);
                 });
             };
@@ -3043,6 +3103,14 @@
                 });
             });
 
+            // Export modal controls
+            const exportModal = document.getElementById('exportFormatModal');
+            const closeExportFormat = () => { if (exportModal) exportModal.style.display='none'; };
+            const openExportFormat = (pkgId) => { __exportPkgId = pkgId; if (exportModal) exportModal.style.display='flex'; };
+            document.getElementById('exportFormatClose')?.addEventListener('click', closeExportFormat);
+            document.getElementById('exportFormatCancel')?.addEventListener('click', closeExportFormat);
+            exportModal?.addEventListener('click', (e)=>{ if (e.target===exportModal) closeExportFormat(); });
+
             // Disable closing modals by clicking outside the content
             // window.addEventListener('click', (event) => {
             //     if (event.target.classList.contains('modal')) {
@@ -3070,6 +3138,7 @@
                 document.getElementById('tripForm').reset();
                 document.getElementById('tripForm').classList.add('creation-lite');
                 const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
+                const ct = document.getElementById('company_top'); if (ct) ct.value = '';
                 document.getElementById('tripIdHidden').value = '';
                 document.getElementById('tripIdDisplay').value = '';
                 document.getElementById('fileIdGroup').style.display = 'none';
@@ -3728,7 +3797,7 @@
                 missingSelectGroup.style.display = 'none';
               } else if (type==='hotel') {
                 let opts = '<option value=\"\">Not assigned</option>';
-                hotelsData.forEach(h => { const sel=(String(h.id)===String(it.day.hotel_id))?'selected':''; opts+=`<option value=\"${h.id}\" ${sel}>${h.name}</option>`; });
+                (hotelsData.slice().sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')))).forEach(h => { const sel=(String(h.id)===String(it.day.hotel_id))?'selected':''; opts+=`<option value=\"${h.id}\" ${sel}>${h.name}</option>`; });
                 missingSelect.innerHTML = opts;
                 missingTitle.textContent = 'Assign Hotel';
                 missingLabel.textContent = 'Select Hotel';
@@ -3738,7 +3807,7 @@
                 missingSelectGroup.style.display = 'block';
               } else if (type==='guide') {
                 let opts = '<option value=\"\">Not assigned</option>';
-                guidesData.forEach(g => { const sel=(String(g.id)===String(it.day.guide_id))?'selected':''; opts+=`<option value=\"${g.id}\" ${sel}>${g.name}${g.language?` (${g.language})`:''}</option>`; });
+                (guidesData.slice().sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')))).forEach(g => { const sel=(String(g.id)===String(it.day.guide_id))?'selected':''; opts+=`<option value=\"${g.id}\" ${sel}>${g.name}${g.language?` (${g.language})`:''}</option>`; });
                 missingSelect.innerHTML = opts;
                 missingTitle.textContent = 'Assign Guide';
                 missingLabel.textContent = 'Select Guide';
@@ -3923,9 +3992,24 @@
             let itineraryDaysCache = [];
             let selectedArrivalIndex = null;
             let selectedDepartureIndex = null;
-            function getHotelOptionsHTML(selected){ return ['<option value="">--</option>'].concat((hotelsData||[]).map(h=>`<option value="${h.id}" ${String(selected)===String(h.id)?'selected':''}>${h.name}</option>`)).join(''); }
-            function getVehicleOptionsHTML(selected){ return ['<option value="">--</option>'].concat((vehiclesData||[]).map(v=>`<option value="${v.id}" ${String(selected)===String(v.id)?'selected':''}>${v.vehicle_name}${v.number_plate?` (${v.number_plate})`:''}</option>`)).join(''); }
-            function getGuideOptionsHTML(selected){ return ['<option value="">--</option>'].concat((guidesData||[]).map(g=>`<option value="${g.id}" ${String(selected)===String(g.id)?'selected':''}>${g.name}${g.language?` (${g.language})`:''}</option>`)).join(''); }
+            function getHotelOptionsHTML(selected){
+                const list = (hotelsData||[]).slice().sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                return ['<option value="">--</option>']
+                    .concat(list.map(h=>`<option value="${h.id}" ${String(selected)===String(h.id)?'selected':''}>${h.name}</option>`))
+                    .join('');
+            }
+            function getVehicleOptionsHTML(selected){
+                const list = (vehiclesData||[]).slice().sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
+                return ['<option value="">--</option>']
+                    .concat(list.map(v=>`<option value="${v.id}" ${String(selected)===String(v.id)?'selected':''}>${v.vehicle_name}${v.number_plate?` (${v.number_plate})`:''}</option>`))
+                    .join('');
+            }
+            function getGuideOptionsHTML(selected){
+                const list = (guidesData||[]).slice().sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                return ['<option value="">--</option>']
+                    .concat(list.map(g=>`<option value="${g.id}" ${String(selected)===String(g.id)?'selected':''}>${g.name}${g.language?` (${g.language})`:''}</option>`))
+                    .join('');
+            }
             function getAllGuestUnits(){
                 const units = [];
                 // Couples
@@ -4298,7 +4382,7 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                 // Set selected group to first for assignment convenience
                 if (tripArrivalsState.length && selectedArrivalIndex===null){ selectedArrivalIndex = 0; renderArrivalGroups(); updateNamesPool(); }
             }
-            document.getElementById('company')?.addEventListener('change', ()=>{ updateCompanyMode(); });
+            document.getElementById('company_top')?.addEventListener('change', ()=>{ updateCompanyMode(); });
             // Stepper
             let tripCurrentStep = 1;
             function setTripStep(n){
@@ -4359,6 +4443,8 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 
                 // Set status
                 document.getElementById('status').value = trip.status || 'Pending';
+                // Company
+                const compTop = document.getElementById('company_top'); if (compTop) compTop.value = trip.company || '';
                 
                 // Set dates
                 document.getElementById('start_date').value = (trip.start_date || '');
@@ -4452,89 +4538,12 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                     e.preventDefault();
                     await duplicateTrip(id);
                 }
-
                 if (target.classList.contains('btn-export-package')) {
                     e.preventDefault();
                     const pkg = packagesData.find(p => p.id == id);
                     if (!pkg) return;
-                    
-                    try {
-                        showToast(`Preparing ${pkg.name} details for export...`, 'info');
-                        
-                        // Fetch detailed requirements for this specific package
-                        const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
-                        const result = await response.json();
-                        
-                        // Create CSV headers for detailed export
-                        const headers = [
-                            'Package ID', 'Package Name', 'Package Code', 'Total Days', 
-                            'Day Number', 'Hotel Name', 'Guide Required', 'Vehicle Required', 
-                            'Vehicle Type', 'Services', 'Activities/Notes'
-                        ];
-                        
-                        const csvRows = [];
-                        
-                        if (result.status === 'success' && result.data && result.data.length > 0) {
-                            // Process each day's requirements
-                            result.data.forEach(req => {
-                                // Find hotel name
-                                const hotel = hotelsData.find(h => h.id == req.hotel_id);
-                                const hotelName = hotel ? hotel.name : (req.hotel_id ? `Hotel ID: ${req.hotel_id}` : 'No Hotel');
-                                
-                                csvRows.push([
-                                    pkg.id || '',
-                                    pkg.name || '',
-                                    pkg.code || '',
-                                    pkg.No_of_Days || '',
-                                    req.day_number || '',
-                                    hotelName,
-                                    req.guide_required === '1' || req.guide_required === 1 ? 'Yes' : 'No',
-                                    req.vehicle_required === '1' || req.vehicle_required === 1 ? 'Yes' : 'No',
-                                    req.vehicle_type || '',
-                                    req.day_services || '',
-                                    req.day_notes || ''
-                                ]);
-                            });
-                        } else {
-                            // Package has no detailed requirements, add basic info only
-                            csvRows.push([
-                                pkg.id || '',
-                                pkg.name || '',
-                                pkg.code || '',
-                                pkg.No_of_Days || '',
-                                'No detailed requirements',
-                                '', '', '', '', '', ''
-                            ]);
-                        }
-                        
-                        // Combine headers and rows
-                        const csvContent = [
-                            headers.join(','),
-                            ...csvRows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-                        ].join('\n');
-                        
-                        // Create and download file
-                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.setAttribute('href', url);
-                        const packageName = (pkg.name || 'Package').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                        const filename = `${packageName}_details_${new Date().toISOString().slice(0, 10)}.csv`;
-                        link.setAttribute('download', filename);
-                        link.style.visibility = 'hidden';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                        
-                        showToast(`${pkg.name} details exported successfully!`, 'success');
-                        
-                    } catch (error) {
-                        console.error('Export error:', error);
-                        showToast('Error exporting package details: ' + error.message, 'error');
-                    }
+                    openExportFormat(pkg.id);
                 }
-
                 if (target.classList.contains('btn-duplicate-package')) {
                     e.preventDefault();
                     const pkg = packagesData.find(p => p.id == id);
@@ -4674,7 +4683,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 
                 if (target.classList.contains('btn-delete-trip')) {
                     e.preventDefault();
-                    if (confirm('Are you sure you want to delete this trip?')) handleDelete('deleteTrip', fetchTrips);
+                    if (confirm('Cancel this trip? It will be marked as Cancelled and removed from all records.')) handleDelete('cancelTrip', fetchTrips);
                 }
                 if (target.classList.contains('btn-delete-package')) {
                     e.preventDefault();
@@ -4695,6 +4704,58 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             });
 
             // --- Utility ---
+            // Export helpers and handlers
+            async function getPackageExportData(pkg){
+                const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
+                const result = await response.json();
+                const headers = ['Package ID','Package Name','Package Code','Total Days','Day Number','Hotel Name','Guide Required','Vehicle Required','Vehicle Type','Services','Activities/Notes'];
+                const rows = [];
+                if (result.status==='success' && Array.isArray(result.data) && result.data.length){
+                    result.data.forEach(req=>{
+                        const hotel = hotelsData.find(h=> String(h.id)===String(req.hotel_id));
+                        const hotelName = hotel ? hotel.name : (req.hotel_id ? `Hotel ID: ${req.hotel_id}` : 'No Hotel');
+                        rows.push([pkg.id||'', pkg.name||'', pkg.code||'', pkg.No_of_Days||'', req.day_number||'', hotelName, (req.guide_required==1||String(req.guide_required)==='1')?'Yes':'No', (req.vehicle_required==1||String(req.vehicle_required)==='1')?'Yes':'No', req.vehicle_type||'', req.day_services||'', req.day_notes||'' ]);
+                    });
+                } else {
+                    rows.push([pkg.id||'', pkg.name||'', pkg.code||'', pkg.No_of_Days||'', 'No detailed requirements','','','','','','']);
+                }
+                return { headers, rows };
+            }
+            function downloadBlob(content, mime, filename){ const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
+            function buildXls(headers, rows){ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const thead=`<tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>`; const tbody=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join(''); return `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px;font-family:Segoe UI,Arial,sans-serif;font-size:12px}</style></head><body><table>${thead}${tbody}</table></body></html>`; }
+            function buildHtmlTable(title, headers, rows){ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const thead=`<tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>`; const tbody=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join(''); return `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>${esc(title)}</title><style>body{font-family:Segoe UI,Arial,sans-serif}h1{font-size:18px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 8px;font-size:12px}th{background:#f3f4f6;text-align:left}</style></head><body><h1>${esc(title)}</h1><table>${thead}${tbody}</table><script>setTimeout(function(){window.print();},300);<\/script></body></html>`; }
+            async function exportPackage(pkg, format){
+                try{
+                    if (!hotelsData.length) { await fetchHotels(); }
+                    const { headers, rows } = await getPackageExportData(pkg);
+                    const packageName = (pkg.name||'Package').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+                    const dateStr = new Date().toISOString().slice(0,10);
+                    if (format==='xls'){
+                        const html = buildXls(headers, rows);
+                        downloadBlob(html, 'application/vnd.ms-excel', `${packageName}_details_${dateStr}.xls`);
+                        showToast(`${pkg.name} exported (Excel)`, 'success');
+                    } else if (format==='json'){
+                        const json = JSON.stringify({ headers, rows }, null, 2);
+                        downloadBlob(json, 'application/json;charset=utf-8', `${packageName}_details_${dateStr}.json`);
+                        showToast(`${pkg.name} exported (JSON)`, 'success');
+                    } else if (format==='pdf'){
+                        const html = buildHtmlTable(`${pkg.name} — Package Details`, headers, rows);
+                        const w = window.open('', '_blank'); if (w){ w.document.open(); w.document.write(html); w.document.close(); } else { showToast('Popup blocked. Allow popups.', 'error'); }
+                    } else {
+                        const csv = ['\uFEFF'+headers.join(','), ...rows.map(r=> r.map(f=> `"${String(f).replace(/"/g,'""')}"`).join(','))].join('\n');
+                        downloadBlob(csv, 'text/csv;charset=utf-8;', `${packageName}_details_${dateStr}.csv`);
+                        showToast(`${pkg.name} exported (CSV)`, 'success');
+                    }
+                }catch(err){ showToast('Error exporting: '+ err.message, 'error'); }
+            }
+            document.getElementById('exportFormatModal')?.addEventListener('click', async (e)=>{
+                const btn = e.target.closest('button[data-export-format]'); if (!btn) return;
+                const fmt = btn.getAttribute('data-export-format');
+                const pkg = packagesData.find(p=> String(p.id)===String(__exportPkgId));
+                if (pkg) { await exportPackage(pkg, fmt); }
+                const modal = document.getElementById('exportFormatModal'); if (modal) modal.style.display='none';
+            });
+
             function ensureActionToastEl(){
                 let el = document.getElementById('actionToast');
                 if (!el){

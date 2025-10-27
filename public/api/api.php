@@ -82,6 +82,9 @@ switch ($action) {
     case 'deleteTrip':
         deleteTrip($conn);
         break;
+    case 'cancelTrip':
+        cancelTrip($conn);
+        break;
     case 'getItinerary':
         getItinerary($conn);
         break;
@@ -201,6 +204,7 @@ function getPackageRecords($conn){
     $sql = "SELECT t.id, t.file_name, t.start_date, t.end_date, p.name AS package_name
             FROM trips t
             JOIN trip_packages p ON t.trip_package_id = p.id
+            WHERE t.status <> 'Cancelled'
             ORDER BY p.name, t.start_date";
     $res = $conn->query($sql);
     if (!$res){ echo json_encode(['status'=>'error','message'=>'DB error: '.$conn->error]); return; }
@@ -623,27 +627,43 @@ function updateTrip($conn) {
 }
 
 function deleteTrip($conn) {
+    // Hard delete (kept for legacy), not used by UI anymore.
     parse_str(file_get_contents("php://input"), $_DELETE);
     $id = isset($_DELETE['id']) ? intval($_DELETE['id']) : 0;
-
-    if (empty($id)) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid Trip ID.']);
-        return;
-    }
-
-    $stmt = $conn->prepare("DELETE FROM trips WHERE id = ?");
-    if (!$stmt) {
-        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
-        return;
-    }
-
+    if (empty($id)) { echo json_encode(['status' => 'error', 'message' => 'Invalid Trip ID.']); return; }
+    $stmt = $conn->prepare("DELETE FROM trips WHERE id = ?"); if (!$stmt) { echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]); return; }
     $stmt->bind_param("i", $id);
-    if ($stmt->execute()) {
-        echo json_encode(['status' => 'success', 'message' => 'Trip deleted successfully.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to delete trip: ' . $stmt->error]);
-    }
+    if ($stmt->execute()) { echo json_encode(['status' => 'success', 'message' => 'Trip deleted successfully.']); }
+    else { echo json_encode(['status' => 'error', 'message' => 'Failed to delete trip: ' . $stmt->error]); }
     $stmt->close();
+}
+
+function cancelTrip($conn){
+    parse_str(file_get_contents("php://input"), $_DELETE);
+    $id = isset($_DELETE['id']) ? intval($_DELETE['id']) : 0;
+    if (empty($id)) { echo json_encode(['status'=>'error','message'=>'Invalid Trip ID.']); return; }
+    $conn->begin_transaction();
+    try{
+        // Mark trip as Cancelled
+        $u = $conn->prepare("UPDATE trips SET status='Cancelled' WHERE id = ?");
+        if (!$u) { throw new Exception('Prepare failed: '.$conn->error); }
+        $u->bind_param('i',$id); if(!$u->execute()){ throw new Exception('Update failed: '.$u->error); } $u->close();
+        // Remove itinerary and assignments so records/reports exclude it
+        // Itinerary days
+        $conn->query("DELETE FROM itinerary_days WHERE trip_id = ".intval($id));
+        // Arrivals/Departures tables may not exist yet; guard with ensure helpers if available
+        if (function_exists('ensureTripArrivalsTable')) { ensureTripArrivalsTable($conn); }
+        if (function_exists('ensureTripDeparturesTable')) { ensureTripDeparturesTable($conn); }
+        $conn->query("DELETE FROM trip_arrivals WHERE trip_id = ".intval($id));
+        $conn->query("DELETE FROM trip_departures WHERE trip_id = ".intval($id));
+        // Guests (optional)
+        if (function_exists('ensureTripGuestsSchema')) { /* keep guest schema; optionally clear names */ }
+        $conn->commit();
+        echo json_encode(['status'=>'success','message'=>'Trip cancelled']);
+    }catch(Exception $e){
+        $conn->rollback();
+        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
+    }
 }
 function getPackageHotels($conn) {
     $trip_package_id = isset($_GET['trip_package_id']) ? intval($_GET['trip_package_id']) : 0;
@@ -1546,7 +1566,7 @@ function getHotelRecords($conn) {
         FROM trips t
         JOIN itinerary_days id ON t.id = id.trip_id
         JOIN hotels h ON id.hotel_id = h.id
-        WHERE id.hotel_id IS NOT NULL AND id.hotel_id != '' AND id.hotel_id != '0'
+        WHERE id.hotel_id IS NOT NULL AND id.hotel_id != '' AND id.hotel_id != '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''
         ORDER BY id.day_date DESC, t.id
     ";
     
@@ -1656,7 +1676,7 @@ function getGuideRecords($conn) {
                 FROM itinerary_days id
                 JOIN trips t ON t.id = id.trip_id
                 JOIN guides g ON g.id = id.guide_id
-                WHERE id.guide_id IS NOT NULL AND id.guide_id <> '' AND id.guide_id <> '0'";
+                WHERE id.guide_id IS NOT NULL AND id.guide_id <> '' AND id.guide_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         // From arrivals
         $q2 = "SELECT 
                    g.id AS guide_id,
@@ -1673,7 +1693,7 @@ function getGuideRecords($conn) {
                 FROM trip_arrivals ta
                 JOIN trips t ON t.id = ta.trip_id
                 JOIN guides g ON g.id = ta.guide_id
-                WHERE ta.guide_id IS NOT NULL AND ta.guide_id <> '' AND ta.guide_id <> '0'";
+                WHERE ta.guide_id IS NOT NULL AND ta.guide_id <> '' AND ta.guide_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         // From departures
         $q3 = "SELECT 
                    g.id AS guide_id,
@@ -1690,7 +1710,7 @@ function getGuideRecords($conn) {
                 FROM trip_departures td
                 JOIN trips t ON t.id = td.trip_id
                 JOIN guides g ON g.id = td.guide_id
-                WHERE td.guide_id IS NOT NULL AND td.guide_id <> '' AND td.guide_id <> '0'";
+                WHERE td.guide_id IS NOT NULL AND td.guide_id <> '' AND td.guide_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         // Combine
         $sql = "$q1 UNION ALL $q2 UNION ALL $q3";
         // Filters
@@ -1792,7 +1812,7 @@ function getVehicleRecords($conn) {
                 FROM itinerary_days id
                 JOIN trips t ON t.id = id.trip_id
                 JOIN vehicles v ON v.id = id.vehicle_id
-                WHERE id.vehicle_id IS NOT NULL AND id.vehicle_id <> '' AND id.vehicle_id <> '0'";
+                WHERE id.vehicle_id IS NOT NULL AND id.vehicle_id <> '' AND id.vehicle_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         // From arrivals
         $q2 = "SELECT 
                    v.id AS vehicle_id,
@@ -1808,7 +1828,7 @@ function getVehicleRecords($conn) {
                 FROM trip_arrivals ta
                 JOIN trips t ON t.id = ta.trip_id
                 JOIN vehicles v ON v.id = ta.vehicle_id
-                WHERE ta.vehicle_id IS NOT NULL AND ta.vehicle_id <> '' AND ta.vehicle_id <> '0'";
+                WHERE ta.vehicle_id IS NOT NULL AND ta.vehicle_id <> '' AND ta.vehicle_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         // From departures
         $q3 = "SELECT 
                    v.id AS vehicle_id,
@@ -1824,7 +1844,7 @@ function getVehicleRecords($conn) {
                 FROM trip_departures td
                 JOIN trips t ON t.id = td.trip_id
                 JOIN vehicles v ON v.id = td.vehicle_id
-                WHERE td.vehicle_id IS NOT NULL AND td.vehicle_id <> '' AND td.vehicle_id <> '0'";
+                WHERE td.vehicle_id IS NOT NULL AND td.vehicle_id <> '' AND td.vehicle_id <> '0' AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''";
         $sql = "$q1 UNION ALL $q2 UNION ALL $q3 ORDER BY vehicle_name, assignment_date";
         $result = $conn->query($sql);
         if (!$result) { throw new Exception('Database query failed: ' . $conn->error); }
@@ -1863,7 +1883,7 @@ function getDayRoster($conn){
         $endStr = $periodEnd->format('Y-m-d');
 
         // Fetch trips overlapping this period
-        $sqlTrips = "SELECT id, customer_name, tour_code, status, start_date, end_date FROM trips WHERE start_date <= ? AND end_date >= ? ORDER BY id";
+        $sqlTrips = "SELECT id, customer_name, tour_code, status, start_date, end_date FROM trips WHERE start_date <= ? AND end_date >= ? AND status <> 'Cancelled' AND status IS NOT NULL AND status <> '' ORDER BY id";
         $stTrips = $conn->prepare($sqlTrips); if (!$stTrips) throw new Exception('DB prepare failed: '.$conn->error);
         $stTrips->bind_param('ss', $endStr, $startStr); $stTrips->execute(); $rsTrips = $stTrips->get_result();
         $trips = [];
@@ -2208,7 +2228,7 @@ function getArrivalInsights($conn){
             LEFT JOIN vehicles v ON v.id = ta.vehicle_id
             LEFT JOIN guides g ON g.id = ta.guide_id
             LEFT JOIN hotels h ON h.id = ta.drop_hotel_id
-            WHERE ta.arrival_date BETWEEN ? AND ?
+            WHERE ta.arrival_date BETWEEN ? AND ? AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''
             ORDER BY ta.arrival_date, ta.arrival_time, t.tour_code";
     $stmt = $conn->prepare($sql);
     if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
@@ -2237,7 +2257,7 @@ function getDepartureInsights($conn){
             LEFT JOIN vehicles v ON v.id = td.vehicle_id
             LEFT JOIN guides g ON g.id = td.guide_id
             LEFT JOIN hotels h ON h.id = td.pickup_hotel_id
-            WHERE td.departure_date BETWEEN ? AND ?
+            WHERE td.departure_date BETWEEN ? AND ? AND t.status <> 'Cancelled' AND t.status IS NOT NULL AND t.status <> ''
             ORDER BY td.departure_date, td.departure_time, t.tour_code";
     $stmt = $conn->prepare($sql);
     if (!$stmt){ echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]); return; }
