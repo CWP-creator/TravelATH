@@ -9,6 +9,7 @@ require_once '../src/services/db_connect.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Itinerary Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary-color: #6366f1;
@@ -1763,11 +1764,17 @@ require_once '../src/services/db_connect.php';
                             </div>
                         </div>
 
-                        <!-- Export CSV -->
-                        <button type="button" id="exportCsvBtn" class="btn-export">
-                            <i class="fas fa-file-csv"></i>
-                            <span>Export to CSV</span>
-                        </button>
+                        <!-- Export (choose format) -->
+                        <div class="dropup" id="exportDropup">
+                            <button type="button" id="exportDropBtn" class="btn-export">
+                                <i class="fas fa-file-export"></i>
+                                <span>Export</span>
+                            </button>
+                            <div class="dropup-menu" id="exportMenu">
+                                <a href="#" id="exportCsvItem"><i class="fas fa-file-csv"></i> CSV</a>
+                                <a href="#" id="exportXlsxItem"><i class="fas fa-file-excel"></i> XLSX</a>
+                            </div>
+                        </div>
 
                         <!-- Save (rightmost) -->
                         <button type="submit" class="btn-save">
@@ -1886,7 +1893,9 @@ require_once '../src/services/db_connect.php';
             const scrollLeftBtn = document.getElementById('scrollLeftBtn');
             const scrollRightBtn = document.getElementById('scrollRightBtn');
             const saveBtn = document.querySelector('.btn-save');
-            const exportCsvBtn = document.getElementById('exportCsvBtn');
+            const exportDropBtn = document.getElementById('exportDropBtn');
+            const exportCsvItem = document.getElementById('exportCsvItem');
+            const exportXlsxItem = document.getElementById('exportXlsxItem');
             const emailHotelsBtn = document.getElementById('emailHotelsBtn');
             const emailGuidesBtn = document.getElementById('emailGuidesBtn');
             const emailVehiclesBtn = document.getElementById('emailVehiclesBtn');
@@ -2345,7 +2354,8 @@ require_once '../src/services/db_connect.php';
                         toggleView(nextMode);
                     });
                     
-                    exportCsvBtn.addEventListener('click', exportToCSV);
+                    exportCsvItem.addEventListener('click', (e)=>{ e.preventDefault(); exportToCSV(); });
+                    exportXlsxItem.addEventListener('click', (e)=>{ e.preventDefault(); exportToXLSX(); });
                     emailHotelsBtn.addEventListener('click', sendHotelEmail);
                     emailGuidesBtn.addEventListener('click', sendGuideEmail);
                     emailVehiclesBtn.addEventListener('click', sendVehicleEmail);
@@ -3543,7 +3553,8 @@ require_once '../src/services/db_connect.php';
                 }
 
                 // Build compact services token like BLD (ordered, unique)
-                const headers = ['Day', 'Date', 'Guide', 'Vehicle', 'Hotel', 'Services', 'Activities / Notes'];
+                const headers = ['Day', 'Date', 'Guide', 'Vehicle', 'Hotel', 'Company', 'Services', 'Activities / Notes'];
+                const trip = (window.__trip__ || {});
                 const csvRows = data.map((d, index) => {
                     const sv = (d.services_provided || '').toUpperCase();
                     const tokens = Array.from(new Set(sv.split(/[\s,;]+/).filter(x=>['B','L','D'].includes(x))));
@@ -3557,6 +3568,7 @@ require_once '../src/services/db_connect.php';
                         d.guide_name,
                         d.vehicle_name,
                         d.hotel_name,
+                        (trip.company || ''),
                         compactServices,
                         notesOneLine
                     ];
@@ -3583,6 +3595,29 @@ require_once '../src/services/db_connect.php';
                     document.body.removeChild(link);
                     showToast('Data exported successfully!', 'success');
                 }
+            };
+
+            const exportToXLSX = () => {
+                const data = getCurrentFormData(currentItineraryDays);
+                if (data.length === 0) { showToast('No itinerary data to export.', 'error'); return; }
+                const headers = ['Day','Date','Guide','Vehicle','Hotel','Company','Services','Activities / Notes'];
+                const trip = (window.__trip__ || {});
+                const rows = data.map((d, idx) => {
+                    const sv = (d.services_provided || '').toUpperCase();
+                    const tokens = Array.from(new Set(sv.split(/[\s,;]+/).filter(x=>['B','L','D'].includes(x))));
+                    const order = { 'B':0, 'L':1, 'D':2 };
+                    tokens.sort((a,b)=>(order[a]??9)-(order[b]??9));
+                    const compactServices = tokens.join('') || '';
+                    const notesOneLine = (d.notes || '').replace(/\n/g,' ').trim();
+                    return [ `Day ${idx+1}`, d.day_date, d.guide_name, d.vehicle_name, d.hotel_name, (trip.company||''), compactServices, notesOneLine ];
+                });
+                if (!window.XLSX) { showToast('XLSX library not loaded.', 'error'); return; }
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Itinerary');
+                const tripTitle = document.getElementById('tripTitle').textContent.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                XLSX.writeFile(wb, `${tripTitle}_itinerary.xlsx`);
+                showToast('XLSX exported successfully!', 'success');
             };
             
             // MODIFIED: Function to send email to ALL uninformed hotels for the trip
@@ -3971,6 +4006,7 @@ require_once '../src/services/db_connect.php';
             }
             setupDropup('emailDropBtn','emailMenu');
             setupDropup('assignDropBtn','assignMenu');
+            setupDropup('exportDropBtn','exportMenu');
 
             // Email menu items
             document.getElementById('emailGuidesItem').addEventListener('click', (e)=>{ e.preventDefault(); sendGuideEmail(); });

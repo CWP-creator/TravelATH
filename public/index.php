@@ -38,6 +38,7 @@
             background-color: var(--background-color);
             color: var(--text-color);
             display: flex;
+            zoom: 0.9;
         }
 
         .sidebar {
@@ -1960,6 +1961,11 @@
             let hotelRecordsData = [];
             let guideRecordsData = [];
             let __exportPkgId = null;
+            let duplicatedTripIds = [];
+            try { duplicatedTripIds = JSON.parse(localStorage.getItem('dupTripIds') || '[]'); if (!Array.isArray(duplicatedTripIds)) duplicatedTripIds = []; } catch(_) { duplicatedTripIds = []; }
+            // Manual trip order (drag-and-drop controlled)
+            let manualTripOrder = [];
+            try { manualTripOrder = JSON.parse(localStorage.getItem('manualTripOrderV1') || '[]'); if (!Array.isArray(manualTripOrder)) manualTripOrder = []; } catch(_) { manualTripOrder = []; }
 
     window.logout = async function() {
         if (confirm('Are you sure you want to logout?')) {
@@ -2113,9 +2119,22 @@
                     const result = await response.json();
                     if (result.status === 'success') {
                         tripsData = result.data;
+                        // Prune duplicated list to existing trips only
+                        try {
+                            duplicatedTripIds = (duplicatedTripIds||[]).filter(id => tripsData.some(t => String(t.id) === String(id)));
+                            localStorage.setItem('dupTripIds', JSON.stringify(duplicatedTripIds));
+                        } catch(_) {}
                         renderTrips(tripsData, document.querySelector('#tripsTable tbody'));
                         renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
                         updateStats(tripsData);
+                        // Clean up manual order with only existing trip IDs
+                        try {
+                            const setIds = new Set(tripsData.map(t => String(t.id)));
+                            manualTripOrder = (manualTripOrder||[]).map(String).filter(id => setIds.has(id));
+                            // Reset manual order on data refresh to enforce default File ID ascending
+                            manualTripOrder = [];
+                            localStorage.setItem('manualTripOrderV1', JSON.stringify(manualTripOrder));
+                        } catch(_) {}
                     } else {
                         showToast(result.message, 'error');
                     }
@@ -2384,16 +2403,36 @@
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
                     return;
                 }
-                // Sort trips based on current sort order (by start_date)
+                // Build base order: manual overrides default date sort
+                let baseTrips = [...trips];
+                if (!Array.isArray(manualTripOrder) || manualTripOrder.length === 0) {
+                    if (!skipSort) {
+                        // Default order: by File ID ascending
+                        baseTrips.sort((a, b) => (Number(a.id)||0) - (Number(b.id)||0));
+                    }
+                }
+                const applyManual = (arr) => {
+                    if (!Array.isArray(manualTripOrder) || manualTripOrder.length === 0) return arr;
+                    const idSet = new Set(arr.map(t => String(t.id)));
+                    const manualIn = manualTripOrder.map(String).filter(id => idSet.has(id));
+                    const ordered = manualIn.map(id => arr.find(t => String(t.id) === id)).filter(Boolean);
+                    const remainder = arr.filter(t => !manualIn.includes(String(t.id)));
+                    return ordered.concat(remainder);
+                };
                 let sortedTrips;
-                if (skipSort) {
-                    sortedTrips = [...trips];
+                if (Array.isArray(manualTripOrder) && manualTripOrder.length) {
+                    // When user has dragged, honor manual order across the whole list
+                    sortedTrips = applyManual(baseTrips);
                 } else {
-                    sortedTrips = [...trips].sort((a, b) => {
-                        const dateA = new Date(a.start_date || '9999-12-31');
-                        const dateB = new Date(b.start_date || '9999-12-31');
-                        return tripsSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-                    });
+                    // Default: File ID ascending, then move duplicates to the end (preserving current order)
+                    if (Array.isArray(duplicatedTripIds) && duplicatedTripIds.length) {
+                        const dupSet = new Set(duplicatedTripIds.map(String));
+                        const keep = baseTrips.filter(t => !dupSet.has(String(t.id)));
+                        const dups = baseTrips.filter(t => dupSet.has(String(t.id)));
+                        sortedTrips = keep.concat(dups);
+                    } else {
+                        sortedTrips = baseTrips;
+                    }
                 }
                 sortedTrips.forEach(trip => {
                     const isCancelled = String(trip.status||'').toLowerCase()==='cancelled' || String(trip.status||'').trim()==='';
@@ -2436,6 +2475,8 @@
                     }
                     tbody.appendChild(row);
                 });
+                // Enable drag & drop reordering on this tbody
+                setupTripDragAndDrop(tbody);
             };
 
             function updateGroupFilter() {
@@ -2497,9 +2538,80 @@
                     this.classList.remove('sort-asc', 'sort-desc');
                     this.classList.add(tripsSortOrder === 'asc' ? 'sort-asc' : 'sort-desc');
                     
-                    // Re-render the current filtered trips
-                    filterAllTrips();
+                    // Clear manual order to allow date sorting
+                    manualTripOrder = [];
+                    try { localStorage.setItem('manualTripOrderV1', JSON.stringify(manualTripOrder)); } catch(_) {}
+                    
+                    // Re-render with date sort instead of ID sort
+                    const tbody = document.querySelector('#allTripsTable tbody');
+                    if (tbody) {
+                        renderTripsWithDateSort(tripsData, tbody);
+                    }
                 });
+            }
+            
+            function renderTripsWithDateSort(trips, tbody) {
+                tbody.innerHTML = '';
+                if (!trips || trips.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No trips found.</td></tr>';
+                    return;
+                }
+                
+                // Sort by start_date instead of ID
+                let sortedTrips = [...trips].sort((a, b) => {
+                    const dateA = new Date(a.start_date || '9999-12-31');
+                    const dateB = new Date(b.start_date || '9999-12-31');
+                    return tripsSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+                
+                // Move duplicated trips to end if any
+                if (Array.isArray(duplicatedTripIds) && duplicatedTripIds.length) {
+                    const dupSet = new Set(duplicatedTripIds.map(String));
+                    const keep = sortedTrips.filter(t => !dupSet.has(String(t.id)));
+                    const dups = sortedTrips.filter(t => dupSet.has(String(t.id)));
+                    sortedTrips = keep.concat(dups);
+                }
+                
+                sortedTrips.forEach(trip => {
+                    const isCancelled = String(trip.status||'').toLowerCase()==='cancelled' || String(trip.status||'').trim()==='';
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-id', trip.id);
+                    row.classList.add('trip-row');
+                    const fileIdCell = `#${String(trip.id).padStart(3, '0')}`;
+                    
+                    if (isCancelled) {
+                        const nameCell = trip.file_name || trip.customer_name || '';
+                        row.innerHTML = `
+                            <td>${fileIdCell}</td>
+                            <td>${nameCell}</td>
+                            <td colspan="5" class="cancelled-message">File Cancelled</td>
+                            <td class="actions"></td>
+                        `;
+                    } else {
+                        const nameCell = trip.file_name || trip.customer_name || '';
+                        const tourCell = trip.tour_code || '';
+                        const pkgCell = trip.package_name || '';
+                        const startCell = trip.start_date || '';
+                        const endCell = trip.end_date || '';
+                        row.innerHTML = `
+                            <td>${fileIdCell}</td>
+                            <td>${nameCell}</td>
+                            <td>${tourCell}</td>
+                            <td>${pkgCell}</td>
+                            <td>${startCell}</td>
+                            <td>${endCell}</td>
+                            <td><span class="status status-${String(trip.status||'').trim().replace(/\s+/g,'-')}">${String(trip.status||'')}</span></td>
+                            <td class="actions">
+                                <a href="#" class="btn-edit-trip" data-id="${trip.id}" title="Edit Trip"><i class="fas fa-pencil"></i></a>
+                                <a href="#" class="btn-duplicate-trip" data-id="${trip.id}" title="Duplicate Trip"><i class="fas fa-clone"></i></a>
+                                <a href="#" class="btn-delete-trip" data-id="${trip.id}" title="Cancel Trip"><i class="fas fa-ban"></i></a>
+                            </td>
+                        `;
+                        row.addEventListener('dblclick', () => { window.location.href = `Itinerary.php?trip_id=${trip.id}`; });
+                    }
+                    tbody.appendChild(row);
+                });
+                setupTripDragAndDrop(tbody);
             }
 
                 function renderPackages(packages) {
@@ -2698,6 +2810,8 @@
                                 ${informedPill}
                                 <span class="status status-${record.status}">${record.status}</span>
                                 <div class="booking-actions">
+                                    <a href=\"#\" class=\"btn-hotel-email\" title=\"Email hotel\" data-trip-id=\"${record.trip_id}\" data-hotel-id=\"${record.hotel_id||''}\" data-checkin=\"${record.check_in_date}\" data-checkout=\"${record.check_out_date}\"><i class=\"fas fa-envelope\"></i></a>
+                                    <a href=\"#\" class=\"btn-hotel-print\" title=\"Print booking\" data-trip-id=\"${record.trip_id}\" data-hotel-id=\"${record.hotel_id||''}\" data-checkin=\"${record.check_in_date}\" data-checkout=\"${record.check_out_date}\"><i class=\"fas fa-print\"></i></a>
                                     <a href=\"Itinerary.php?trip_id=${record.trip_id}&focus_date=${record.check_in_date}\" title=\"Open Itinerary on ${record.check_in_date}\">
                                         <i class="fas fa-route"></i>
                                     </a>
@@ -3678,6 +3792,13 @@
                 const addRes = await fetch(`${API_URL}?action=addTrip`, { method:'POST', body: fd });
                 const addJs = await addRes.json(); if (addJs.status!=='success'){ showToast(addJs.message||'Failed to create trip','error'); return; }
                 const newId = addJs.data && addJs.data.id; if (!newId){ showToast('No new trip id returned','error'); return; }
+                // Track duplicated trip to always show at the end
+                try {
+                  duplicatedTripIds = Array.isArray(duplicatedTripIds) ? duplicatedTripIds : [];
+                  duplicatedTripIds = duplicatedTripIds.filter(id => String(id) !== String(newId));
+                  duplicatedTripIds.push(String(newId));
+                  localStorage.setItem('dupTripIds', JSON.stringify(duplicatedTripIds));
+                } catch(_) {}
                 // Copy arrivals
                 try{ await fetch(`${API_URL}?action=saveTripArrivals`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(newId), arrivals: srcArrivals }) }); }catch(e){}
                 // Copy departures
@@ -4498,6 +4619,65 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 openModal('packageModal');
             }
 
+            // Drag & Drop reordering helpers
+            function setupTripDragAndDrop(tbody){
+                if (!tbody) return;
+                // Clear previous listeners by cloning tbody (avoid memory leaks)
+                // Instead, attach per-row listeners freshly each render
+                let dragSrc = null;
+                const rows = Array.from(tbody.querySelectorAll('tr.trip-row'));
+                rows.forEach(r => {
+                    r.setAttribute('draggable','true');
+                    r.addEventListener('dragstart', (e)=>{
+                        dragSrc = r;
+                        r.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        try { e.dataTransfer.setData('text/plain', r.dataset.id); } catch(_){}
+                    });
+                    r.addEventListener('dragend', ()=>{
+                        r.classList.remove('dragging');
+                        dragSrc = null;
+                        // After drag ends, persist new order from this tbody
+                        persistManualOrderFromTbody(tbody);
+                        // Re-render both tables to normalize and apply constraints consistently
+                        try{
+                            renderTrips(tripsData, document.querySelector('#tripsTable tbody'));
+                            renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
+                        }catch(_){/* ignore */}
+                    });
+                });
+                tbody.addEventListener('dragover', (e)=>{
+                    e.preventDefault();
+                    const afterEl = getDragAfterRow(tbody, e.clientY);
+                    const dragging = tbody.querySelector('tr.trip-row.dragging');
+                    if (!dragging) return;
+                    if (afterEl == null) {
+                        tbody.appendChild(dragging);
+                    } else {
+                        tbody.insertBefore(dragging, afterEl);
+                    }
+                });
+            }
+            function getDragAfterRow(container, y){
+                const rows = [...container.querySelectorAll('tr.trip-row:not(.dragging)')];
+                return rows.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+            }
+            function persistManualOrderFromTbody(tbody){
+                const ids = Array.from(tbody.querySelectorAll('tr.trip-row')).map(tr => String(tr.dataset.id));
+                // Merge with existing manual order: keep moved IDs in this order, then the rest
+                const rest = (manualTripOrder||[]).map(String).filter(id => !ids.includes(id));
+                manualTripOrder = ids.concat(rest);
+                try { localStorage.setItem('manualTripOrderV1', JSON.stringify(manualTripOrder)); } catch(_) {}
+            }
+
             function openTripById(id){
                 const trip = tripsData.find(t => t.id == id);
                 if (!trip) { showToast('Trip not found', 'error'); return; }
@@ -4837,7 +5017,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 Object.keys(grouped).sort().forEach(date => {
                     const group = document.createElement('div'); group.className = 'hotel-group';
                     const header = document.createElement('div'); header.className = 'hotel-header';
-                    header.innerHTML = `<i class="fas fa-calendar-day"></i> ${date} <span style="margin-left:auto; opacity:0.9;">${grouped[date].length} file(s)</span>`;
+                    header.innerHTML = `<i class=\"fas fa-calendar-day\"></i> ${date} <span style=\"margin-left:auto; opacity:0.9;\">${grouped[date].length} file(s)</span> <a href=\"#\" class=\"btn-roster-print\" data-date=\"${date}\" title=\"Print this day\" style=\"margin-left:10px; color:#374151;\"><i class=\"fas fa-print\"></i></a>`;
                     const list = document.createElement('div'); list.className = 'hotel-bookings';
                     grouped[date].sort((a,b)=> (a.tour_code||'').localeCompare(b.tour_code||''));
                     grouped[date].forEach(r => {
@@ -4938,6 +5118,56 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 showToast('Guide record filters cleared.', 'info');
             });
 
+
+            // Delegated actions for Hotel Records and Day Roster
+            document.addEventListener('click', async (e)=>{
+                const emailBtn = e.target.closest('.btn-hotel-email');
+                if (emailBtn){
+                    e.preventDefault();
+                    try{
+                        const tripId = emailBtn.getAttribute('data-trip-id');
+                        const hotelId = emailBtn.getAttribute('data-hotel-id');
+                        const body = { trip_id: Number(tripId) };
+                        if (hotelId) body.hotel_id = Number(hotelId);
+                        const resp = await fetch('../src/services/send_hotel_email.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                        const js = await resp.json();
+                        showToast(js.message || 'Email request sent', js.status||'success');
+                    }catch(err){ showToast('Email failed: '+err.message,'error'); }
+                    return;
+                }
+                const printBtn = e.target.closest('.btn-hotel-print');
+                if (printBtn){
+                    e.preventDefault();
+                    const tripId = printBtn.getAttribute('data-trip-id');
+                    const hotelId = printBtn.getAttribute('data-hotel-id')||'';
+                    const ci = printBtn.getAttribute('data-checkin')||'';
+                    const co = printBtn.getAttribute('data-checkout')||'';
+                    const html = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Hotel Booking</title>
+                        <style>body{font-family:Segoe UI,Arial,sans-serif;padding:16px}h1{font-size:18px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px;text-align:left}</style></head>
+                        <body><h1>Hotel Booking</h1>
+                        <table><tr><th>Trip ID</th><td>${tripId}</td></tr>
+                        <tr><th>Hotel ID</th><td>${hotelId||'-'}</td></tr>
+                        <tr><th>Check-in</th><td>${ci}</td></tr>
+                        <tr><th>Check-out</th><td>${co}</td></tr></table>
+                        <script>setTimeout(function(){window.print();},300);<\/script>
+                        </body></html>`;
+                    const w = window.open('', '_blank'); if (w){ w.document.open(); w.document.write(html); w.document.close(); }
+                    return;
+                }
+                const rosterPrint = e.target.closest('.btn-roster-print');
+                if (rosterPrint){
+                    e.preventDefault();
+                    const date = rosterPrint.getAttribute('data-date');
+                    const group = Array.from(document.querySelectorAll('#dayRosterContainer .hotel-group'))
+                        .find(g => g.querySelector('.hotel-header')?.textContent?.includes(date));
+                    if (!group){ showToast('Nothing to print for this date','error'); return; }
+                    const bodyHtml = group.outerHTML;
+                    const html = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Duty Roster ${date}</title>
+                        <style>body{font-family:Segoe UI,Arial,sans-serif;padding:16px}.hotel-header{font-weight:800;margin-bottom:8px}</style></head>
+                        <body>${bodyHtml}<script>setTimeout(function(){window.print();},300);<\/script></body></html>`;
+                    const w = window.open('', '_blank'); if (w){ w.document.open(); w.document.write(html); w.document.close(); }
+                }
+            });
 
             // Day roster filters
             const drMonth = document.getElementById('dayRosterMonth');
