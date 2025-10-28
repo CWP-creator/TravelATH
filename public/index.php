@@ -2286,9 +2286,10 @@
                             });
                         }
                         
-                        // Populate group filter based on selected package
+                        // Populate group filter based on selected package (preserve current selection)
                         const updatePaxGroupFilter = () => {
                             const selectedPackageId = paxPackageFilter.value;
+                            const prevGroup = paxGroupFilter.value;
                             paxGroupFilter.innerHTML = '<option value="">All Groups</option>';
                             
                             let filteredTrips = trips;
@@ -2303,11 +2304,15 @@
                                 option.textContent = group;
                                 paxGroupFilter.appendChild(option);
                             });
+                            // Restore previous selection if still valid
+                            if ([...paxGroupFilter.options].some(o => o.value === prevGroup)) {
+                                paxGroupFilter.value = prevGroup;
+                            }
                         };
                         
                         updatePaxGroupFilter();
                         
-                        // Apply filters - IMPORTANT: Keep the filtered value
+                        // Apply filters - use current selections
                         const selectedPackageId = paxPackageFilter.value;
                         const selectedGroup = paxGroupFilter.value;
                         
@@ -2369,6 +2374,8 @@
                                     option.textContent = group;
                                     paxGroupFilter.appendChild(option);
                                 });
+                                // Reset to All Groups on package change
+                                paxGroupFilter.value = '';
                             }
                             
                             fetchPaxDetails();
@@ -5617,6 +5624,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             fetchHotels();
             
         });
+        
     </script>
 </body>
 </html>
