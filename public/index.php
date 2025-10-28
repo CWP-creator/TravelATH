@@ -1875,7 +1875,45 @@
         </div>
     </div>
     
+    <!-- Activity Modal -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" data-modal="activityModal">&times;</span>
+            <h2 id="activityModalTitle">Add Activity</h2>
+            <form id="activityForm">
+                <div class="form-group">
+                    <label for="activity_name">Activity Name</label>
+                    <input type="text" id="activity_name" name="name" required placeholder="e.g., City Tour, Museum Visit, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="activity_description">Description (optional)</label>
+                    <textarea id="activity_description" name="description" rows="3" placeholder="Describe the activity in detail..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel btn" data-modal="activityModal">Cancel</button>
+                    <button type="submit" class="btn-save btn">Save Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <div id="toast" class="toast"></div>
+
+    <style>
+      /* Searchable select (activities) */
+      .searchable-select { position: relative; width: 100%; margin-top: 6px; }
+      .searchable-select-input { width: 100%; padding: 8px 30px 8px 10px; font-size: 0.9rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; color: #111827; }
+      .searchable-select-input:focus { outline: none; border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+      .searchable-select-arrow { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
+      .searchable-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
+      .searchable-select.open .searchable-select-dropdown { display: block; }
+      .searchable-select-option { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+      .searchable-select-option:last-child { border-bottom: none; }
+      .searchable-select-option:hover { background: #f9fafb; }
+      .searchable-select-option.selected { background: #6366f1; color: #fff; }
+      .searchable-select-option.no-results { color: #9ca3af; font-style: italic; cursor: default; }
+      .searchable-select-option.no-results:hover { background: transparent; }
+    </style>
 
     <!-- Export Format Modal -->
     <div id="exportFormatModal" class="mini-modal" aria-hidden="true" style="display:none;">
@@ -1974,14 +2012,130 @@
         document.addEventListener('DOMContentLoaded', function() {
             const API_URL = 'api/api.php';
 
+            // Lightweight searchable select that wraps a native <select>
+            class VanillaSearchableSelect {
+                constructor(selectEl, opts={}){
+                    if (!selectEl || selectEl.tagName !== 'SELECT') throw new Error('Expected a select element');
+                    this.selectEl = selectEl;
+                    this.placeholder = opts.placeholder || 'Search...';
+                    this.isOpen = false;
+                    this.options = Array.from(selectEl.options).map(o=>({ value: o.value, text: o.textContent }));
+                    this.filtered = [...this.options];
+                    this.selectedValue = selectEl.value || '';
+                    this.build();
+                }
+                build(){
+                    // Hide original select but keep in DOM for form/value and events
+                    this.selectEl.style.display = 'none';
+                    // Insert UI after select
+                    this.wrapper = document.createElement('div');
+                    this.wrapper.className = 'searchable-select';
+                    this.wrapper.innerHTML = `
+                        <input type="text" class="searchable-select-input" placeholder="${this.placeholder}" readonly>
+                        <i class="fas fa-chevron-down searchable-select-arrow"></i>
+                        <div class="searchable-select-dropdown"></div>
+                    `;
+                    this.selectEl.insertAdjacentElement('afterend', this.wrapper);
+                    this.inputEl = this.wrapper.querySelector('.searchable-select-input');
+                    this.dropdownEl = this.wrapper.querySelector('.searchable-select-dropdown');
+                    // Initial text
+                    const sel = this.options.find(o=> String(o.value)===String(this.selectedValue));
+                    this.selectedText = sel ? sel.text : '';
+                    this.inputEl.value = this.selectedText;
+                    // Events
+                    this.inputEl.addEventListener('click', ()=> this.toggle());
+                    this.inputEl.addEventListener('input', (e)=>{ if (!this.isOpen) this.open(); this.filter(e.target.value); });
+                    document.addEventListener('click', (e)=>{ if (!this.wrapper.contains(e.target)) this.close(); });
+                    // Sync when native select changes externally (e.g., after adding a new activity)
+                    this.selectEl.addEventListener('change', ()=>{
+                        this.options = Array.from(this.selectEl.options).map(o=>({ value: o.value, text: o.textContent }));
+                        this.filtered = [...this.options];
+                        this.selectedValue = this.selectEl.value || '';
+                        const sel2 = this.options.find(o=> String(o.value)===String(this.selectedValue));
+                        this.selectedText = sel2 ? sel2.text : '';
+                        this.inputEl.value = this.selectedText;
+                        this.render();
+                    });
+                    this.render();
+                }
+                render(){
+                    const list = (this.filtered.length ? this.filtered : [{value:'', text:'No results', disabled:true}]);
+                    this.dropdownEl.innerHTML = list.map(o=>`<div class="searchable-select-option ${o.disabled?'no-results':''} ${String(o.value)===String(this.selectedValue)?'selected':''}" data-value="${o.value.replace(/"/g,'&quot;')}">${o.text}</div>`).join('');
+                    this.dropdownEl.querySelectorAll('.searchable-select-option').forEach(el=>{
+                        if (el.classList.contains('no-results')) return;
+                        el.addEventListener('click', ()=>{
+                            const v = el.dataset.value;
+                            // Update value + UI
+                            this.selectedValue = v;
+                            const opt = this.options.find(o=> String(o.value)===String(v));
+                            this.selectedText = opt ? opt.text : '';
+                            this.inputEl.value = this.selectedText;
+                            this.close();
+                            // Reflect on native select + bubble change
+                            this.selectEl.value = v;
+                            const ev = new Event('change', { bubbles: true });
+                            this.selectEl.dispatchEvent(ev);
+                        });
+                    });
+                }
+                filter(q){
+                    const s = (q||'').toLowerCase();
+                    // Simple contains; support multiple words
+                    const tokens = s.split(/\s+/).filter(Boolean);
+                    this.filtered = this.options.filter(o=>{
+                        const t = (o.text||'').toLowerCase();
+                        return tokens.every(tok => t.includes(tok));
+                    });
+                    this.render();
+                }
+                open(){ this.isOpen = true; this.wrapper.classList.add('open'); this.inputEl.removeAttribute('readonly'); this.inputEl.focus(); }
+                close(){ this.isOpen = false; this.wrapper.classList.remove('open'); this.inputEl.setAttribute('readonly', true); this.inputEl.value = this.selectedText||''; }
+                toggle(){ this.isOpen ? this.close() : this.open(); }
+            }
+
             let tripsData = [];
             let hotelsData = [];
             let vehiclesData = [];
             let guidesData = [];
             let packagesData = [];
+            let activitiesData = [];
             let hotelRecordsData = [];
             let guideRecordsData = [];
             let __exportPkgId = null;
+            // Track unsaved PAX state globally per trip
+            const __unsavedPax__ = {};
+            // LocalStorage-backed helpers for email window and sending state
+            function paxEmailKeyUntil(id){ return `paxEmailUntil_${id}`; }
+            function paxEmailKeySending(id){ return `paxEmailSending_${id}`; }
+            function getEmailUntil(id){ const v = Number(localStorage.getItem(paxEmailKeyUntil(id))||0); return isNaN(v)?0:v; }
+            function setEmailUntil(id, ts){ try{ localStorage.setItem(paxEmailKeyUntil(id), String(ts)); }catch(_){} }
+            function clearEmailUntil(id){ try{ localStorage.removeItem(paxEmailKeyUntil(id)); }catch(_){} }
+            function isEmailSending(id){ try{ return localStorage.getItem(paxEmailKeySending(id))==='1'; }catch(_){ return false; } }
+            function setEmailSending(id, flag){ try{ localStorage.setItem(paxEmailKeySending(id), flag?'1':'0'); }catch(_){} }
+            function clearEmailSending(id){ try{ localStorage.removeItem(paxEmailKeySending(id)); }catch(_){} }
+
+            function syncPaxEmailButtonsVisibility(){
+                const now = Date.now();
+                document.querySelectorAll('button[data-action="email"][data-trip-id]').forEach(btn=>{
+                    const tid = String(btn.dataset.tripId||'');
+                    const until = getEmailUntil(tid);
+                    const sending = isEmailSending(tid);
+                    const secsLeft = Math.max(0, Math.ceil((until - now)/1000));
+                    if (sending || now < until) {
+                        btn.style.display = '';
+                        if (sending){
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Emailing...';
+                        } else {
+                            btn.innerHTML = '<i class="fas fa-envelope"></i> Email' + (secsLeft>0? ` <small style="opacity:.7">(${secsLeft}s)</small>`:'');
+                        }
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                });
+            }
+            if (!window.__paxEmailVisInterval__){
+                window.__paxEmailVisInterval__ = setInterval(syncPaxEmailButtonsVisibility, 250);
+            }
             let duplicatedTripIds = [];
             try { duplicatedTripIds = JSON.parse(localStorage.getItem('dupTripIds') || '[]'); if (!Array.isArray(duplicatedTripIds)) duplicatedTripIds = []; } catch(_) { duplicatedTripIds = []; }
             // Manual trip order (drag-and-drop controlled)
@@ -2263,6 +2417,46 @@
                     showToast('Error fetching guides.', 'error');
                 }
             };
+
+            async function fetchActivities() {
+                try {
+                    const response = await fetch(`${API_URL}?action=getActivities`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        activitiesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
+                        // If a new activity was just added for package creation, update dropdowns
+                        if (window.__pendingActivitySelectClass && window.__pendingActivityName) {
+                            const dropdowns = document.querySelectorAll(`.${window.__pendingActivitySelectClass}`);
+                            const nameLower = window.__pendingActivityName.trim().toLowerCase();
+                            const found = activitiesData.find(a => String(a.name||'').trim().toLowerCase() === nameLower);
+                            if (found) {
+                                dropdowns.forEach(dropdown => {
+                                    // Add option if it doesn't exist
+                                    if (!Array.from(dropdown.options).some(o => String(o.value) === String(found.id))) {
+                                        const opt = document.createElement('option');
+                                        opt.value = found.id;
+                                        opt.textContent = found.name;
+                                        // Insert before the "+ Add new activity..." option
+                                        const addOption = Array.from(dropdown.options).find(o => o.value === '__add__');
+                                        if (addOption) {
+                                            dropdown.insertBefore(opt, addOption);
+                                        } else {
+                                            dropdown.appendChild(opt);
+                                        }
+                                    }
+                                    dropdown.value = String(found.id);
+                                    // Notify any wrappers (e.g., searchable select) to sync
+                                    try { dropdown.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+                                });
+                            }
+                            window.__pendingActivitySelectClass = null;
+                            window.__pendingActivityName = null;
+                        }
+                    }
+                } catch (error) {
+                    showToast('Error fetching activities.', 'error');
+                }
+            };
             
             async function fetchPaxDetails() {
                 try {
@@ -2473,13 +2667,29 @@
                         paxForm.appendChild(formGroup);
                     });
                     
+                    const actionsRow = document.createElement('div');
+                    actionsRow.style.gridColumn = '1 / -1';
+                    actionsRow.style.display = 'flex';
+                    actionsRow.style.gap = '10px';
+                    actionsRow.style.marginTop = '10px';
+
                     const saveButton = document.createElement('button');
                     saveButton.className = 'btn-add';
-                    saveButton.innerHTML = '<i class="fas fa-save"></i> Save PAX Details';
-                    saveButton.style.gridColumn = '1 / -1';
-                    saveButton.style.marginTop = '10px';
+                    saveButton.innerHTML = '<i class="fas fa-save"></i> Save Changes';
                     saveButton.dataset.tripId = trip.id;
-                    paxForm.appendChild(saveButton);
+                    saveButton.dataset.action = 'save';
+
+                    const emailButton = document.createElement('button');
+                    emailButton.className = 'btn-add';
+                    emailButton.style.background = '#6a1b9a';
+                    emailButton.innerHTML = '<i class="fas fa-envelope"></i> Email';
+                    emailButton.dataset.tripId = trip.id;
+                    emailButton.dataset.action = 'email';
+                    emailButton.style.display = 'none'; // default hidden; sync function will reveal if needed
+
+                    actionsRow.appendChild(saveButton);
+                    actionsRow.appendChild(emailButton);
+                    paxForm.appendChild(actionsRow);
                     
                     tripCard.appendChild(tripHeader);
                     tripCard.appendChild(paxForm);
@@ -2490,18 +2700,25 @@
                 document.querySelectorAll('.pax-input').forEach(input => {
                     input.addEventListener('change', function() {
                         const tripId = this.dataset.tripId;
-                        const saveBtn = document.querySelector(`button[data-trip-id="${tripId}"]`);
+                        const saveBtn = document.querySelector(`button[data-trip-id="${tripId}"][data-action="save"]`);
                         if (saveBtn) {
                             saveBtn.style.background = 'var(--warning-color)';
                             saveBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Unsaved Changes';
                         }
+                        __unsavedPax__[tripId] = true;
                     });
                 });
                 
-                document.querySelectorAll('button[data-trip-id]').forEach(btn => {
+                document.querySelectorAll('button[data-trip-id][data-action="save"]').forEach(btn => {
                     btn.addEventListener('click', async function() {
                         const tripId = this.dataset.tripId;
                         await savePaxDetailsForTrip(tripId, this);
+                    });
+                });
+                document.querySelectorAll('button[data-trip-id][data-action="email"]').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const tripId = this.dataset.tripId;
+                        await emailPaxDetailsForTrip(tripId, this);
                     });
                 });
                 
@@ -2557,6 +2774,15 @@
                         buttonEl.innerHTML = '<i class="fas fa-check"></i> Saved';
                         buttonEl.style.background = 'var(--success-color)';
                         
+                        // Briefly show the Email button (15s) if there were unsaved changes
+                        const tripIdStr = String(tripId);
+                        if (__unsavedPax__[tripIdStr]) {
+                            const untilTs = Date.now() + 15000;
+                            setEmailUntil(tripIdStr, untilTs);
+                            syncPaxEmailButtonsVisibility();
+                            __unsavedPax__[tripIdStr] = false;
+                        }
+                        
                         // Refresh to show amendment icon if needed
                         setTimeout(() => fetchPaxDetails(), 1000);
                     } else {
@@ -2570,6 +2796,50 @@
                     buttonEl.style.background = '';
                 } finally {
                     buttonEl.disabled = false;
+                }
+            };
+            
+            // Email from Pax Details as Amendment
+            async function emailPaxDetailsForTrip(tripId, buttonEl) {
+                try {
+                    // Keep the button visible if user clicked within the 15s window
+                    try { clearTimeout(buttonEl.__hideTimer); } catch(_) {}
+                    setEmailSending(String(tripId), true);
+                    syncPaxEmailButtonsVisibility();
+
+                    // Gather current PAX inputs and push to itinerary first
+                    const inputs = document.querySelectorAll(`.pax-input[data-trip-id=\"${tripId}\"]`);
+                    const paxData = {};
+                    inputs.forEach(input => { paxData[input.dataset.roomType] = parseInt(input.value) || 0; });
+
+                    buttonEl.disabled = true;
+                    const prevHtml = buttonEl.innerHTML;
+                    buttonEl.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Preparing...';
+
+                    const itineraryResponse = await fetch(`${API_URL}?action=updateItineraryRooms`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trip_id: parseInt(tripId), room_data: paxData })
+                    });
+                    const itineraryResult = await itineraryResponse.json().catch(()=>({status:'error'}));
+                    if (itineraryResult.status !== 'success') { showToast('Failed to update itinerary rooms.', 'error'); buttonEl.innerHTML = prevHtml; buttonEl.disabled = false; return; }
+
+                    // Send amendment email via service
+                    buttonEl.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Emailing...';
+                    const resp = await fetch('../src/services/send_hotel_email.php', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trip_id: parseInt(tripId), mode: 'amendment' })
+                    });
+                    const json = await resp.json().catch(async()=>({ status:'error', message: await resp.text().catch(()=> 'Unknown error') }));
+                    if (json.status === 'success') { showToast('Amendment email sent.', 'success'); buttonEl.innerHTML = '<i class=\"fas fa-paper-plane\"></i> Email'; }
+                    else { showToast(json.message || 'Email failed', 'error'); buttonEl.innerHTML = prevHtml; }
+                } catch (e) {
+                    showToast('Email failed: ' + e.message, 'error');
+                } finally {
+                    buttonEl.disabled = false;
+                    // Clear sending flag and visibility after completion
+                    clearEmailSending(String(tripId));
+                    clearEmailUntil(String(tripId));
+                    syncPaxEmailButtonsVisibility();
                 }
             };
             
@@ -3882,6 +4152,12 @@
                     hotelOptions += `<option value="${hotel.id}">${hotel.name}</option>`;
                 });
                 hotelOptions += `<option value="__add__">+ Add new hotel…</option>`;
+                
+                let activityOptions = '<option value="">-- Select Activity --</option>';
+                activitiesData.forEach(activity => {
+                    activityOptions += `<option value="${activity.id}">${activity.name}</option>`;
+                });
+                activityOptions += `<option value="__add__">+ Add new activity… (Alt+C)</option>`;
 
                 for (let i = 1; i <= dayCount; i++) {
                     const dayCard = document.createElement('div');
@@ -3939,7 +4215,11 @@
                                 <!-- Activities/Notes -->
                                 <div class="requirement-section" style="grid-column: 1 / -1;">
                                     <h5><i class="fas fa-list-ul"></i> Activities / Notes</h5>
-                                    <textarea id="notes_day_${i}" rows="2" placeholder="Describe activities for this day..."></textarea>
+                                    <select id="activity_day_${i}" name="activity_${i}" class="activity-dropdown form-control">
+                                        ${activityOptions}
+                                    </select>
+                                    <div class="searchable-select-hook" data-target="activity_day_${i}"></div>
+                                    <small style="color: #6b7280; margin-top: 4px; display: block;">Press Alt+C to add a new activity</small>
                                 </div>
                             </div>
                         </div>
@@ -3974,6 +4254,27 @@
                         }
                       });
                     }
+                    
+                    // Activity dropdown listener
+                    const activitySel = dayCard.querySelector(`#activity_day_${i}`);
+                    if (activitySel) {
+                      activitySel.addEventListener('change', function(){
+                        if (this.value === '__add__') {
+                          // remember target class to update after creation
+                          window.__pendingActivitySelectClass = 'activity-dropdown';
+                          window.__pendingActivityName = null;
+                          this.value = '';
+                          // open activity modal
+                          document.getElementById('activityForm').reset();
+                          document.getElementById('activityModalTitle').textContent = 'Add Activity';
+                          openModal('activityModal');
+                        }
+                      });
+                      // Enhance with searchable dropdown
+                      try {
+                        new VanillaSearchableSelect(activitySel, { placeholder: 'Search activities...' });
+                      } catch(_){}
+                    }
                 }
             };
             
@@ -3993,7 +4294,7 @@
                         const vt = card.querySelector(`#vehicle_type_day_${i}`); if (vt) data.vehicle_type = vt.value;
                         const b = card.querySelector(`#svc_b_${i}`); const l = card.querySelector(`#svc_l_${i}`); const d = card.querySelector(`#svc_d_${i}`);
                         data.svc_b = !!(b && b.checked); data.svc_l = !!(l && l.checked); data.svc_d = !!(d && d.checked);
-                        const n = card.querySelector(`#notes_day_${i}`); if (n) data.notes = n.value;
+                        const a = card.querySelector(`#activity_day_${i}`); if (a) data.activity_id = a.value;
                         preserve[i] = data;
                     });
                 }
@@ -4008,7 +4309,7 @@
                         const b = document.getElementById(`svc_b_${i}`); if (b) b.checked = !!d.svc_b;
                         const l = document.getElementById(`svc_l_${i}`); if (l) l.checked = !!d.svc_l;
                         const di = document.getElementById(`svc_d_${i}`); if (di) di.checked = !!d.svc_d;
-                        const n = document.getElementById(`notes_day_${i}`); if (n && typeof d.notes !== 'undefined') n.value = d.notes;
+                        const a = document.getElementById(`activity_day_${i}`); if (a && typeof d.activity_id !== 'undefined') a.value = d.activity_id;
                     }
                 } else {
                     document.getElementById('day_requirements_container').innerHTML = '';
@@ -4138,11 +4439,23 @@
                     const svcB = document.getElementById(`svc_b_${i}`);
                     const svcL = document.getElementById(`svc_l_${i}`);
                     const svcD = document.getElementById(`svc_d_${i}`);
-                    const notes = document.getElementById(`notes_day_${i}`);
+                    const activity = document.getElementById(`activity_day_${i}`);
                     const services = [];
                     if (svcB && svcB.checked) services.push('B');
                     if (svcL && svcL.checked) services.push('L');
                     if (svcD && svcD.checked) services.push('D');
+                    
+                    // Get activity name for day_notes if activity is selected
+                    let activityNotes = '';
+                    if (activity && activity.value) {
+                        const selectedActivity = activitiesData.find(a => String(a.id) === String(activity.value));
+                        if (selectedActivity) {
+                            activityNotes = selectedActivity.name;
+                            if (selectedActivity.description) {
+                                activityNotes += ' - ' + selectedActivity.description;
+                            }
+                        }
+                    }
                     
                     data.day_requirements[i] = {
                         hotel_id: hotelSelect ? hotelSelect.value : null,
@@ -4150,7 +4463,8 @@
                         vehicle_required: vehicleRequired ? vehicleRequired.checked : false,
                         vehicle_type: vehicleType ? vehicleType.value : null,
                         day_services: services.join(', '),
-                        day_notes: notes ? notes.value : ''
+                        day_notes: activityNotes,
+                        activity_id: activity ? (activity.value || null) : null
                     };
                 }
 
@@ -4204,6 +4518,33 @@
                     closeModal('guideModal');
                     fetchGuides();
                 });
+            });
+
+            document.getElementById('activityForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // capture intended name for selection after adding
+                window.__pendingActivityName = document.getElementById('activity_name').value || '';
+                handleFormSubmit(this, 'addActivity', () => {
+                    closeModal('activityModal');
+                    fetchActivities();
+                });
+            });
+
+            // Alt+C keyboard shortcut for activity creation (only when package modal is open)
+            document.addEventListener('keydown', function(e) {
+                if (e.altKey && e.key === 'c') {
+                    // Check if package modal is open
+                    const packageModal = document.getElementById('packageModal');
+                    if (packageModal && packageModal.style.display !== 'none' && !packageModal.classList.contains('hidden')) {
+                        e.preventDefault();
+                        // Open activity modal
+                        document.getElementById('activityForm').reset();
+                        document.getElementById('activityModalTitle').textContent = 'Add Activity';
+                        window.__pendingActivitySelectClass = 'activity-dropdown';
+                        window.__pendingActivityName = null;
+                        openModal('activityModal');
+                    }
+                }
             });
 
             // --- Event Delegation for Edit/Delete ---
@@ -5622,6 +5963,7 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
             fetchVehicles();
             fetchGuides();
             fetchHotels();
+            fetchActivities();
             
         });
         

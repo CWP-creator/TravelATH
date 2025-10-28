@@ -66,6 +66,8 @@ function respond($status, $message, $extra = []) {
 try {
     $input = json_decode(file_get_contents('php://input'), true);
     $trip_id = isset($input['trip_id']) ? intval($input['trip_id']) : 0;
+    $mode = isset($input['mode']) ? strtolower(trim($input['mode'])) : '';
+    $isAmendment = ($mode === 'amendment');
     $test_mode = !empty($input['test_mode']);
     if ($trip_id <= 0) {
         respond('error', 'Invalid or missing trip_id.');
@@ -90,7 +92,17 @@ try {
     $tripPackageId = isset($tripData['trip_package_id']) ? (int)$tripData['trip_package_id'] : 0;
 	$tripDetailsStmt->close();
 
-	// --- VALIDATION BLOCK ---
+// Ensure email log table exists
+    $conn->query("CREATE TABLE IF NOT EXISTS hotel_email_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        trip_id INT NOT NULL,
+        hotel_id INT NOT NULL,
+        email_type VARCHAR(20) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_trip_hotel (trip_id, hotel_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // --- VALIDATION BLOCK ---
 	// Fetch ALL days, then validate only days where the package requires a hotel (if defined).
 	$allDaysStmt = $conn->prepare("SELECT id, day_date, hotel_id, room_type_data FROM itinerary_days WHERE trip_id = ? ORDER BY day_date ASC");
 	if (!$allDaysStmt) {
@@ -176,7 +188,7 @@ try {
 		$hasHotelInformed = true;
 	}
 
-	$sql = "
+$sql = "
 		SELECT id.id AS itinerary_day_id,
            id.day_date,
            id.hotel_id,
@@ -188,7 +200,7 @@ try {
         LEFT JOIN hotels h ON id.hotel_id = h.id
         WHERE id.trip_id = ?
 		  AND id.hotel_id IS NOT NULL
-	" . ($hasHotelInformed ? "\n\t\t  AND (id.hotel_informed IS NULL OR id.hotel_informed = 0)\n" : "\n") . "
+	" . (($hasHotelInformed && !$isAmendment) ? "\n\t\t  AND (id.hotel_informed IS NULL OR id.hotel_informed = 0)\n" : "\n") . "
         ORDER BY id.day_date ASC
 	";
 
@@ -273,6 +285,23 @@ try {
 	};
 
 	foreach ($byHotel as $hid => $group) {
+		// Determine amendment ordinal for this hotel (only for amendment mode)
+		$amendOrdinal = '';
+		$amendNum = 0;
+		if ($isAmendment) {
+			try {
+				$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM hotel_email_logs WHERE trip_id = ? AND hotel_id = ? AND email_type = 'amendment'");
+				if ($cntStmt) {
+					$cntStmt->bind_param('ii', $trip_id, $hid);
+					$cntStmt->execute();
+					$res = $cntStmt->get_result();
+					$prev = ($res && $res->num_rows>0) ? intval($res->fetch_assoc()['c'] ?? 0) : 0;
+					$amendNum = $prev + 1;
+					$amendOrdinal = $amendNum . (in_array($amendNum % 100, [11,12,13]) ? 'th' : (['','st','nd','rd'][min($amendNum % 10,3)] ?? 'th'));
+					$cntStmt->close();
+				}
+			} catch (\Throwable $e) { /* ignore */ }
+		}
 		$hotelName = $group['hotel_name'] ?: ('Hotel ' . $hid);
 		$hotelEmail = $group['hotel_email'];
 		if (empty($hotelEmail)) {
@@ -358,11 +387,59 @@ try {
 			$altTextLines[] = "Check-In: $checkInDate, Check-Out: $checkOutDate, Room: $roomType, Services: $altTextServices";
 		}
 
-		$emailBodyHtml = "
+// Build changes since last email for amendment mode
+        $changesListHtml = '';
+        if ($isAmendment) {
+            try {
+                // Find latest email log (any type) for this hotel
+                $lastLogAt = null;
+                $logStmt = $conn->prepare("SELECT MAX(created_at) AS last_sent FROM hotel_email_logs WHERE trip_id = ? AND hotel_id = ?");
+                if ($logStmt) {
+                    $logStmt->bind_param('ii', $trip_id, $hid);
+                    $logStmt->execute();
+                    $logRes = $logStmt->get_result();
+                    $lastLogAt = ($logRes && $logRes->num_rows>0) ? ($logRes->fetch_assoc()['last_sent'] ?? null) : null;
+                    $logStmt->close();
+                }
+                if ($lastLogAt) {
+                    $chg = $conn->prepare("SELECT room_type, old_value, new_value, created_at FROM pax_amendments WHERE trip_id = ? AND created_at > ? ORDER BY created_at ASC");
+                    if ($chg) {
+                        $chg->bind_param('is', $trip_id, $lastLogAt);
+                        $chg->execute();
+                        $r = $chg->get_result();
+                        $latest = [];
+                        while ($row = $r->fetch_assoc()) {
+                            $rt = strtolower($row['room_type']);
+                            $latest[$rt] = ['old'=>$row['old_value'], 'new'=>$row['new_value']];
+                        }
+                        $chg->close();
+                        if (!empty($latest)) {
+                            $items = [];
+                            foreach (['double','twin','single','triple'] as $rt) {
+                                if (isset($latest[$rt])) {
+                                    $cap = ucfirst($rt);
+                                    $items[] = "<li><strong>$cap</strong>: " . intval($latest[$rt]['old']) . " → <span style='color:#065f46;font-weight:700;'>" . intval($latest[$rt]['new']) . "</span></li>";
+                                }
+                            }
+                            if (!empty($items)) {
+                                $changesListHtml = "<ul style='margin:6px 0 0 16px; padding:0;'>" . implode('', $items) . "</ul>";
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) { /* ignore diff errors */ }
+        }
+
+$preface = $isAmendment
+            ? "<p style='color:#b45309;'><strong>Amendment Notice:</strong> This is the <strong>" . ($amendOrdinal ?: 'amendment') . "</strong> to the booking. There has been a change in booking details (e.g., number of rooms/services). Updated details are below.</p>" . $changesListHtml
+            : "";
+
+        $emailBodyHtml = "
 			<p>Dear {$hotelName},</p>
-			<p>We would like to request a booking for our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>" .
+			" . $preface . "
+			<p>We would like to " . ($isAmendment ? "amend our booking for" : "request a booking for") . " our guest(s), <strong>" . htmlspecialchars($customerName) . "</strong>, under the tour code <strong>" . htmlspecialchars($tourCode) . "</strong>.</p>" .
             ($guestDetails!=='' ? ("<p><strong>Guest Details:</strong> " . nl2br(htmlspecialchars($guestDetails)) . "</p>") : "") .
-			"<p>Please find the booking details below:</p>
+			"<p>Please find the " . ($isAmendment ? "updated" : "booking") . " details below:</p>
 			<table style='width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; text-align: left;'>
 				<thead style='background-color: #f2f2f2;'>
 					<tr>
@@ -376,7 +453,7 @@ try {
 					{$tableRowsHtml}
 				</tbody>
 			</table>
-			<p>Kindly confirm this booking at your earliest convenience.</p>
+			<p>Kindly confirm " . ($isAmendment ? "the amendment" : "this booking") . " at your earliest convenience.</p>
 			<p>Thank you.</p>
 		";
 		$altBodyText = "Dear {$hotelName},\n\nWe would like to request a booking for our guest(s), " . htmlspecialchars($customerName) . ", under the tour code " . htmlspecialchars($tourCode) . ".\n\nPlease find the booking details below:\n\n" . implode("\n", $altTextLines) . "\n\nKindly confirm this booking at your earliest convenience.\n\nThank you.";
@@ -406,7 +483,7 @@ try {
 					$mail->addAddress($hotelEmail, $hotelName);
                     $mail->isHTML(true);
 					// --- MODIFIED: Email Subject ---
-					$mail->Subject = 'Hotel Booking Request for ' . $tourCode . ' - ' . $customerName;
+$mail->Subject = ($isAmendment ? ('Amendment ' . ($amendNum>0?('#'.$amendNum.' '):'') . 'Booking Update') : 'Hotel Booking Request') . ' for ' . $tourCode . ' - ' . $customerName;
 					$mail->Body = $emailBodyHtml;
 					$mail->AltBody = $altBodyText;
 					$mail->send();
@@ -427,12 +504,21 @@ try {
 				'text' => '[TEST MODE] ' . $rangeText . ' ----> ' . $hotelName . ' (no email sent)'
 			];
 			$sentOk = true;
-		} elseif ($sentOk) {
-			$messages[] = [
+} elseif ($sentOk) {
+$messages[] = [
 				'type' => 'success',
-				'text' => $rangeText . ' ----> ' . $hotelName . ' status email sent'
+				'text' => $rangeText . ' ----> ' . $hotelName . ' ' . ($isAmendment ? ('amendment ' . ($amendNum>0?('#'.$amendNum.' '):'') . 'email sent') : 'booking request sent')
 			];
-			$toMarkInformed = array_merge($toMarkInformed, $group['day_ids']);
+            // Log the email send
+            try {
+                $etype = $isAmendment ? 'amendment' : 'initial';
+                $hidToLog = isset($group['hotel_id']) ? (int)$group['hotel_id'] : (int)$hid;
+                if ($hidToLog > 0) {
+                    $logStmt = $conn->prepare("INSERT INTO hotel_email_logs (trip_id, hotel_id, email_type) VALUES (?, ?, ?)");
+                    if ($logStmt) { $logStmt->bind_param('iis', $trip_id, $hidToLog, $etype); $logStmt->execute(); $logStmt->close(); }
+                }
+            } catch (\Throwable $ex) { /* ignore */ }
+			if (!$isAmendment) { $toMarkInformed = array_merge($toMarkInformed, $group['day_ids']); }
 		} else {
 			$messages[] = [
 				'type' => 'error',
@@ -441,7 +527,7 @@ try {
 		}
 	}
 
-	if (!$test_mode && $hasHotelInformed && !empty($toMarkInformed)) {
+if (!$test_mode && $hasHotelInformed && !$isAmendment && !empty($toMarkInformed)) {
 		$placeholders = implode(',', array_fill(0, count($toMarkInformed), '?'));
 		$types = str_repeat('i', count($toMarkInformed));
 		$upd = $conn->prepare("UPDATE itinerary_days SET hotel_informed = 1 WHERE id IN ($placeholders)");
@@ -459,7 +545,7 @@ try {
 		];
 	}
 
-	respond('success', 'Hotel notification processing completed.', ['messages' => $messages]);
+respond('success', $isAmendment ? 'Hotel amendment processing completed.' : 'Hotel notification processing completed.', ['messages' => $messages]);
 } catch (Throwable $e) {
     respond('error', 'Server error: ' . $e->getMessage());
 }

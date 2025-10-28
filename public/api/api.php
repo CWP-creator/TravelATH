@@ -206,6 +206,12 @@ switch ($action) {
     case 'updateItineraryRooms':
         updateItineraryRooms($conn);
         break;
+    case 'getActivities':
+        getActivities($conn);
+        break;
+    case 'addActivity':
+        addActivity($conn);
+        break;
     default:
         echo json_encode(['status' => 'error', 'message' => 'Invalid action specified.']);
         break;
@@ -3067,5 +3073,147 @@ function updateItineraryRooms($conn) {
         echo json_encode(['status' => 'success', 'message' => 'Itinerary rooms updated']);
     } catch (Exception $e) {
         echo json_encode(['status' => 'error', 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
+
+// ============= ACTIVITY MANAGEMENT =============
+function getActivities($conn) {
+    // Ensure activities table exists
+    ensureActivitiesTable($conn);
+    
+    $sql = "SELECT * FROM package_activities ORDER BY name ASC";
+    $result = $conn->query($sql);
+    
+    if (!$result) {
+        echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
+        return;
+    }
+    
+    $activities = [];
+    while ($row = $result->fetch_assoc()) {
+        $activities[] = $row;
+    }
+    
+    echo json_encode(['status' => 'success', 'data' => $activities]);
+}
+
+function addActivity($conn) {
+    $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+    $description = isset($_POST['description']) ? trim($_POST['description']) : '';
+    
+    if (empty($name)) {
+        echo json_encode(['status' => 'error', 'message' => 'Activity name is required']);
+        return;
+    }
+    
+    // Ensure activities table exists
+    ensureActivitiesTable($conn);
+    
+    // Check for duplicate activity name
+    $checkSql = "SELECT COUNT(*) as count FROM package_activities WHERE name = ?";
+    $checkStmt = $conn->prepare($checkSql);
+    $checkStmt->bind_param('s', $name);
+    $checkStmt->execute();
+    $result = $checkStmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    if ($row['count'] > 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Activity with this name already exists']);
+        return;
+    }
+    
+    // Insert new activity
+    $sql = "INSERT INTO package_activities (name, description, created_at) VALUES (?, ?, NOW())";
+    $stmt = $conn->prepare($sql);
+    
+    if (!$stmt) {
+        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
+        return;
+    }
+    
+    $stmt->bind_param('ss', $name, $description);
+    
+    if ($stmt->execute()) {
+        $activity_id = $conn->insert_id;
+        echo json_encode([
+            'status' => 'success', 
+            'message' => 'Activity added successfully',
+            'data' => [
+                'id' => $activity_id,
+                'name' => $name,
+                'description' => $description
+            ]
+        ]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to add activity: ' . $stmt->error]);
+    }
+    
+    $stmt->close();
+}
+
+function ensureActivitiesTable($conn) {
+    // Create package_activities table if it doesn't exist
+    $createActivitiesTable = "
+        CREATE TABLE IF NOT EXISTS package_activities (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_name (name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ";
+    $conn->query($createActivitiesTable);
+
+    // Seed default/common activities (idempotent)
+    try {
+        $defaults = [
+            // Set 1
+            'Departure From Home',
+            'Arrival and transfer to Bhaktapur.',
+            'Drive to Namobuddha visit monastery and evenig sightseeing at Bhaktapur.',
+            'Drive from Bhaktapur to Charaudi and rafting to Kurintar and short walk to resort.',
+            'Walk back to the highway and drive from Kurintar to Gorkha.',
+            'Drive from Gorkha to Pokhara and further upto Dhampus Phedi and hike to Dhampus.',
+            'Hike from Dhampus to Potana and to Australian camp and back to lodge.Evenign Momo Class.',
+            'After breakfast hike to Gurung village and lunch with Locals and hike to Suiket phedi and drive to Pokhara.',
+            'Boating over Phewa lake and hike to Peace stupa and back to hotel.',
+            'Drive from Pokhara to Chitwan .',
+            'Jungle activities in Chitwan National Park',
+            'Drive from Chitwan to Kathmandu and sightseeing at Pashupati.',
+            'Explore Ason Market and drive to Childrens home.',
+            'Depature tansfer to airport',
+            // Set 2
+            'Arrival and Transfer to Hotel at Bhaktapur',
+            'Sightseeing of Royal City Bhaktapur',
+            'Drive from Bhaktapur to Changunarayan and hike to Telko and drive to Nagarkot',
+            'Hike from Nagarkot to Telkot and drive to Kathmandu',
+            'Drive from Kathmandu to Bandipur',
+            'Drive from Bandipur to Dhampus Phedi and hike to Dhampus',
+            'Trek from Dhampus to Landruk (1 640 m)',
+            'Trek from Landruk to Ghandruk ( 2 050 m)',
+            'Trek from Ghandruk to Tadapani (2 685 m)',
+            'Trek from Tadapani to Ghorepani (2 870 m)',
+            'Early morning hike to Poonhill for sunrise and back to Ghorpania to Ulleri and drive to Pokhara.',
+            'Exploration day at Pokhara',
+            'Drive from Pokhara to Chitwan National Park',
+            'Jungle Activities at Chitwan National Park',
+            'Drive back from Chitwan to Kathmandu and evening Pashupati and Boudhnath sightseeing farewell dinner and drive back to Hotel.',
+            'Departure Transfer to airport.'
+        ];
+        // Prepare once
+        $ins = $conn->prepare("INSERT IGNORE INTO package_activities (name, description, created_at) VALUES (?, '', NOW())");
+        if ($ins) {
+            foreach ($defaults as $raw) {
+                $name = trim(preg_replace('/\s+/', ' ', $raw));
+                if ($name === '') { continue; }
+                $ins->bind_param('s', $name);
+                $ins->execute();
+            }
+            $ins->close();
+        }
+    } catch (Exception $e) {
+        // Non-fatal
+        error_log('Activity seeding failed: '.$e->getMessage());
     }
 }
