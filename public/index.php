@@ -1703,7 +1703,7 @@
     </div>
 
     <div id="packageModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 1000px;">
             <span class="close-btn" data-modal="packageModal">&times;</span>
             <h2 id="packageModalTitle">Add Package</h2>
             <div id="packageDuplicateBanner" style="display:none; background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:10px; border-radius:6px; margin:8px 0;">
@@ -1905,8 +1905,9 @@
       .searchable-select-input { width: 100%; padding: 8px 30px 8px 10px; font-size: 0.9rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; color: #111827; }
       .searchable-select-input:focus { outline: none; border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
       .searchable-select-arrow { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
-      .searchable-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
+      .searchable-select-dropdown { position: absolute; bottom: 100%; top: auto; left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-bottom: none; border-top: 1px solid #e5e7eb; border-radius: 8px 8px 0 0; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 -6px 12px rgba(0,0,0,0.08); }
       .searchable-select.open .searchable-select-dropdown { display: block; }
+      .searchable-select.open .searchable-select-arrow { transform: translateY(-50%) rotate(180deg); }
       .searchable-select-option { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
       .searchable-select-option:last-child { border-bottom: none; }
       .searchable-select-option:hover { background: #f9fafb; }
@@ -5367,6 +5368,10 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                 document.getElementById('package_name').value = pkg.name;
                 document.getElementById('package_code').value = pkg.code || '';
                 document.getElementById('package_days').value = pkg.No_of_Days;
+                // Ensure activities are loaded before rendering day requirements (so dropdowns include all)
+                if (!Array.isArray(activitiesData) || activitiesData.length === 0) {
+                    try { await fetchActivities(); } catch(_){}
+                }
                 generateDayRequirements(pkg.No_of_Days);
                 try {
                     const response = await fetch(`${API_URL}?action=getPackageRequirements&trip_package_id=${pkg.id}`);
@@ -5391,8 +5396,20 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
                             if (svcB) svcB.checked = svcs.includes('B');
                             if (svcL) svcL.checked = svcs.includes('L');
                             if (svcD) svcD.checked = svcs.includes('D');
-                            const notesEl = document.getElementById(`notes_day_${dayNum}`);
-                            if (notesEl && typeof req.day_notes !== 'undefined' && req.day_notes !== null) { notesEl.value = req.day_notes; }
+                            // Map saved notes (activity name) back to activity select if possible
+                            const actSel = document.getElementById(`activity_day_${dayNum}`);
+                            if (actSel) {
+                                if (typeof req.activity_id !== 'undefined' && req.activity_id) {
+                                    actSel.value = String(req.activity_id);
+                                } else {
+                                    const savedName = (req.day_notes || '').toString().trim();
+                                    if (savedName) {
+                                        const found = (activitiesData||[]).find(a => String(a.name||'').trim().toLowerCase() === savedName.toLowerCase());
+                                        if (found) { actSel.value = String(found.id); }
+                                    }
+                                }
+                                try { actSel.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+                            }
                         });
                     }
                 } catch (error) { showToast('Could not load package requirements.', 'error'); }

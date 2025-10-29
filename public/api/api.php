@@ -5,7 +5,6 @@ header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
 set_error_handler(function($severity, $message, $file, $line){
     while (ob_get_level() > 0) { ob_end_clean(); }
     if (!headers_sent()) { header('Content-Type: application/json'); }
@@ -3116,22 +3115,30 @@ function addActivity($conn) {
     $checkStmt->execute();
     $result = $checkStmt->get_result();
     $row = $result->fetch_assoc();
+    $checkStmt->close();
     
-    if ($row['count'] > 0) {
+    if ($row && intval($row['count']) > 0) {
         echo json_encode(['status' => 'error', 'message' => 'Activity with this name already exists']);
         return;
     }
     
-    // Insert new activity
-    $sql = "INSERT INTO package_activities (name, description, created_at) VALUES (?, ?, NOW())";
-    $stmt = $conn->prepare($sql);
+    // Detect if description column exists
+    $hasDesc = false;
+    $colRes = $conn->query("SHOW COLUMNS FROM package_activities LIKE 'description'");
+    if ($colRes && $colRes->num_rows > 0) { $hasDesc = true; }
     
-    if (!$stmt) {
-        echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]);
-        return;
+    // Insert new activity (schema-aware)
+    if ($hasDesc) {
+        $sql = "INSERT INTO package_activities (name, description, created_at) VALUES (?, ?, NOW())";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]); return; }
+        $stmt->bind_param('ss', $name, $description);
+    } else {
+        $sql = "INSERT INTO package_activities (name, created_at) VALUES (?, NOW())";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $conn->error]); return; }
+        $stmt->bind_param('s', $name);
     }
-    
-    $stmt->bind_param('ss', $name, $description);
     
     if ($stmt->execute()) {
         $activity_id = $conn->insert_id;
@@ -3141,7 +3148,7 @@ function addActivity($conn) {
             'data' => [
                 'id' => $activity_id,
                 'name' => $name,
-                'description' => $description
+                'description' => $hasDesc ? $description : null
             ]
         ]);
     } else {
@@ -3167,6 +3174,11 @@ function ensureActivitiesTable($conn) {
 
     // Seed default/common activities (idempotent)
     try {
+        // Detect if 'description' column exists to tailor inserts
+        $hasDesc = false;
+        $colRes = $conn->query("SHOW COLUMNS FROM package_activities LIKE 'description'");
+        if ($colRes && $colRes->num_rows > 0) { $hasDesc = true; }
+        
         $defaults = [
             // Set 1
             'Departure From Home',
@@ -3202,15 +3214,28 @@ function ensureActivitiesTable($conn) {
             'Departure Transfer to airport.'
         ];
         // Prepare once
-        $ins = $conn->prepare("INSERT IGNORE INTO package_activities (name, description, created_at) VALUES (?, '', NOW())");
-        if ($ins) {
-            foreach ($defaults as $raw) {
-                $name = trim(preg_replace('/\s+/', ' ', $raw));
-                if ($name === '') { continue; }
-                $ins->bind_param('s', $name);
-                $ins->execute();
+        if ($hasDesc) {
+            $ins = $conn->prepare("INSERT IGNORE INTO package_activities (name, description, created_at) VALUES (?, '', NOW())");
+            if ($ins) {
+                foreach ($defaults as $raw) {
+                    $name = trim(preg_replace('/\s+/', ' ', $raw));
+                    if ($name === '') { continue; }
+                    $ins->bind_param('s', $name);
+                    $ins->execute();
+                }
+                $ins->close();
             }
-            $ins->close();
+        } else {
+            $ins = $conn->prepare("INSERT IGNORE INTO package_activities (name, created_at) VALUES (?, NOW())");
+            if ($ins) {
+                foreach ($defaults as $raw) {
+                    $name = trim(preg_replace('/\s+/', ' ', $raw));
+                    if ($name === '') { continue; }
+                    $ins->bind_param('s', $name);
+                    $ins->execute();
+                }
+                $ins->close();
+            }
         }
     } catch (Exception $e) {
         // Non-fatal
