@@ -1,0 +1,40 @@
+/* Add these hover effects via JavaScript or inline styles */
+
+/* Arrival card hover effect */
+.requirement-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+/* Input focus effects */
+input[data-k]:focus, select[data-k]:focus, textarea[data-k]:focus {
+    outline: none;
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+/* Chip hover effect */
+.chip:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2) !important;
+}
+
+/* Button hover effects */
+button[data-role="toggle-pool"]:hover {
+    background: #667eea !important;
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+button[data-role="remove"]:hover {
+    background: #dc2626 !important;
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+/* Unassign button hover */
+button[data-role="unassign"]:hover {
+    background: #4338ca !important;
+    color: white !important;
+    transform: scale(1.2);
+}
