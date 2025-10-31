@@ -236,15 +236,15 @@ require_once '../src/services/db_connect.php';
         }
 
         .itinerary-grid, .summary-view-wrapper {
-            padding: 35px; 
+            padding: 35px;
             border: 1px solid var(--border);
             border-radius: 14px;
             background: var(--surface);
             box-shadow: var(--shadow);
-            min-height: 650px; 
+            min-height: 650px;
             animation: fadeIn 0.3s ease-out;
         }
-        
+
         .summary-view-wrapper {
             display: none;
         }
@@ -3310,6 +3310,39 @@ require_once '../src/services/db_connect.php';
             const renderInsights = () => {
                 const insightsView = document.getElementById('insightsView');
                 if (!insightsView) return;
+
+                // Check if guest details are full (total rooms > 0)
+                const currentData = getCurrentFormData(currentItineraryDays);
+                const totalRooms = currentData.reduce((sum, day) => {
+                    const rooms = day.room_quantities || {};
+                    return sum + (rooms.double || 0) + (rooms.twin || 0) + (rooms.single || 0) + (rooms.triple || 0);
+                }, 0);
+                const hasFullGuestDetails = totalRooms > 0;
+
+                // If not full, auto-set 5 double rooms and 4 single rooms
+                if (!hasFullGuestDetails) {
+                    // Find the first day with hotel group and set rooms
+                    const firstHotelDay = currentData.find((day, idx) => {
+                        const req = packageRequirements.find(r => r.day_number === idx + 1);
+                        return req && req.hotel_id;
+                    });
+
+                    if (firstHotelDay) {
+                        // Set 5 double and 4 single rooms
+                        const roomInputs = document.querySelectorAll(`[name="day_${firstHotelDay.id}_rooms_double"], [name="day_${firstHotelDay.id}_rooms_twin"], [name="day_${firstHotelDay.id}_rooms_single"], [name="day_${firstHotelDay.id}_rooms_triple"]`);
+                        roomInputs.forEach(input => {
+                            const roomType = input.name.split('_').pop();
+                            if (roomType === 'double') input.value = '5';
+                            else if (roomType === 'single') input.value = '4';
+                            else input.value = '0';
+                        });
+
+                        // Trigger change to propagate to other days
+                        const doubleInput = document.querySelector(`[name="day_${firstHotelDay.id}_rooms_double"]`);
+                        if (doubleInput) doubleInput.dispatchEvent(new Event('change'));
+                    }
+                }
+
                 const arr = (window.__arrivals__||[]);
                 // Build arrivals section
                 const vehicleLabel = (id)=>{ const v=allVehicles.find(x=>String(x.id)===String(id)); if(!v) return ''; const plate=v.number_plate?` (${v.number_plate})`:''; return `${v.vehicle_name}${plate}`; };
@@ -3462,6 +3495,7 @@ require_once '../src/services/db_connect.php';
                         </div>
                     </div>
                     <div class="insights-sections">
+                      ${hasFullGuestDetails ? `
                       <div class="insight-card">
                         <div class="head arrival"><i class="fas fa-plane-arrival"></i> Arrivals</div>
                         <div class="insight-list">${arrivalsHtml}</div>
@@ -3470,6 +3504,7 @@ require_once '../src/services/db_connect.php';
                         <div class="head departure"><i class="fas fa-plane-departure"></i> Departures</div>
                         <div class="insight-list">${departuresHtml}</div>
                       </div>
+                      ` : ''}
                       <div class="insight-card file-records">
                         <div class="head file-records-header"><i class="fas fa-folder-open"></i> File Records</div>
                         <div class="insight-list file-records-list">${fileRecordsHtml}</div>

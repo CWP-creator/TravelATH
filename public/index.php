@@ -386,15 +386,13 @@
         .modal-content {
             background-color: #fefefe; margin: 5% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s;
         }
-        /* Modern Trip modal */
+        /* Wider, compact Trip modal */
         #tripModal .modal-content { 
-            max-width: 1000px; 
-            padding: 0;
-            max-height: 99vh; 
-            overflow: hidden;
+            max-width: 700px; 
+            padding: 25px; 
+            max-height: 80vh; 
+            overflow: auto; 
             position: relative;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         #tripModal .modal-content form { display: flex; flex-direction: column; }
         /* Ensure all steps render within modal width */
@@ -407,8 +405,8 @@
         #tripModal .section-card { padding: 15px; margin-bottom: 15px; }
         #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 15px; }
         #tripModal .form-group { margin-bottom: 15px; }
-        #tripModal .form-group label { margin-bottom: 4px; font-size: 0.85rem; }
-        #tripModal .form-group input, #tripModal .form-group select { padding: 8px; font-size: 0.85rem; }
+        #tripModal .form-group label { margin-bottom: 5px; }
+        #tripModal .form-group input, #tripModal .form-group select { padding: 10px; }
         #tripModal details { background: #ffffff; border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px 10px; }
         #tripModal details summary { cursor: pointer; font-weight: 600; color: var(--text-light); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -416,105 +414,17 @@
         .close-btn {
             color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;
         }
-        /* Modal Header */
-        #tripModal .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 24px 32px;
-            color: white;
-            position: relative;
-        }
-
-        #tripModal .modal-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        #tripModal .close-btn {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        #tripModal .close-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: rotate(90deg);
-        }
-
-        /* Modal Body */
-        #tripModal .modal-body {
-            padding: 32px;
-            max-height: calc(97vh - 180px);
-            overflow-y: auto;
-            background: #f8f9fa;
-        }
-
-        #tripModal .modal-body::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        #tripModal .modal-body::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        #tripModal .modal-body::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        #tripModal .modal-body::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
         .modal-content h2 {
             margin-top: 0; color: var(--primary-color);
         }
-        #tripModal .form-group {
-            margin-bottom: 20px;
+        .form-group {
+            margin-bottom: 15px;
         }
-        
-        #tripModal .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.8rem;
+        .form-group label {
+            display: block; margin-bottom: 5px; font-weight: bold;
         }
-        
-        #tripModal .form-group input,
-        #tripModal .form-group select,
-        #tripModal .form-group textarea {
-            width: 100%;
-            padding: 8px 10px;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            background: white;
-            transition: all 0.3s ease;
-        }
-            background: white;
-        }
-        
-        #tripModal .form-group input:focus,
-        #tripModal .form-group select:focus,
-        #tripModal .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        #tripModal .form-group input[readonly] {
-            background: #f9fafb;
-            cursor: not-allowed;
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; box-sizing: border-box;
         }
         /* Counters for couples/singles */
         .counter-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0;padding:8px 10px;border:1px solid var(--border-color);background:#fff;border-radius:6px;}
@@ -530,84 +440,45 @@
         .arrival-drawer .header{ padding:10px 12px; display:flex; align-items:center; justify-content:space-between; background:#f7f7f9; border-bottom:1px solid var(--border-color); font-weight:700; }
         .arrival-drawer .body{ padding:10px 12px; overflow:auto; }
 
-        #tripModal .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            #tripModal .form-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
         .form-buttons {
-            background: white;
-            padding: 20px 32px;
-            margin: 0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            border-top: 1px solid #e5e7eb;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
+            /* position: sticky; bottom: 0; z-index: 2; -- REMOVED */
+            background: #fff; 
+            padding-top: 15px; 
+            margin-top: 20px;
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 10px; 
+            border-top: 1px solid var(--border-color);
         }
         /* Inline controls inside the trip form */
-        #tripModal .form-inline-controls {
+        .form-inline-controls {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             gap: 12px;
-            padding: 20px 32px;
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
+            margin: 10px 0 16px;
         }
-        
-        #tripModal .icon-btn {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            width: 44px;
-            height: 44px;
+        .icon-btn {
+            background: #fff;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
-            cursor: pointer;
-            font-size: 1.1rem;
         }
-        
-        #tripModal .icon-btn:hover {
-            background: #667eea;
-            color: white;
-            transform: scale(1.05);
-        }
-        
-        #tripModal .save-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .icon-btn:hover { background: #f3f4f6; }
+        .save-btn {
+            background: var(--success-color);
+            color: #fff;
             border: none;
-            border-radius: 8px;
-            padding: 12px 24px;
+            border-radius: 6px;
+            padding: 10px 16px;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        #tripModal .save-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            gap: 8px;
         }
         button, .btn {
             padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: background-color 0.3s ease;
@@ -622,36 +493,22 @@
         }
 
         .section-card {
-            border: none;
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+            background: #f7f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
         }
-        
-        .section-card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        }
-        
         .section-card h4 {
-            margin: 0 0 20px 0;
-            font-size: 1.1rem;
-            color: #1f2937;
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: var(--primary-color);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e5e7eb;
+            gap: 8px;
         }
-        
-        .section-card h4 i { 
-            opacity: 1;
-            color: #667eea;
-            font-size: 1.2rem;
-        }
+        .section-card h4 i { opacity: 0.85; }
 
         .services-block {
             border: 1px solid #ddd;
@@ -1143,218 +1000,6 @@
             }
         }
 
-        /* Guest Card Styles */
-        .guest-card {
-            border: none;
-            border-radius: 12px;
-            padding: 20px;
-            background: white;
-            position: relative;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            margin-bottom: 16px;
-        }
-
-        .guest-card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        }
-
-        .guest-card.collapsed {
-            padding: 16px 20px;
-        }
-
-        .guest-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f3f4f6;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .guest-card.collapsed .guest-card-header {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-
-        .guest-card-title {
-            font-weight: 600;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            font-size: 1.05rem;
-        }
-
-        .guest-card-title i {
-            color: #667eea;
-            font-size: 1.1rem;
-        }
-
-        .guest-card-summary {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            margin-left: 8px;
-            font-weight: normal;
-        }
-
-        .guest-card-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .guest-card-toggle {
-            background: #f3f4f6;
-            border: none;
-            color: #667eea;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 8px;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            border-radius: 6px;
-        }
-
-        .guest-card-toggle:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .guest-card.collapsed .guest-card-toggle {
-            transform: rotate(-90deg);
-        }
-
-        .guest-card-body {
-            max-height: 1000px;
-            overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.3s ease;
-            opacity: 1;
-        }
-
-        .guest-card.collapsed .guest-card-body {
-            max-height: 0;
-            opacity: 0;
-        }
-
-        .guest-card-remove {
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            border-radius: 6px;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .guest-card-remove:hover {
-            background: #dc2626;
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .guest-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .guest-row.three-col {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        
-        .guest-row.four-col {
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-        }
-
-        .guest-row.single-row {
-            grid-template-columns: 1fr;
-        }
-
-        .guest-field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .guest-field label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #6b7280;
-            margin-bottom: 6px;
-        }
-
-        .guest-field input,
-        .guest-field select {
-            padding: 8px 10px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-        }
-
-        .guest-field input:focus,
-        .guest-field select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .gender-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .gender-badge.male {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .gender-badge.female {
-            background: #fce7f3;
-            color: #be185d;
-        }
-
-        /* Guest Type Select Hover */
-        #guestType:hover {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        #guestType:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        /* Add Guest Button Hover */
-        #btnAddGuest:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-
-        #btnAddGuest:active {
-            transform: translateY(0);
-        }
-
         /* Hotel Records Styles */
         .hotel-records-container {
             display: flex;
@@ -1836,20 +1481,16 @@
 
     <div id="tripModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Add Trip</h2>
-                <span class="close-btn" data-modal="tripModal">&times;</span>
-            </div>
-            <div class="modal-body">
+            <span class="close-btn" data-modal="tripModal">&times;</span>
+            <h2 id="modalTitle">Add Trip</h2>
             <form id="tripForm">
                 <input type="hidden" id="tripIdHidden" name="id">
 
                 <div id="fileIdGroup" class="form-group" style="display: none;">
                     <label for="tripIdDisplay">File ID</label>
-                    <input type="text" id="tripIdDisplay" readonly style="font-weight: bold; background-color: #f9fafb;">
+                    <input type="text" id="tripIdDisplay" readonly style="font-weight: bold; background-color: #f8f9fa;">
                 </div>
 
-                <!-- STEP 1: Tour Details -->
                 <div id="tripStep1">
                 <div class="section-card">
                     <h4><i class="fas fa-suitcase-rolling"></i> Tour Details</h4>
@@ -1869,8 +1510,6 @@
                             <label for="tour_code">Tour File No</label>
                             <input type="text" id="tour_code" name="tour_code" placeholder="e.g. T-0001">
                         </div>
-                    </div>
-                    <div class="form-grid">
                         <div class="form-group">
                             <label for="status">Status</label>
                             <select id="status" name="status" required>
@@ -1899,8 +1538,69 @@
                             <input type="date" id="end_date" name="end_date" required>
                         </div>
                     </div>
+
+                </div>
+
+                <div class="section-card" id="guestDetailsCard">
+                    <h4><i class="fas fa-user"></i> Guest Details</h4>
+                    <div class="form-group">
+                        <label for="company_old">Company</label>
+                        <select id="company_old" name="company_old">
+                            <option value="">Select Company</option>
+                            <option value="ASI">ASI</option>
+                            <option value="WWW">WWW</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking_status">Booking Status</label>
+                        <select id="booking_status" name="booking_status">
+                            <option value="Booking">Booking</option>
+                            <option value="Pre-Booking">Pre-Booking</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="counter-row">
+                            <span class="counter-label">No. of Couples</span>
+                            <div class="counter">
+                                <button type="button" class="counter-btn" data-target="couples_count" data-delta="-1">-</button>
+                                <span class="counter-value" data-for="couples_count">0</span>
+                                <button type="button" class="counter-btn" data-target="couples_count" data-delta="1">+</button>
+                            </div>
+                        </div>
+                        <input type="number" id="couples_count" name="couples_count" min="0" value="0" style="display:none;">
+                    </div>
+                    <div class="form-group">
+                        <div class="counter-row">
+                            <span class="counter-label">No. of Singles</span>
+                            <div class="counter">
+                                <button type="button" class="counter-btn" data-target="singles_count" data-delta="-1">-</button>
+                                <span class="counter-value" data-for="singles_count">0</span>
+                                <button type="button" class="counter-btn" data-target="singles_count" data-delta="1">+</button>
+                            </div>
+                        </div>
+                        <input type="number" id="singles_count" name="singles_count" min="0" value="0" style="display:none;">
+                    </div>
+
+                    <div class="form-group" style="margin-top:10px;">
+                        <label for="country">Country</label>
+                        <select id="country" name="country"></select>
+                    </div>
+
+                    <div id="guestNamesContainer" class="form-group" style="margin-top:10px;">
+                        <label>Guest Names</label>
+                        <div id="guestNamesInner"></div>
+                    </div>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label for="guest_details">Guest Details (optional)</label>
+                        <textarea id="guest_details" name="guest_details" rows="2" placeholder="Notes about guests, preferences, special info..."></textarea>
+                    </div>
                 </div>
                 <div id="controlsStep1" class="form-inline-controls">
+                    <button type="button" id="btnStepBack1" class="icon-btn" title="Back" aria-label="Back">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
                     <button type="submit" id="btnStepSave1" class="save-btn" title="Save Trip">
                         <i class="fas fa-save"></i>
                         <span>Save</span>
@@ -1909,79 +1609,9 @@
                         <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
-                
-                <!-- Guest Details Availability Check -->
-                <div class="form-group" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%); border-radius: 10px; border: 2px solid #e0e7ff;">
-                    <h4 style="margin: 0 0 12px 0; color: #1e40af; font-size: 1rem;">Guest Information Status</h4>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <label style="font-weight: 600; color: #374151; font-size: 0.9rem;">Do you have complete guest details available?</label>
-                        <div style="display: flex; gap: 10px;">
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
-                                <input type="radio" name="guestDetailsAvailable" value="yes" style="accent-color: #667eea;">
-                                Yes, I have all details
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
-                                <input type="radio" name="guestDetailsAvailable" value="no" style="accent-color: #667eea;">
-                                No, create placeholder guests
-                            </label>
-                        </div>
-                    </div>
-                    <div id="placeholderGuestInfo" style="display: none; margin-top: 12px; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 0.8rem; color: #92400e;">
-                        <strong>Placeholder guests will be created:</strong> 5 couples (A1&A2, B1&B2, C1&C2, D1&D2, E1&E2) + 4 singles (S1, S2, S3, S4)
-                    </div>
-                </div>
-                
-                </div>
                 </div> <!-- end step 1 -->
 
-                <!-- STEP 2: Guest Details -->
-                <div id="tripStep2" style="display:none;">
-                <div class="section-card">
-                    <h4><i class="fas fa-users"></i> Guest Details</h4>
-                    
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:16px 20px; background:linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); border-radius:12px; border:2px solid #e5e7eb;">
-                        <div style="display:flex; gap:12px; align-items:center; flex:1;">
-                            <select id="guestType" style="padding:12px 16px; border:2px solid #e5e7eb; border-radius:10px; background:#fff; font-size:0.95rem; font-weight:500; color:#374151; cursor:pointer; transition:all 0.3s; min-width:180px;">
-                                <option value="">Select Guest Type</option>
-                                <option value="couple">👫 Couple</option>
-                                <option value="single">👤 Single</option>
-                            </select>
-                            <button type="button" id="btnAddGuest" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none; padding:12px 24px; border-radius:10px; font-weight:600; font-size:0.95rem; cursor:pointer; transition:all 0.3s; box-shadow:0 4px 12px rgba(102,126,234,0.3); display:flex; align-items:center; gap:8px;">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Add Guest</span>
-                            </button>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px; padding:8px 16px; background:white; border-radius:8px; border:2px solid #e5e7eb;">
-                            <i class="fas fa-users" style="color:#667eea;"></i>
-                            <span style="color:#374151; font-weight:600;"><span id="guestCount" style="color:#667eea; font-size:1.1rem;">0</span> guest(s)</span>
-                        </div>
-                    </div>
-
-                    <div id="guestsContainer" style="display:flex; flex-direction:column; gap:12px;">
-                        <!-- Guests will be added here -->
-                    </div>
-                    
-                    <div id="noGuestsMessage" style="text-align:center; padding:30px; color:var(--text-light); font-style:italic;">
-                        <i class="fas fa-user-friends" style="font-size:2rem; opacity:0.3; margin-bottom:10px;"></i>
-                        <div>No guests added yet. Click "Add Guest" to begin.</div>
-                    </div>
-                </div>
-                <div id="controlsStep2" class="form-inline-controls">
-                    <button type="button" id="btnStepBack2" class="icon-btn" title="Back" aria-label="Back">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
-                    <button type="submit" id="btnStepSave2" class="save-btn" title="Save Trip">
-                        <i class="fas fa-save"></i>
-                        <span>Save</span>
-                    </button>
-                    <button type="button" id="btnStepNext2" class="icon-btn" title="Next" aria-label="Next">
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-                </div> <!-- end step 2 -->
-
-                <!-- STEP 3: Travel Details -->
-                <div id="tripStep3" style="display:none;">
+                <div id="tripStep2">
                 <div class="section-card" id="travelDetailsCard">
                     <h4><i class="fas fa-plane-arrival"></i> Travel Details</h4>
 
@@ -2015,22 +1645,21 @@
                         <div id="arrivalGroupsContainer" style="display:grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap:10px;"></div>
                     </div>
 
-                <div id="controlsStep3" class="form-inline-controls">
-                    <button type="button" id="btnStepBack3" class="icon-btn" title="Back" aria-label="Back">
+                <div id="controlsStep2" class="form-inline-controls">
+                    <button type="button" id="btnStepBack2" class="icon-btn" title="Back" aria-label="Back">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <button type="submit" id="btnStepSave3" class="save-btn" title="Save Trip">
+                    <button type="submit" id="btnStepSave2" class="save-btn" title="Save Trip">
                         <i class="fas fa-save"></i>
                         <span>Save</span>
                     </button>
-                    <button type="button" id="btnStepNext3" class="icon-btn" title="Next" aria-label="Next">
+                    <button type="button" id="btnStepNext2" class="icon-btn" title="Next" aria-label="Next">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
 
-                </div> <!-- end step 3 -->
-
-                                <div id="tripStep4" style="display:none;">
+                </div>
+                                <div id="tripStep3" style="display:none;">
                     <div class="section-card" id="departureDetailsCard">
                         <h4><i class="fas fa-plane-departure"></i> Departure Details</h4>
                         <div class="dep-controls" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0;">
@@ -2053,22 +1682,25 @@
                         </div>
                         <div id="departureGroupsContainer" style="display:grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap:10px;"></div>
                     </div>
-                <div id="controlsStep4" class="form-inline-controls">
-                    <button type="button" id="btnStepBack4" class="icon-btn" title="Back" aria-label="Back">
+                </div>
+                </div> <!-- end step 2 -->
+
+ <!-- end step 3 -->
+
+                <div id="controlsStep3" class="form-inline-controls" style="display:none;">
+                    <button type="button" id="btnStepBack3" class="icon-btn" title="Back" aria-label="Back">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <button type="submit" id="btnStepSave4" class="save-btn" title="Save Trip">
+                    <button type="submit" id="btnStepSave3" class="save-btn" title="Save Trip">
                         <i class="fas fa-save"></i>
                         <span>Save</span>
                     </button>
                 </div>
-                </div> <!-- end step 4 -->
 
 
             </form>
-            </div> <!-- end modal-body -->
-        </div> <!-- end modal-content -->
-    </div> <!-- end tripModal -->
+        </div>
+    </div>
 
     <div id="packageModal" class="modal">
         <div class="modal-content" style="max-width: 1000px;">
@@ -2676,9 +2308,7 @@
                             duplicatedTripIds = (duplicatedTripIds||[]).filter(id => tripsData.some(t => String(t.id) === String(id)));
                             localStorage.setItem('dupTripIds', JSON.stringify(duplicatedTripIds));
                         } catch(_) {}
-                        // Dashboard: show only 5 latest trips (by ID descending)
-                        const latestTrips = [...tripsData].sort((a, b) => (Number(b.id)||0) - (Number(a.id)||0)).slice(0, 5);
-                        renderTrips(latestTrips, document.querySelector('#tripsTable tbody'));
+                        renderTrips(tripsData, document.querySelector('#tripsTable tbody'));
                         renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
                         updateStats(tripsData);
                         // Clean up manual order with only existing trip IDs
@@ -4250,48 +3880,14 @@
                 }catch(e){ /* ignore */ }
             }
             async function saveGuestsForTrip(tripId){
+                const data = collectGuestData();
                 try{
-                    // Send the guestsList array as JSON
-                    const resp = await fetch(`${API_URL}?action=saveTripGuests`, { 
-                        method:'POST', 
-                        headers:{'Content-Type':'application/json'}, 
-                        body: JSON.stringify({ 
-                            trip_id: Number(tripId), 
-                            guests_data: JSON.stringify(guestsList)
-                        }) 
-                    });
+                    const resp = await fetch(`${API_URL}?action=saveTripGuests`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ trip_id: Number(tripId), couples: data.couples, singles: data.singles }) });
                     const j = await resp.json().catch(()=>null);
                     if (!j || j.status!=='success'){
-                        console.error('Failed to save guests:', j);
+                        showToast((j&&j.message)||'Failed to save guest names','error');
                     }
-                }catch(e){ 
-                    console.error('Failed to save guest data:', e); 
-                }
-            }
-
-            async function loadGuestsForTrip(tripId){
-                try{
-                    const resp = await fetch(`${API_URL}?action=getTripGuests&trip_id=${tripId}`);
-                    const result = await resp.json();
-                    if (result.status === 'success' && result.data && result.data.guests_data){
-                        try {
-                            const loadedGuests = JSON.parse(result.data.guests_data);
-                            if (Array.isArray(loadedGuests)) {
-                                guestsList = loadedGuests;
-                                // Update the counter
-                                if (guestsList.length > 0) {
-                                    guestIdCounter = Math.max(...guestsList.map(g => g.id || 0));
-                                }
-                                renderGuests();
-                                updateGuestCount();
-                            }
-                        } catch(e) {
-                            console.error('Failed to parse guest data:', e);
-                        }
-                    }
-                }catch(e){ 
-                    console.error('Failed to load guests:', e);
-                }
+                }catch(e){ showToast('Failed to save guest names','error'); }
             }
             document.getElementById('couples_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
             document.getElementById('singles_count')?.addEventListener('input', ()=>{ updateCounterDisplays(); renderGuestNameInputs(); updateTotalPax(); });
@@ -4362,308 +3958,34 @@
               countryEl.innerHTML = '<option value="">Select Country</option>' + COUNTRY_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
             }
 
-            // --- Guest Management System ---
-            let guestsList = [];
-            let guestIdCounter = 0;
-
-            function updateGuestCount() {
-                // Calculate total pax: 2 per couple + 1 per single
-                const totalPax = guestsList.reduce((sum, guest) => {
-                    return sum + (guest.type === 'couple' ? 2 : 1);
-                }, 0);
-                
-                document.getElementById('guestCount').textContent = totalPax;
-                const noMsg = document.getElementById('noGuestsMessage');
-                const container = document.getElementById('guestsContainer');
-                if (guestsList.length === 0) {
-                    noMsg.style.display = 'block';
-                    container.style.display = 'none';
-                } else {
-                    noMsg.style.display = 'none';
-                    container.style.display = 'flex';
-                }
-            }
-
-            function updateGuestSummary(guestId) {
-                const guest = guestsList.find(g => g.id === guestId);
-                if (!guest) return;
-                
-                const card = document.querySelector(`.guest-card[data-guest-id="${guestId}"]`);
-                if (!card) return;
-                
-                const summarySpan = card.querySelector('.guest-card-summary');
-                if (!summarySpan) return;
-                
-                // Generate new summary
-                let summary = '';
-                if (guest.type === 'couple') {
-                    const mName = guest.maleName || '';
-                    const fName = guest.femaleName || '';
-                    if (mName || fName) {
-                        summary = `${mName}${mName && fName ? ' & ' : ''}${fName}`;
-                    }
-                } else {
-                    summary = guest.name || '';
-                }
-                const countryDisplay = guest.country ? ` • ${guest.country}` : '';
-                summarySpan.innerHTML = summary ? `${summary}${countryDisplay}` : '';
-            }
-
-            function renderGuests() {
-                const container = document.getElementById('guestsContainer');
-                container.innerHTML = '';
-                
-                guestsList.forEach((guest, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'guest-card';
-                    card.dataset.guestId = guest.id;
-                    
-                    // Collapse all except the last one (newest)
-                    const isLastGuest = index === guestsList.length - 1;
-                    if (!isLastGuest && !guest.expanded) {
-                        card.classList.add('collapsed');
-                    } else if (guest.expanded !== undefined && !guest.expanded) {
-                        card.classList.add('collapsed');
-                    }
-                    
-                    // Generate summary for collapsed state
-                    let summary = '';
-                    if (guest.type === 'couple') {
-                        const mName = guest.maleName || '';
-                        const fName = guest.femaleName || '';
-                        if (mName || fName) {
-                            summary = `${mName}${mName && fName ? ' & ' : ''}${fName}`;
-                        }
-                    } else {
-                        summary = guest.name || '';
-                    }
-                    const countryDisplay = guest.country ? ` • ${guest.country}` : '';
-                    const summaryText = summary ? `<span class="guest-card-summary">${summary}${countryDisplay}</span>` : '';
-                    
-                    if (guest.type === 'couple') {
-                        card.innerHTML = `
-                            <div class="guest-card-header">
-                                <div class="guest-card-title">
-                                    <i class="fas fa-heart"></i> Couple ${index + 1}
-                                    ${summaryText}
-                                </div>
-                                <div class="guest-card-actions">
-                                    <button type="button" class="guest-card-toggle" data-guest-id="${guest.id}">
-                                        <i class="fas fa-chevron-down"></i>
-                                    </button>
-                                    <button type="button" class="guest-card-remove" data-guest-id="${guest.id}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="guest-card-body">
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                <span class="gender-badge male" style="font-size:1rem; padding:6px 12px;">M</span>
-                                <input type="text" class="guest-name-male" data-guest-id="${guest.id}" placeholder="Name" value="${guest.maleName || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="date" class="guest-dob-male" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dobMale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="text" class="guest-passport-male" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passportMale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <select class="guest-country" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
-                                    <option value="">Country</option>
-                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                <span class="gender-badge female" style="font-size:1rem; padding:6px 12px;">F</span>
-                                <input type="text" class="guest-name-female" data-guest-id="${guest.id}" placeholder="Name" value="${guest.femaleName || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="date" class="guest-dob-female" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dobFemale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="text" class="guest-passport-female" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passportFemale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <select class="guest-country-female" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
-                                    <option value="">Country</option>
-                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.countryFemale === c ? 'selected' : ''}>${c}</option>`).join('')}
-                                </select>
-                            </div>
-                            </div>
-                        `;
-                    } else {
-                        const genderBadgeClass = guest.gender === 'F' ? 'female' : 'male';
-                        const genderIcon = guest.gender === 'F' ? 'fa-venus' : 'fa-mars';
-                        card.innerHTML = `
-                            <div class="guest-card-header">
-                                <div class="guest-card-title">
-                                    <i class="fas ${genderIcon}"></i> Single Guest ${index + 1}
-                                    ${summaryText}
-                                </div>
-                                <div class="guest-card-actions">
-                                    <button type="button" class="guest-card-toggle" data-guest-id="${guest.id}">
-                                        <i class="fas fa-chevron-down"></i>
-                                    </button>
-                                    <button type="button" class="guest-card-remove" data-guest-id="${guest.id}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="guest-card-body">
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                <select class="guest-gender" data-guest-id="${guest.id}" style="width:60px; padding:6px 8px; border:2px solid #e5e7eb; border-radius:6px; font-size:0.95rem; font-weight:600; background:white; cursor:pointer;">
-                                    <option value="M" ${guest.gender === 'M' ? 'selected' : ''}>M</option>
-                                    <option value="F" ${guest.gender === 'F' ? 'selected' : ''}>F</option>
-                                </select>
-                                <input type="text" class="guest-name-single" data-guest-id="${guest.id}" placeholder="Name" value="${guest.name || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="date" class="guest-dob" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dob || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <input type="text" class="guest-passport-single" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passport || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
-                                <select class="guest-country" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
-                                    <option value="">Country</option>
-                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
-                                </select>
-                            </div>
-                            </div>
-                        `;
-                    }
-                    
-                    container.appendChild(card);
-                });
-                
-                // Attach toggle handlers
-                document.querySelectorAll('.guest-card-toggle').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const id = parseInt(this.dataset.guestId);
-                        const guest = guestsList.find(g => g.id === id);
-                        if (!guest) return;
-                        
-                        guest.expanded = guest.expanded === undefined ? false : !guest.expanded;
-                        renderGuests();
-                    });
-                });
-
-                // Attach header click handlers for toggle
-                document.querySelectorAll('.guest-card-header').forEach(header => {
-                    header.addEventListener('click', function(e) {
-                        // Don't toggle if clicking on buttons
-                        if (e.target.closest('button')) return;
-                        
-                        const card = this.closest('.guest-card');
-                        const id = parseInt(card.dataset.guestId);
-                        const guest = guestsList.find(g => g.id === id);
-                        if (!guest) return;
-                        
-                        guest.expanded = guest.expanded === undefined ? false : !guest.expanded;
-                        renderGuests();
-                    });
-                });
-                
-                // Attach remove handlers
-                document.querySelectorAll('.guest-card-remove').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const id = parseInt(this.dataset.guestId);
-                        guestsList = guestsList.filter(g => g.id !== id);
-                        renderGuests();
-                        updateGuestCount();
-                    });
-                });
-
-                // Attach input handlers to update guest data
-                container.querySelectorAll('input, select').forEach(input => {
-                    input.addEventListener('input', function() {
-                        const id = parseInt(this.dataset.guestId);
-                        const guest = guestsList.find(g => g.id === id);
-                        if (!guest) return;
-                        
-                        if (this.classList.contains('guest-name-male')) {
-                            guest.maleName = this.value;
-                            updateGuestSummary(id);
-                        }
-                        else if (this.classList.contains('guest-name-female')) {
-                            guest.femaleName = this.value;
-                            updateGuestSummary(id);
-                        }
-                        else if (this.classList.contains('guest-name-single')) {
-                            guest.name = this.value;
-                            updateGuestSummary(id);
-                        }
-                        else if (this.classList.contains('guest-country')) {
-                            guest.country = this.value;
-                            updateGuestSummary(id);
-                            // Auto-suggest country for female if in couple
-                            if (guest.type === 'couple' && this.value && !guest.countryFemale) {
-                                guest.countryFemale = this.value;
-                                renderGuests();
-                            }
-                        }
-                        else if (this.classList.contains('guest-country-female')) {
-                            guest.countryFemale = this.value;
-                            updateGuestSummary(id);
-                        }
-                        else if (this.classList.contains('guest-dob')) guest.dob = this.value;
-                        else if (this.classList.contains('guest-dob-male')) guest.dobMale = this.value;
-                        else if (this.classList.contains('guest-dob-female')) guest.dobFemale = this.value;
-                        else if (this.classList.contains('guest-passport-male')) guest.passportMale = this.value;
-                        else if (this.classList.contains('guest-passport-female')) guest.passportFemale = this.value;
-                        else if (this.classList.contains('guest-passport-single')) guest.passport = this.value;
-                        else if (this.classList.contains('guest-gender')) {
-                            guest.gender = this.value;
-                            renderGuests();
-                        }
-                    });
-                });
-                
-                updateGuestCount();
-            }
-
-            document.getElementById('btnAddGuest').addEventListener('click', function() {
-                const typeSelect = document.getElementById('guestType');
-                const type = typeSelect.value;
-                
-                if (!type) {
-                    showToast('Please select a guest type first', 'warning');
-                    return;
-                }
-                
-                // Collapse all existing guests that have any data filled
-                guestsList.forEach(guest => {
-                    if (guest.type === 'couple') {
-                        if (guest.maleName || guest.femaleName || guest.country || guest.countryFemale) {
-                            guest.expanded = false;
-                        }
-                    } else if (guest.type === 'single') {
-                        if (guest.name || guest.country) {
-                            guest.expanded = false;
-                        }
-                    }
-                });
-                
-                const newGuest = {
-                    id: ++guestIdCounter,
-                    type: type,
-                    gender: type === 'single' ? 'M' : undefined // Default to M for single guests
-                };
-                
-                guestsList.push(newGuest);
-                renderGuests();
-                updateGuestCount();
-                
-                // Reset dropdown
-                typeSelect.value = '';
-            });
-
             document.getElementById('addTripBtn').addEventListener('click', () => {
                 document.getElementById('tripForm').reset();
+                document.getElementById('tripForm').classList.add('creation-lite');
+                const bs = document.getElementById('booking_status'); if (bs) bs.value = 'Booking';
                 const ct = document.getElementById('company_top'); if (ct) ct.value = '';
                 document.getElementById('tripIdHidden').value = '';
                 document.getElementById('tripIdDisplay').value = '';
                 document.getElementById('fileIdGroup').style.display = 'none';
                 document.getElementById('modalTitle').textContent = 'Add Trip';
 
-                // Reset guests list
-                guestsList = [];
-                guestIdCounter = 0;
-                renderGuests();
-                updateGuestCount();
-                document.getElementById('guestType').value = '';
+                // Creation-lite: hide Guest Details and Arrival/Departure sections & controls
+                const gdc = document.getElementById('guestDetailsCard'); if (gdc) gdc.style.display = 'none';
+                const s2 = document.getElementById('tripStep2'); if (s2) s2.style.display = 'none';
+                const s3 = document.getElementById('tripStep3'); if (s3) s3.style.display = 'none';
+                const c2 = document.getElementById('controlsStep2'); if (c2) c2.style.display = 'none';
+                const c3 = document.getElementById('controlsStep3'); if (c3) c3.style.display = 'none';
+                const next1 = document.getElementById('btnStepNext1'); if (next1) next1.style.display = 'none';
+                const back1 = document.getElementById('btnStepBack1'); if (back1) back1.style.display = 'none';
 
-                // Reset arrivals state
+                // Reset arrivals state (not used on creation)
                 tripArrivalsState = [];
                 renderArrivalGroups();
                 tripDeparturesState = [];
                 renderDepartureGroups();
-                
-                // Start at step 1
+                // Reset guest state
+                const ccEl = document.getElementById('couples_count'); const scEl = document.getElementById('singles_count');
+                if (ccEl) ccEl.value = 0; if (scEl) scEl.value = 0; updateCounterDisplays(); updateTotalPax(); renderGuestNameInputs();
+                updateCompanyMode();
                 setTripStep(1);
 
                 openModal('tripModal');
@@ -5592,29 +4914,16 @@
             }
             function getAllGuestUnits(){
                 const units = [];
-                // Use the new guestsList array
-                guestsList.forEach(guest => {
-                    if (guest.type === 'couple') {
-                        const maleName = (guest.maleName || '').trim();
-                        const femaleName = (guest.femaleName || '').trim();
-                        if (maleName || femaleName) {
-                            const members = [maleName, femaleName].filter(Boolean);
-                            units.push({ 
-                                type: 'couple', 
-                                members: members, 
-                                label: members.join(' & ') + ' (Couple)' 
-                            });
-                        }
-                    } else if (guest.type === 'single') {
-                        const name = (guest.name || '').trim();
-                        if (name) {
-                            units.push({ 
-                                type: 'single', 
-                                members: [name], 
-                                label: name 
-                            });
-                        }
-                    }
+                // Couples
+                document.querySelectorAll('#guestNamesInner [data-role="couple-row"]').forEach((row, idx)=>{
+                    const a = (row.querySelector('input[data-k="name1"]').value||'').trim();
+                    const b = (row.querySelector('input[data-k="name2"]').value||'').trim();
+                    if (a || b) units.push({ type:'couple', members: [a,b].filter(Boolean), label: [a,b].filter(Boolean).join(' & ') + ' (Couple)' });
+                });
+                // Singles
+                document.querySelectorAll('#guestNamesInner [data-role="single-row"]').forEach((row, idx)=>{
+                    const s = (row.querySelector('input[data-k="name1"]').value||'').trim();
+                    if (s) units.push({ type:'single', members:[s], label:s });
                 });
                 return units;
             }
@@ -5704,110 +5013,40 @@
                     // Default drop hotel to nearest to Day 1
                     if (!a.drop_hotel_id || String(a.drop_hotel_id)===''){ a.drop_hotel_id = computeDefaultDropHotelId(a.arrival_date) || firstDayHotelId || ''; }
                     const card = document.createElement('div');
-                    card.className = 'requirement-section';
-                    const isSelected = selectedArrivalIndex===idx;
-                    card.style.cssText = `
-                        margin-bottom: 16px;
-                        border: ${isSelected ? '3px' : '2px'} solid ${isSelected ? '#667eea' : '#e5e7eb'};
-                        border-radius: 12px;
-                        padding: 20px;
-                        background: ${isSelected ? 'linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%)' : 'white'};
-                        box-shadow: ${isSelected ? '0 8px 24px rgba(102, 126, 234, 0.15)' : '0 2px 8px rgba(0,0,0,0.06)'};
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    `;
+                    card.className = 'requirement-section' + (selectedArrivalIndex===idx? ' selected-arrival' : '');
+                    card.style.marginBottom = '10px';
+                    card.style.borderWidth = (selectedArrivalIndex===idx? '2px':'1px');
+                    card.style.borderColor = (selectedArrivalIndex===idx? '#2563eb':'var(--border-color)');
                     const title = `Arrival A${idx+1}`;
                     const assignedNames = Array.isArray(a.pickup_list) ? a.pickup_list : (a.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
                     a.pickup_list = assignedNames; a.pickup_location = assignedNames.join('\n');
                     card.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid ${isSelected ? '#e0e7ff' : '#f3f4f6'};" data-role="header">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:1.1rem;">
-                                    A${idx+1}
-                                </div>
-                                <div>
-                                    <div style="font-weight:700; font-size:1.05rem; color:#1f2937;">${title}</div>
-                                    <div style="font-size:0.85rem; color:#6b7280;">${assignedNames.length} guest${assignedNames.length !== 1 ? 's' : ''} assigned</div>
-                                </div>
-                            </div>
-                            <div style="display:flex; gap:8px;">
-                                <button type="button" style="background:#f3f4f6; border:none; padding:8px 12px; border-radius:8px; color:#667eea; font-weight:600; cursor:pointer; transition:all 0.3s; display:flex; align-items:center; gap:6px;" data-role="toggle-pool">
-                                    <i class="fas fa-plus"></i> Guests
-                                </button>
-                                <button type="button" style="background:#fee2e2; border:none; padding:8px 12px; border-radius:8px; color:#dc2626; font-weight:600; cursor:pointer; transition:all 0.3s;" data-role="remove">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;" data-role="header">
+                            <h5 style="margin:0; color: var(--text-light);">${title}</h5>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="btn btn-secondary" data-role="toggle-pool"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
                             </div>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-calendar" style="color:#667eea;"></i> Date
-                                </label>
-                                <input type="date" data-k="arrival_date" value="${a.arrival_date||''}" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-clock" style="color:#667eea;"></i> Time
-                                </label>
-                                <input type="time" data-k="arrival_time" value="${a.arrival_time||''}" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-plane" style="color:#667eea;"></i> Flight
-                                </label>
-                                <input type="text" data-k="flight_no" value="${a.flight_no||''}" placeholder="e.g. AA1234" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
+                            <div class="form-group"><label>Date</label><input type="date" data-k="arrival_date" value="${a.arrival_date||''}"></div>
+                            <div class="form-group"><label>Time</label><input type="time" data-k="arrival_time" value="${a.arrival_time||''}"></div>
+                            <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${a.flight_no||''}"></div>
+                        </div>
+                        <div class=\"form-group\"><label>Assign Guests</label>
+                            <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">
+${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="${n}" style="padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;">${n}<button type="button" data-role="unassign" data-name="${n}" style="border:none; background:transparent; color:#6b7280; cursor:pointer;">×</button></span>`).join('') : '<div style="text-align:center; color:#9ca3af;">Click a name on the left to add here</div>'}
                             </div>
                         </div>
-                        <div class="form-group" style="margin-bottom:16px;">
-                            <label style="display:flex; align-items:center; gap:6px; margin-bottom:10px; font-weight:600; color:#374151;">
-                                <i class="fas fa-users" style="color:#667eea;"></i> Assigned Guests
-                            </label>
-                            <div data-role="drop" style="min-height:80px; border:2px dashed ${assignedNames.length ? '#a5b4fc' : '#d1d5db'}; border-radius:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:14px; background:${assignedNames.length ? '#f8f9ff' : '#fafafa'}; transition:all 0.3s;">
-${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="${n}" style="padding:8px 14px; border:2px solid #c7d2fe; border-radius:20px; background:linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#4338ca; box-shadow:0 2px 4px rgba(102,126,234,0.1); transition:all 0.2s;">
-    <i class="fas fa-user" style="font-size:0.8rem;"></i>
-    ${n}
-    <button type="button" data-role="unassign" data-name="${n}" style="border:none; background:#c7d2fe; color:#4338ca; cursor:pointer; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:1rem; transition:all 0.2s;">
-        ×
-    </button>
-</span>`).join('') : '<div style="text-align:center; color:#9ca3af; font-style:italic;"><i class="fas fa-hand-pointer" style="margin-right:6px;"></i>Click a guest name from the pool above to assign</div>'}
-                            </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                            <div class="form-group"><label>Drop Hotel</label><select data-k="drop_hotel_id">${getHotelOptionsHTML(a.drop_hotel_id||'')}</select></div>
+                            <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(a.vehicle_id||'')}</select></div>
+                            <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(a.guide_id||'')}</select></div>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-hotel" style="color:#667eea;"></i> Drop Hotel
-                                </label>
-                                <select data-k="drop_hotel_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getHotelOptionsHTML(a.drop_hotel_id||'')}</select>
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-car" style="color:#667eea;"></i> Vehicle
-                                </label>
-                                <select data-k="vehicle_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getVehicleOptionsHTML(a.vehicle_id||'')}</select>
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-user-tie" style="color:#667eea;"></i> Guide
-                                </label>
-                                <select data-k="guide_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getGuideOptionsHTML(a.guide_id||'')}</select>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-bottom:12px;">
-                            <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                <i class="fas fa-sticky-note" style="color:#667eea;"></i> Notes
-                            </label>
-                            <textarea rows="2" data-k="notes" placeholder="Instructions, special requests..." style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; resize:vertical; transition:all 0.3s; font-family:inherit;">${a.notes||''}</textarea>
-                        </div>
-                        <div style="display:flex; gap:16px; align-items:center; padding:12px; background:#f8f9fa; border-radius:8px;">
-                            <label style="display:flex; gap:8px; align-items:center; cursor:pointer; font-weight:500; color:#374151;">
-                                <input type="checkbox" data-k="vehicle_informed" ${a.vehicle_informed? 'checked':''} style="width:18px; height:18px; cursor:pointer; accent-color:#667eea;">
-                                <i class="fas fa-check-circle" style="color:#10b981;"></i> Vehicle Informed
-                            </label>
-                            <label style="display:flex; gap:8px; align-items:center; cursor:pointer; font-weight:500; color:#374151;">
-                                <input type="checkbox" data-k="guide_informed" ${a.guide_informed? 'checked':''} style="width:18px; height:18px; cursor:pointer; accent-color:#667eea;">
-                                <i class="fas fa-check-circle" style="color:#10b981;"></i> Guide Informed
-                            </label>
+                        <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${a.notes||''}</textarea></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${a.vehicle_informed? 'checked':''}> Vehicle informed</label>
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${a.guide_informed? 'checked':''}> Guide informed</label>
                         </div>
                     `;
                     // Normalize any malformed data-role attributes in chips due to escaped quotes
@@ -5856,17 +5095,6 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                     const header = card.querySelector('[data-role="header"]');
                     if (header){ header.addEventListener('click', choose); }
                     card.addEventListener('click', (e)=>{
-                        const toggleBtn = e.target.closest('[data-role="toggle-pool"]');
-                        if (toggleBtn){ 
-                            e.preventDefault(); 
-                            updateNamesPool();
-                            const poolContainer = document.getElementById('namesPoolContainer');
-                            if (poolContainer){
-                                const isHidden = poolContainer.style.display === 'none';
-                                poolContainer.style.display = isHidden ? 'block' : 'none';
-                            }
-                            return;
-                        }
                         const un = e.target.closest('[data-role="unassign"]');
                         if (un){ e.preventDefault(); const name = un.getAttribute('data-name'); const cur = (Array.isArray(tripArrivalsState[idx].pickup_list)? tripArrivalsState[idx].pickup_list : (tripArrivalsState[idx].pickup_location||'').split(/\r?\n/).filter(Boolean)).filter(n=>n!==name); tripArrivalsState[idx].pickup_list = cur; tripArrivalsState[idx].pickup_location = cur.join('\n'); tripArrivalsState[idx].pax_count = cur.length; renderArrivalGroups(); updateNamesPool(); return; }
                         const rm = e.target.closest('[data-role="remove"]'); if (rm){ tripArrivalsState.splice(idx,1); selectedArrivalIndex = Math.max(0, Math.min((selectedArrivalIndex||0)- (selectedArrivalIndex>idx?1:0), tripArrivalsState.length-1)); renderArrivalGroups(); updateNamesPool(); }
@@ -5880,107 +5108,39 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                 if (!tripDeparturesState.length){ c.innerHTML = '<div style="color:#6b7280;">No departures added.</div>'; return; }
                 tripDeparturesState.forEach((d, idx) => {
                     const card = document.createElement('div');
-                    card.className = 'requirement-section';
-                    const isSelected = selectedDepartureIndex===idx;
-                    card.style.cssText = `
-                        margin-bottom: 16px;
-                        border: ${isSelected ? '3px' : '2px'} solid ${isSelected ? '#f59e0b' : '#e5e7eb'};
-                        border-radius: 12px;
-                        padding: 20px;
-                        background: ${isSelected ? 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)' : 'white'};
-                        box-shadow: ${isSelected ? '0 8px 24px rgba(245, 158, 11, 0.15)' : '0 2px 8px rgba(0,0,0,0.06)'};
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    `;
+                    card.className = 'requirement-section' + (selectedDepartureIndex===idx? ' selected-arrival' : '');
+                    card.style.marginBottom = '10px';
+                    card.style.borderWidth = (selectedDepartureIndex===idx? '2px':'1px');
+                    card.style.borderColor = (selectedDepartureIndex===idx? '#1e40af':'var(--border-color)');
                     const title = `Departure D${idx+1}`;
                     const assignedNames = Array.isArray(d.pickup_list) ? d.pickup_list : (d.pickup_location||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
                     d.pickup_list = assignedNames; d.pickup_location = assignedNames.join('\n');
                     card.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid ${isSelected ? '#fef3c7' : '#f3f4f6'};" data-role="header">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:1.1rem;">
-                                    D${idx+1}
-                                </div>
-                                <div>
-                                    <div style="font-weight:700; font-size:1.05rem; color:#1f2937;">${title}</div>
-                                    <div style="font-size:0.85rem; color:#6b7280;">${assignedNames.length} guest${assignedNames.length !== 1 ? 's' : ''} assigned</div>
-                                </div>
-                            </div>
-                            <div style="display:flex; gap:8px;">
-                                <button type="button" style="background:#fee2e2; border:none; padding:8px 12px; border-radius:8px; color:#dc2626; font-weight:600; cursor:pointer; transition:all 0.3s;" data-role="remove">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;" data-role="header">
+                            <h5 style="margin:0; color: var(--text-light);">${title}</h5>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
                             </div>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-calendar" style="color:#f59e0b;"></i> Date
-                                </label>
-                                <input type="date" data-k="departure_date" value="${d.departure_date||''}" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-clock" style="color:#f59e0b;"></i> Time
-                                </label>
-                                <input type="time" data-k="departure_time" value="${d.departure_time||''}" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-plane-departure" style="color:#f59e0b;"></i> Flight
-                                </label>
-                                <input type="text" data-k="flight_no" value="${d.flight_no||''}" placeholder="e.g. AA1234" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s;">
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
+                            <div class="form-group"><label>Date</label><input type="date" data-k="departure_date" value="${d.departure_date||''}"></div>
+                            <div class="form-group"><label>Time</label><input type="time" data-k="departure_time" value="${d.departure_time||''}"></div>
+                            <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${d.flight_no||''}"></div>
+                        </div>
+                        <div class=\"form-group\"><label>Assign Guests</label>
+                            <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">\r
+                                ${assignedNames.length ? assignedNames.map(n => `<span class=\"chip\" data-name=\"${n}\" style=\"padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;\">${n}<button type=\"button\" data-role=\"unassign\" data-name=\"${n}\" style=\"border:none; background:transparent; color:#6b7280; cursor:pointer;\">×</button></span>`).join('') : '<div style=\"text-align:center; color:#9ca3af;\">Click a name above to add here</div>'}
                             </div>
                         </div>
-                        <div class="form-group" style="margin-bottom:16px;">
-                            <label style="display:flex; align-items:center; gap:6px; margin-bottom:10px; font-weight:600; color:#374151;">
-                                <i class="fas fa-users" style="color:#f59e0b;"></i> Assigned Guests
-                            </label>
-                            <div data-role="drop" style="min-height:80px; border:2px dashed ${assignedNames.length ? '#fcd34d' : '#d1d5db'}; border-radius:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:14px; background:${assignedNames.length ? '#fffbeb' : '#fafafa'}; transition:all 0.3s;">
-${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="${n}" style="padding:8px 14px; border:2px solid #fde68a; border-radius:20px; background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#92400e; box-shadow:0 2px 4px rgba(245,158,11,0.1); transition:all 0.2s;">
-    <i class="fas fa-user" style="font-size:0.8rem;"></i>
-    ${n}
-    <button type="button" data-role="unassign" data-name="${n}" style="border:none; background:#fde68a; color:#92400e; cursor:pointer; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:1rem; transition:all 0.2s;">
-        ×
-    </button>
-</span>`).join('') : '<div style="text-align:center; color:#9ca3af; font-style:italic;"><i class="fas fa-hand-pointer" style="margin-right:6px;"></i>Click a guest name from the pool above to assign</div>'}
-                            </div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                            <div class="form-group"><label>From Hotel</label><select data-k="pickup_hotel_id">${getHotelOptionsHTML(d.pickup_hotel_id||'')}</select></div>
+                            <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(d.vehicle_id||'')}</select></div>
+                            <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(d.guide_id||'')}</select></div>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-hotel" style="color:#f59e0b;"></i> From Hotel
-                                </label>
-                                <select data-k="pickup_hotel_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getHotelOptionsHTML(d.pickup_hotel_id||'')}</select>
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-car" style="color:#f59e0b;"></i> Vehicle
-                                </label>
-                                <select data-k="vehicle_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getVehicleOptionsHTML(d.vehicle_id||'')}</select>
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                    <i class="fas fa-user-tie" style="color:#f59e0b;"></i> Guide
-                                </label>
-                                <select data-k="guide_id" style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; background:white; cursor:pointer; transition:all 0.3s;">${getGuideOptionsHTML(d.guide_id||'')}</select>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-bottom:12px;">
-                            <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:600; color:#374151;">
-                                <i class="fas fa-sticky-note" style="color:#f59e0b;"></i> Notes
-                            </label>
-                            <textarea rows="2" data-k="notes" placeholder="Instructions, special requests..." style="width:100%; padding:10px 12px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; resize:vertical; transition:all 0.3s; font-family:inherit;">${d.notes||''}</textarea>
-                        </div>
-                        <div style="display:flex; gap:16px; align-items:center; padding:12px; background:#f8f9fa; border-radius:8px;">
-                            <label style="display:flex; gap:8px; align-items:center; cursor:pointer; font-weight:500; color:#374151;">
-                                <input type="checkbox" data-k="vehicle_informed" ${d.vehicle_informed? 'checked':''} style="width:18px; height:18px; cursor:pointer; accent-color:#f59e0b;">
-                                <i class="fas fa-check-circle" style="color:#10b981;"></i> Vehicle Informed
-                            </label>
-                            <label style="display:flex; gap:8px; align-items:center; cursor:pointer; font-weight:500; color:#374151;">
-                                <input type="checkbox" data-k="guide_informed" ${d.guide_informed? 'checked':''} style="width:18px; height:18px; cursor:pointer; accent-color:#f59e0b;">
-                                <i class="fas fa-check-circle" style="color:#10b981;"></i> Guide Informed
-                            </label>
+                        <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${d.notes||''}</textarea></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${d.vehicle_informed? 'checked':''}> Vehicle informed</label>
+                            <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="guide_informed" ${d.guide_informed? 'checked':''}> Guide informed</label>
                         </div>
                     `;
                     card.querySelectorAll('[data-k]').forEach(el=>{
@@ -6132,62 +5292,38 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                 const s1 = document.getElementById('tripStep1');
                 const s2 = document.getElementById('tripStep2');
                 const s3 = document.getElementById('tripStep3');
-                const s4 = document.getElementById('tripStep4');
                 if (s1) s1.style.display = (n===1)?'':'none';
                 if (s2) s2.style.display = (n===2)?'':'none';
                 if (s3) s3.style.display = (n===3)?'':'none';
-                if (s4) s4.style.display = (n===4)?'':'none';
                 const c1 = document.getElementById('controlsStep1');
                 const c2 = document.getElementById('controlsStep2');
                 const c3 = document.getElementById('controlsStep3');
-                const c4 = document.getElementById('controlsStep4');
                 if (c1) c1.style.display = (n===1)?'flex':'none';
                 if (c2) c2.style.display = (n===2)?'flex':'none';
                 if (c3) c3.style.display = (n===3)?'flex':'none';
-                if (c4) c4.style.display = (n===4)?'flex':'none';
+                const back1 = document.getElementById('btnStepBack1');
+                const next1 = document.getElementById('btnStepNext1');
+                const save1 = document.getElementById('btnStepSave1');
+                const back2 = document.getElementById('btnStepBack2');
+                const next2 = document.getElementById('btnStepNext2');
+                const save2 = document.getElementById('btnStepSave2');
+                const back3 = document.getElementById('btnStepBack3');
+                const save3 = document.getElementById('btnStepSave3');
+                if (back1) back1.style.display = 'none';
+                if (next1) next1.style.display = '';
+                if (save1) save1.style.display = '';
+                if (back2) back2.style.display = '';
+                if (next2) next2.style.display = '';
+                if (save2) save2.style.display = '';
+                if (back3) back3.style.display = '';
+                if (save3) save3.style.display = '';
             }
-            // Auto-save function for step navigation (doesn't close modal)
-            async function autoSaveTripData() {
-                const tripId = document.getElementById('tripIdHidden').value;
-                if (!tripId) return; // Only auto-save for existing trips
-                
-                try {
-                    const formData = new FormData(document.getElementById('tripForm'));
-                    const resp = await fetch(`${API_URL}?action=updateTrip`, { 
-                        method:'POST', 
-                        headers:{'X-Requested-With':'XMLHttpRequest'}, 
-                        body: formData 
-                    });
-                    const text = await resp.text();
-                    let result; 
-                    try { result = JSON.parse(text); } catch(e){ return; }
-                    
-                    if (result.status === 'success' && tripId){
-                        // Save related data
-                        const modeSel = document.getElementById('arrival_mode');
-                        if (modeSel && modeSel.value==='single'){
-                            const names = getAllGuestNames();
-                            const pax = names.length;
-                            const one = [{ arrival_date: document.getElementById('arrival_date')?.value||'', arrival_time: document.getElementById('arrival_time')?.value||'', flight_no: document.getElementById('arrival_flight')?.value||'', pax_count: pax, pickup_location: names.join('\n'), drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }];
-                            tripArrivalsState = one;
-                        }
-                        await saveArrivalsForTrip(tripId);
-                        await saveDeparturesForTrip(tripId);
-                        await saveGuestsForTrip(tripId);
-                        showToast('Auto-saved', 'success');
-                    }
-                } catch (err) {
-                    // Silent fail for auto-save
-                }
-            }
-            
-            // Step navigation
-            document.getElementById('btnStepNext1')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(2); });
-            document.getElementById('btnStepBack2')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(1); });
-            document.getElementById('btnStepNext2')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(3); updateDayBadge('arrival_date','arrivalDayBadge'); updateNamesPool(); updateDepNamesPool(); });
-            document.getElementById('btnStepBack3')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(2); });
-            document.getElementById('btnStepNext3')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(4); const ed = document.getElementById('end_date'); if (ed) { const dep = document.getElementById('departure_date'); if (dep) dep.value = ed.value || ''; } });
-            document.getElementById('btnStepBack4')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(3); });
+document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const next = Math.min(3, (tripCurrentStep||1)+1); setTripStep(next); updateDayBadge('arrival_date','arrivalDayBadge'); });
+            document.getElementById('btnStepBack')?.addEventListener('click', ()=> setTripStep(1));
+            document.getElementById('btnStepNext1')?.addEventListener('click', ()=> { setTripStep(2); updateDayBadge('arrival_date','arrivalDayBadge'); });
+            document.getElementById('btnStepBack2')?.addEventListener('click', ()=> setTripStep(1));
+            document.getElementById('btnStepNext2')?.addEventListener('click', ()=> { setTripStep(3); const ed = document.getElementById('end_date'); if (ed) { const dep = document.getElementById('departure_date'); if (dep) dep.value = ed.value || ''; } });
+            document.getElementById('btnStepBack3')?.addEventListener('click', ()=> setTripStep(2));
 
             async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip • File #' + String(trip.id).padStart(3, '0');
@@ -6219,11 +5355,8 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                 // Update day badges if dates are set
                 updateDayBadge('arrival_date','arrivalDayBadge');
                 
-                // Load guests from backend
-                guestsList = [];
-                guestIdCounter = 0;
-                await loadGuestsForTrip(trip.id);
-                document.getElementById('guestType').value = '';
+                // Keep the form in "lite" mode (same as new file creation)
+                document.getElementById('tripForm').classList.add('creation-lite');
                 
                 setTripStep(1);
             }

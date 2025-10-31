@@ -2395,24 +2395,6 @@ function deleteTripArrival($conn){
 function getTripGuests($conn){
     $trip_id = isset($_GET['trip_id']) ? intval($_GET['trip_id']) : 0;
     if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
-    
-    // First try to get guests_data from trips table
-    $stmt = $conn->prepare("SELECT guests_data FROM trips WHERE id = ?");
-    if ($stmt) {
-        $stmt->bind_param('i', $trip_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($row = $result->fetch_assoc()) {
-            if (!empty($row['guests_data'])) {
-                echo json_encode(['status'=>'success','data'=>['guests_data'=>$row['guests_data']]]);
-                $stmt->close();
-                return;
-            }
-        }
-        $stmt->close();
-    }
-    
-    // Legacy support - try old tables
     ensureTripGuestsSchema($conn);
     $tbl = tableExists($conn, 'guests') ? 'guests' : 'trip_guests';
     $stmt = $conn->prepare("SELECT type, name1, name2, passport1, passport2, dob1, dob2, country1, country2, remark1, remark2 FROM $tbl WHERE trip_id = ? ORDER BY display_order, id");
@@ -2449,32 +2431,11 @@ function saveTripGuests($conn){
     $payload = file_get_contents('php://input');
     $data = json_decode($payload, true);
     $trip_id = isset($data['trip_id']) ? intval($data['trip_id']) : 0;
-    
-    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
-    
-    // New JSON format - store directly in guests_data column
-    if (isset($data['guests_data'])) {
-        $guests_json = $data['guests_data']; // Already a JSON string from frontend
-        $stmt = $conn->prepare("UPDATE trips SET guests_data = ? WHERE id = ?");
-        if (!$stmt) {
-            echo json_encode(['status'=>'error','message'=>'DB prepare failed: '.$conn->error]);
-            return;
-        }
-        $stmt->bind_param('si', $guests_json, $trip_id);
-        if ($stmt->execute()) {
-            echo json_encode(['status'=>'success','message'=>'Guests saved']);
-        } else {
-            echo json_encode(['status'=>'error','message'=>'Failed to save: '.$stmt->error]);
-        }
-        $stmt->close();
-        return;
-    }
-    
-    // Legacy format support
     $couples = isset($data['couples']) && is_array($data['couples']) ? $data['couples'] : [];
     $singles = isset($data['singles']) && is_array($data['singles']) ? $data['singles'] : [];
     $couples_details = isset($data['couples_details']) && is_array($data['couples_details']) ? $data['couples_details'] : [];
     $singles_details = isset($data['singles_details']) && is_array($data['singles_details']) ? $data['singles_details'] : [];
+    if ($trip_id<=0){ echo json_encode(['status'=>'error','message'=>'trip_id required']); return; }
     
     try {
         ensureTripGuestsSchema($conn);

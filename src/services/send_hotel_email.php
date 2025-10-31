@@ -471,7 +471,7 @@ $preface = $isAmendment
 					require_once __DIR__ . '/../libs/PHPMailer/src/SMTP.php';
 					require_once __DIR__ . '/../libs/PHPMailer/src/Exception.php';
 					$mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                    $mail->isSMTP();
+		                  $mail->isSMTP();
 					$mail->Host = defined('MAIL_SMTP_HOST') ? MAIL_SMTP_HOST : 'smtp.gmail.com';
 					$mail->Port = defined('MAIL_SMTP_PORT') ? MAIL_SMTP_PORT : 587;
 					$mail->SMTPAuth = true;
@@ -479,9 +479,13 @@ $preface = $isAmendment
 					$mail->Password = MAIL_SMTP_PASS;
 					$mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
 					$mail->CharSet = 'UTF-8';
+					$mail->SMTPDebug = 2; // Enable verbose debug output
+					$mail->Debugoutput = function($str, $level) {
+						error_log("PHPMailer Debug [{$level}]: {$str}");
+					};
 					$mail->setFrom(defined('MAIL_FROM_EMAIL') && MAIL_FROM_EMAIL ? MAIL_FROM_EMAIL : MAIL_SMTP_USER, defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Trip Coordinator');
 					$mail->addAddress($hotelEmail, $hotelName);
-                    $mail->isHTML(true);
+		                  $mail->isHTML(true);
 					// --- MODIFIED: Email Subject ---
 $mail->Subject = ($isAmendment ? ('Amendment ' . ($amendNum>0?('#'.$amendNum.' '):'') . 'Booking Update') : 'Hotel Booking Request') . ' for ' . $tourCode . ' - ' . $customerName;
 					$mail->Body = $emailBodyHtml;
@@ -490,6 +494,7 @@ $mail->Subject = ($isAmendment ? ('Amendment ' . ($amendNum>0?('#'.$amendNum.' '
 					$sentOk = true;
 				} catch (\Throwable $ex) {
 					$sendError = $ex->getMessage();
+					error_log("SMTP Error for hotel {$hotelEmail}: {$sendError}");
 				}
 			} else {
 				$sendError = 'PHPMailer library not found.';

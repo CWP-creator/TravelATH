@@ -23,9 +23,9 @@ $conn->set_charset('utf8mb4');
 date_default_timezone_set('Asia/Kathmandu');
 
 // SMTP Configuration (use provider/app password)
-define('MAIL_SMTP_HOST', 'smtp.example.com');
+define('MAIL_SMTP_HOST', 'dulalpratyush@gmail.com');
 define('MAIL_SMTP_PORT', 587);
-define('MAIL_SMTP_USER', 'user@example.com');
-define('MAIL_SMTP_PASS', 'your-app-password');
+define('MAIL_SMTP_USER', 'dulalpratyush@gmail.com');
+define('MAIL_SMTP_PASS', 'crrv qsqi angt smks');
 define('MAIL_FROM_EMAIL', 'user@example.com');
 define('MAIL_FROM_NAME', 'Travel Agency');
