@@ -407,8 +407,8 @@
         #tripModal .section-card { padding: 15px; margin-bottom: 15px; }
         #tripModal #tripStep2 .section-card:last-child{ margin-bottom: 15px; }
         #tripModal .form-group { margin-bottom: 15px; }
-        #tripModal .form-group label { margin-bottom: 5px; }
-        #tripModal .form-group input, #tripModal .form-group select { padding: 10px; }
+        #tripModal .form-group label { margin-bottom: 4px; font-size: 0.85rem; }
+        #tripModal .form-group input, #tripModal .form-group select { padding: 8px; font-size: 0.85rem; }
         #tripModal details { background: #ffffff; border: 1px dashed var(--border-color); border-radius: 8px; padding: 8px 10px; }
         #tripModal details summary { cursor: pointer; font-weight: 600; color: var(--text-light); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -484,23 +484,23 @@
         
         #tripModal .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
             color: #374151;
-            font-size: 0.9rem;
-            letter-spacing: 0.3px;
+            font-size: 0.8rem;
         }
         
         #tripModal .form-group input,
         #tripModal .form-group select,
         #tripModal .form-group textarea {
             width: 100%;
-            padding: 12px 16px;
+            padding: 8px 10px;
             border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 0.95rem;
-            transition: all 0.3s;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: white;
+            transition: all 0.3s ease;
+        }
             background: white;
         }
         
@@ -1269,8 +1269,16 @@
         .guest-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 10px;
+        }
+        
+        .guest-row.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .guest-row.four-col {
+            grid-template-columns: 1fr 1fr 1fr 1fr;
         }
 
         .guest-row.single-row {
@@ -1292,12 +1300,12 @@
 
         .guest-field input,
         .guest-field select {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border: 2px solid #e5e7eb;
             border-radius: 8px;
             font-size: 0.9rem;
-            transition: all 0.3s;
-            background: white;
+            transition: all 0.3s ease;
+        }
         }
 
         .guest-field input:focus,
@@ -1900,6 +1908,29 @@
                     <button type="button" id="btnStepNext1" class="icon-btn" title="Next" aria-label="Next">
                         <i class="fas fa-arrow-right"></i>
                     </button>
+                </div>
+                
+                <!-- Guest Details Availability Check -->
+                <div class="form-group" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%); border-radius: 10px; border: 2px solid #e0e7ff;">
+                    <h4 style="margin: 0 0 12px 0; color: #1e40af; font-size: 1rem;">Guest Information Status</h4>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <label style="font-weight: 600; color: #374151; font-size: 0.9rem;">Do you have complete guest details available?</label>
+                        <div style="display: flex; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
+                                <input type="radio" name="guestDetailsAvailable" value="yes" style="accent-color: #667eea;">
+                                Yes, I have all details
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
+                                <input type="radio" name="guestDetailsAvailable" value="no" style="accent-color: #667eea;">
+                                No, create placeholder guests
+                            </label>
+                        </div>
+                    </div>
+                    <div id="placeholderGuestInfo" style="display: none; margin-top: 12px; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 0.8rem; color: #92400e;">
+                        <strong>Placeholder guests will be created:</strong> 5 couples (A1&A2, B1&B2, C1&C2, D1&D2, E1&E2) + 4 singles (S1, S2, S3, S4)
+                    </div>
+                </div>
+                
                 </div>
                 </div> <!-- end step 1 -->
 
@@ -4336,7 +4367,12 @@
             let guestIdCounter = 0;
 
             function updateGuestCount() {
-                document.getElementById('guestCount').textContent = guestsList.length;
+                // Calculate total pax: 2 per couple + 1 per single
+                const totalPax = guestsList.reduce((sum, guest) => {
+                    return sum + (guest.type === 'couple' ? 2 : 1);
+                }, 0);
+                
+                document.getElementById('guestCount').textContent = totalPax;
                 const noMsg = document.getElementById('noGuestsMessage');
                 const container = document.getElementById('guestsContainer');
                 if (guestsList.length === 0) {
@@ -4421,46 +4457,35 @@
                                 </div>
                             </div>
                             <div class="guest-card-body">
-                            <div class="guest-row">
-                                <div class="guest-field">
-                                    <label>Male Name <span class="gender-badge male">M</span></label>
-                                    <input type="text" class="guest-name-male" data-guest-id="${guest.id}" placeholder="Enter male name" value="${guest.maleName || ''}">
-                                </div>
-                                <div class="guest-field">
-                                    <label>Female Name <span class="gender-badge female">F</span></label>
-                                    <input type="text" class="guest-name-female" data-guest-id="${guest.id}" placeholder="Enter female name" value="${guest.femaleName || ''}">
-                                </div>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <span class="gender-badge male" style="font-size:1rem; padding:6px 12px;">M</span>
+                                <input type="text" class="guest-name-male" data-guest-id="${guest.id}" placeholder="Name" value="${guest.maleName || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="date" class="guest-dob-male" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dobMale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="text" class="guest-passport-male" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passportMale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <select class="guest-country" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
+                                    <option value="">Country</option>
+                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
+                                </select>
                             </div>
-                            <div class="guest-row">
-                                <div class="guest-field">
-                                    <label>Country</label>
-                                    <select class="guest-country" data-guest-id="${guest.id}">
-                                        <option value="">Select Country</option>
-                                        ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div class="guest-field">
-                                    <label>Date of Birth (Optional)</label>
-                                    <input type="date" class="guest-dob" data-guest-id="${guest.id}" value="${guest.dob || ''}">
-                                </div>
-                            </div>
-                            <div class="guest-row">
-                                <div class="guest-field">
-                                    <label>Passport No (Optional)</label>
-                                    <input type="text" class="guest-passport-male" data-guest-id="${guest.id}" placeholder="Male passport" value="${guest.passportMale || ''}">
-                                </div>
-                                <div class="guest-field">
-                                    <label>Passport No (Optional)</label>
-                                    <input type="text" class="guest-passport-female" data-guest-id="${guest.id}" placeholder="Female passport" value="${guest.passportFemale || ''}">
-                                </div>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <span class="gender-badge female" style="font-size:1rem; padding:6px 12px;">F</span>
+                                <input type="text" class="guest-name-female" data-guest-id="${guest.id}" placeholder="Name" value="${guest.femaleName || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="date" class="guest-dob-female" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dobFemale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="text" class="guest-passport-female" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passportFemale || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <select class="guest-country-female" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
+                                    <option value="">Country</option>
+                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.countryFemale === c ? 'selected' : ''}>${c}</option>`).join('')}
+                                </select>
                             </div>
                             </div>
                         `;
                     } else {
+                        const genderBadgeClass = guest.gender === 'F' ? 'female' : 'male';
+                        const genderIcon = guest.gender === 'F' ? 'fa-venus' : 'fa-mars';
                         card.innerHTML = `
                             <div class="guest-card-header">
                                 <div class="guest-card-title">
-                                    <i class="fas fa-user"></i> Single Guest ${index + 1}
+                                    <i class="fas ${genderIcon}"></i> Single Guest ${index + 1}
                                     ${summaryText}
                                 </div>
                                 <div class="guest-card-actions">
@@ -4473,28 +4498,18 @@
                                 </div>
                             </div>
                             <div class="guest-card-body">
-                            <div class="guest-row">
-                                <div class="guest-field">
-                                    <label>Full Name</label>
-                                    <input type="text" class="guest-name-single" data-guest-id="${guest.id}" placeholder="Enter full name" value="${guest.name || ''}">
-                                </div>
-                                <div class="guest-field">
-                                    <label>Country</label>
-                                    <select class="guest-country" data-guest-id="${guest.id}">
-                                        <option value="">Select Country</option>
-                                        ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="guest-row">
-                                <div class="guest-field">
-                                    <label>Date of Birth (Optional)</label>
-                                    <input type="date" class="guest-dob" data-guest-id="${guest.id}" value="${guest.dob || ''}">
-                                </div>
-                                <div class="guest-field">
-                                    <label>Passport No (Optional)</label>
-                                    <input type="text" class="guest-passport-single" data-guest-id="${guest.id}" placeholder="Enter passport number" value="${guest.passport || ''}">
-                                </div>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                <select class="guest-gender" data-guest-id="${guest.id}" style="width:60px; padding:6px 8px; border:2px solid #e5e7eb; border-radius:6px; font-size:0.95rem; font-weight:600; background:white; cursor:pointer;">
+                                    <option value="M" ${guest.gender === 'M' ? 'selected' : ''}>M</option>
+                                    <option value="F" ${guest.gender === 'F' ? 'selected' : ''}>F</option>
+                                </select>
+                                <input type="text" class="guest-name-single" data-guest-id="${guest.id}" placeholder="Name" value="${guest.name || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="date" class="guest-dob" data-guest-id="${guest.id}" placeholder="DOB" value="${guest.dob || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <input type="text" class="guest-passport-single" data-guest-id="${guest.id}" placeholder="Passport" value="${guest.passport || ''}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem;">
+                                <select class="guest-country" data-guest-id="${guest.id}" style="flex:1; padding:8px 10px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.9rem; background:white;">
+                                    <option value="">Country</option>
+                                    ${COUNTRY_LIST.map(c => `<option value="${c}" ${guest.country === c ? 'selected' : ''}>${c}</option>`).join('')}
+                                </select>
                             </div>
                             </div>
                         `;
@@ -4565,11 +4580,26 @@
                         else if (this.classList.contains('guest-country')) {
                             guest.country = this.value;
                             updateGuestSummary(id);
+                            // Auto-suggest country for female if in couple
+                            if (guest.type === 'couple' && this.value && !guest.countryFemale) {
+                                guest.countryFemale = this.value;
+                                renderGuests();
+                            }
+                        }
+                        else if (this.classList.contains('guest-country-female')) {
+                            guest.countryFemale = this.value;
+                            updateGuestSummary(id);
                         }
                         else if (this.classList.contains('guest-dob')) guest.dob = this.value;
+                        else if (this.classList.contains('guest-dob-male')) guest.dobMale = this.value;
+                        else if (this.classList.contains('guest-dob-female')) guest.dobFemale = this.value;
                         else if (this.classList.contains('guest-passport-male')) guest.passportMale = this.value;
                         else if (this.classList.contains('guest-passport-female')) guest.passportFemale = this.value;
                         else if (this.classList.contains('guest-passport-single')) guest.passport = this.value;
+                        else if (this.classList.contains('guest-gender')) {
+                            guest.gender = this.value;
+                            renderGuests();
+                        }
                     });
                 });
                 
@@ -4585,9 +4615,23 @@
                     return;
                 }
                 
+                // Collapse all existing guests that have any data filled
+                guestsList.forEach(guest => {
+                    if (guest.type === 'couple') {
+                        if (guest.maleName || guest.femaleName || guest.country || guest.countryFemale) {
+                            guest.expanded = false;
+                        }
+                    } else if (guest.type === 'single') {
+                        if (guest.name || guest.country) {
+                            guest.expanded = false;
+                        }
+                    }
+                });
+                
                 const newGuest = {
                     id: ++guestIdCounter,
-                    type: type
+                    type: type,
+                    gender: type === 'single' ? 'M' : undefined // Default to M for single guests
                 };
                 
                 guestsList.push(newGuest);
@@ -6102,13 +6146,48 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                 if (c3) c3.style.display = (n===3)?'flex':'none';
                 if (c4) c4.style.display = (n===4)?'flex':'none';
             }
+            // Auto-save function for step navigation (doesn't close modal)
+            async function autoSaveTripData() {
+                const tripId = document.getElementById('tripIdHidden').value;
+                if (!tripId) return; // Only auto-save for existing trips
+                
+                try {
+                    const formData = new FormData(document.getElementById('tripForm'));
+                    const resp = await fetch(`${API_URL}?action=updateTrip`, { 
+                        method:'POST', 
+                        headers:{'X-Requested-With':'XMLHttpRequest'}, 
+                        body: formData 
+                    });
+                    const text = await resp.text();
+                    let result; 
+                    try { result = JSON.parse(text); } catch(e){ return; }
+                    
+                    if (result.status === 'success' && tripId){
+                        // Save related data
+                        const modeSel = document.getElementById('arrival_mode');
+                        if (modeSel && modeSel.value==='single'){
+                            const names = getAllGuestNames();
+                            const pax = names.length;
+                            const one = [{ arrival_date: document.getElementById('arrival_date')?.value||'', arrival_time: document.getElementById('arrival_time')?.value||'', flight_no: document.getElementById('arrival_flight')?.value||'', pax_count: pax, pickup_location: names.join('\n'), drop_hotel_id:'', vehicle_id:'', guide_id:'', notes:'', vehicle_informed:0, guide_informed:0 }];
+                            tripArrivalsState = one;
+                        }
+                        await saveArrivalsForTrip(tripId);
+                        await saveDeparturesForTrip(tripId);
+                        await saveGuestsForTrip(tripId);
+                        showToast('Auto-saved', 'success');
+                    }
+                } catch (err) {
+                    // Silent fail for auto-save
+                }
+            }
+            
             // Step navigation
-            document.getElementById('btnStepNext1')?.addEventListener('click', ()=> setTripStep(2));
-            document.getElementById('btnStepBack2')?.addEventListener('click', ()=> setTripStep(1));
-            document.getElementById('btnStepNext2')?.addEventListener('click', ()=> { setTripStep(3); updateDayBadge('arrival_date','arrivalDayBadge'); updateNamesPool(); updateDepNamesPool(); });
-            document.getElementById('btnStepBack3')?.addEventListener('click', ()=> setTripStep(2));
-            document.getElementById('btnStepNext3')?.addEventListener('click', ()=> { setTripStep(4); const ed = document.getElementById('end_date'); if (ed) { const dep = document.getElementById('departure_date'); if (dep) dep.value = ed.value || ''; } });
-            document.getElementById('btnStepBack4')?.addEventListener('click', ()=> setTripStep(3));
+            document.getElementById('btnStepNext1')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(2); });
+            document.getElementById('btnStepBack2')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(1); });
+            document.getElementById('btnStepNext2')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(3); updateDayBadge('arrival_date','arrivalDayBadge'); updateNamesPool(); updateDepNamesPool(); });
+            document.getElementById('btnStepBack3')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(2); });
+            document.getElementById('btnStepNext3')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(4); const ed = document.getElementById('end_date'); if (ed) { const dep = document.getElementById('departure_date'); if (dep) dep.value = ed.value || ''; } });
+            document.getElementById('btnStepBack4')?.addEventListener('click', async ()=> { await autoSaveTripData(); setTripStep(3); });
 
             async function populateTripForm(trip){
                 document.getElementById('modalTitle').textContent = 'Edit Trip • File #' + String(trip.id).padStart(3, '0');
