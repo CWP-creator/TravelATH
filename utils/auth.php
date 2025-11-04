@@ -33,60 +33,81 @@ function respond($status, $message, $data = null) {
 
 // Login action
 if ($action === 'login') {
+    error_log("Login attempt started for email: " . (isset($_POST['email']) ? $_POST['email'] : 'not set'));
+
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        error_log("Invalid request method: " . $_SERVER['REQUEST_METHOD']);
         respond('error', 'Invalid request method');
     }
 
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
 
+    error_log("Email: '$email', Password provided: " . (empty($password) ? 'no' : 'yes'));
+
     if (empty($email) || empty($password)) {
+        error_log("Empty email or password");
         respond('error', 'Email and password are required');
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        error_log("Invalid email format: $email");
         respond('error', 'Invalid email format');
     }
 
     try {
         // Check if connection exists
         if (!isset($conn)) {
+            error_log("Database connection not set");
             respond('error', 'Database connection not available');
         }
+        error_log("Database connection available");
 
         $stmt = $conn->prepare("SELECT id, name, email, password FROM users WHERE email = ? AND is_active = 1");
         if (!$stmt) {
+            error_log("Query preparation failed: " . $conn->error);
             respond('error', 'Database query preparation failed: ' . $conn->error);
         }
-        
+        error_log("Query prepared successfully");
+
         $stmt->bind_param('s', $email);
         $stmt->execute();
         $result = $stmt->get_result();
+        error_log("Query executed, num_rows: " . $result->num_rows);
 
         if ($result->num_rows === 0) {
+            error_log("No user found with email: $email");
             respond('error', 'Invalid email or password');
         }
 
         $user = $result->fetch_assoc();
-        
+        error_log("User found: ID " . $user['id'] . ", Name: " . $user['name']);
+
         // Verify password
         if (!password_verify($password, $user['password'])) {
+            error_log("Password verification failed for user: $email");
             respond('error', 'Invalid email or password');
         }
+        error_log("Password verified successfully");
 
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['logged_in'] = true;
+        error_log("Session variables set");
 
         // Update last login
         $updateStmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
         if ($updateStmt) {
             $updateStmt->bind_param('i', $user['id']);
             $updateStmt->execute();
+            error_log("Last login updated");
+        } else {
+            error_log("Failed to prepare update statement");
         }
 
+        error_log("Login successful for user: $email");
         respond('success', 'Login successful', [
             'user' => [
                 'id' => $user['id'],
@@ -96,6 +117,7 @@ if ($action === 'login') {
         ]);
 
     } catch (Exception $e) {
+        error_log("Exception in login: " . $e->getMessage());
         respond('error', 'Database error: ' . $e->getMessage());
     }
 }

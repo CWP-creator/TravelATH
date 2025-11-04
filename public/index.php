@@ -8,28 +8,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #4A90E2;
-            --background-color: #f0f2f5;
+            --primary-color: #667eea;
+            --primary-hover: #5568d3;
+            --secondary-color: #764ba2;
+            --background-color: #f5f7fa;
             --sidebar-bg: #ffffff;
-            --header-bg: #3678c5;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --card-background: #ffffff;
-            --text-color: #333;
-            --text-light: #888;
-            --border-color: #e0e0e0;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --text-color: #2d3748;
+            --text-light: #718096;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-            --card1-bg: linear-gradient(to right, #6a82fb, #8996f6);
-            --card2-bg: linear-gradient(to right, #f76b8a, #f98e9f);
-            --card3-bg: linear-gradient(to right, #4facfe, #00f2fe);
-            --card4-bg: linear-gradient(to right, #43e97b, #38f9d7);
+            --card1-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card2-bg: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --card3-bg: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --card4-bg: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 
-            --success-color: #4CAF50;
-            --error-color: #F44336;
-            --warning-color: #f5a623;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --warning-color: #ed8936;
+            --info-color: #4299e1;
 
-            --row-available-bg: #f0fff0;
+            --row-available-bg: #f0fff4;
             --row-not-available-bg: #fff5f5;
-            --row-on-trip-bg: #f5f5ff;
+            --row-on-trip-bg: #eef2ff;
         }
 
         body {
@@ -42,7 +46,7 @@
         }
 
         .sidebar {
-            width: 240px;
+            width: 260px;
             background: var(--sidebar-bg);
             height: 100vh;
             position: fixed;
@@ -51,16 +55,20 @@
             display: flex;
             flex-direction: column;
             border-right: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
             transition: width 0.3s;
         }
 
         .sidebar-header {
-            padding: 20px;
+            padding: 24px;
             text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color);
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--header-bg);
+            color: white;
+            border-bottom: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
         
         .sidebar-nav {
@@ -73,22 +81,26 @@
         .sidebar-nav li a {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding: 15px 20px;
+            gap: 16px;
+            padding: 16px 24px;
             text-decoration: none;
             color: var(--text-light);
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
+            border-left: 3px solid transparent;
+            position: relative;
         }
         
         .sidebar-nav li a:hover, .sidebar-nav li.active a {
-            background-color: #e8f0fe;
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, transparent 100%);
             color: var(--primary-color);
+            border-left-color: var(--primary-color);
         }
 
         .sidebar-nav li a .fa-fw {
-            width: 20px;
+            width: 22px;
+            font-size: 1.1rem;
         }
         
         /* Collapsible Sidebar Styles */
@@ -167,31 +179,42 @@
         #tripForm.creation-lite #btnStepBack1 { display: none !important; }
         
         .page-wrapper {
-            margin-left: 240px;
-            width: calc(100% - 240px);
+            margin-left: 260px;
+            width: calc(100% - 260px);
             display: flex;
             flex-direction: column;
             transition: all 0.3s;
         }
 
         .top-header {
-            background-color: var(--header-bg);
+            background: var(--header-bg);
             color: white;
             padding: 0 30px;
-            height: 72px;
+            height: 80px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         
         .header-title {
-            font-size: 1.4rem;
-            font-weight: 500;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-title i {
+            font-size: 1.8rem;
         }
         
         .header-stats {
             display: flex;
-            gap: 20px;
+            gap: 32px;
         }
         
         .stat-item {
@@ -199,13 +222,13 @@
         }
 
         .stat-item .value {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             font-weight: bold;
         }
 
         .stat-item .label {
-            font-size: 0.8rem;
-            opacity: 0.8;
+            font-size: 0.85rem;
+            opacity: 0.9;
         }
 
         .main-content {
@@ -223,23 +246,53 @@
         
         .stat-card {
             color: white;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 24px;
+            border-radius: 12px;
             box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: transform 0.5s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card:hover::before {
+            transform: scale(1.5);
         }
 
         .stat-card h3 {
-            margin: 0 0 5px 0;
-            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            opacity: 0.95;
         }
         .stat-card .value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
         }
         .stat-card .detail {
             font-size: 0.85rem;
             opacity: 0.9;
+            position: relative;
+            z-index: 1;
         }
         
         .card-1 { background: var(--card1-bg); }
@@ -257,37 +310,52 @@
 
         .trips-container {
             background-color: var(--card-background);
-            padding: 20px;
-            border-radius: 8px;
+            padding: 28px;
+            border-radius: 12px;
             box-shadow: var(--shadow);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .trips-container:hover {
+            box-shadow: var(--shadow-lg);
         }
         
         .trips-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .trips-header h2 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
         }
 
         .btn-add {
-            background-color: var(--primary-color);
-            padding: 10px 15px;
-            border-radius: 5px;
+            background: var(--primary-color);
+            padding: 12px 20px;
+            border-radius: 8px;
             color: white;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
             border: none;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
         }
-        .btn-add:hover { background-color: #357ABD; }
+        .btn-add:hover { 
+            background: var(--primary-hover); 
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
 
         .table-container { overflow-x: auto; }
         table {
@@ -338,7 +406,11 @@
         }
 
         tr {
-            transition: background-color 0.3s ease;
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover {
+            background-color: #f7fafc;
         }
 
         tr:last-child td { border-bottom: none; }
@@ -445,8 +517,8 @@
             background: #fff; 
             padding-top: 15px; 
             margin-top: 20px;
-            display: flex; 
-            justify-content: flex-end; 
+            display: flex;
+            justify-content: flex-end;
             gap: 10px; 
             border-top: 1px solid var(--border-color);
         }
@@ -1178,7 +1250,14 @@
 
     <div class="page-wrapper">
         <header class="top-header">
-            <div class="header-title">Travel Agency Management System</div>
+            <div class="header-title">
+                <i class="fas fa-globe-americas"></i>
+                Travel Agency Management System
+            </div>
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <button id="shortcutsToggle" class="btn-add" style="padding: 8px 16px; font-size: 0.9rem;" title="Keyboard Shortcuts (Press ?)">
+                    <i class="fas fa-keyboard"></i> Shortcuts
+                </button>
             <div class="header-stats">
                 <div class="stat-item">
                     <div class="value" id="totalTripsStat">0</div>
@@ -1191,6 +1270,7 @@
                 <div class="stat-item">
                     <div class="value">$0.00</div>
                     <div class="label">Revenue</div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -1481,7 +1561,7 @@
 
     <div id="tripModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" data-modal="tripModal">&times;</span>
+                <span class="close-btn" data-modal="tripModal">&times;</span>
             <h2 id="modalTitle">Add Trip</h2>
             <form id="tripForm">
                 <input type="hidden" id="tripIdHidden" name="id">
@@ -1540,7 +1620,7 @@
                     </div>
 
                 </div>
-
+                
                 <div class="section-card" id="guestDetailsCard">
                     <h4><i class="fas fa-user"></i> Guest Details</h4>
                     <div class="form-group">
@@ -1551,7 +1631,7 @@
                             <option value="WWW">WWW</option>
                             <option value="Others">Others</option>
                         </select>
-                    </div>
+                        </div>
                     <div class="form-group">
                         <label for="booking_status">Booking Status</label>
                         <select id="booking_status" name="booking_status">
@@ -1567,10 +1647,10 @@
                                 <button type="button" class="counter-btn" data-target="couples_count" data-delta="-1">-</button>
                                 <span class="counter-value" data-for="couples_count">0</span>
                                 <button type="button" class="counter-btn" data-target="couples_count" data-delta="1">+</button>
-                            </div>
-                        </div>
-                        <input type="number" id="couples_count" name="couples_count" min="0" value="0" style="display:none;">
                     </div>
+                </div>
+                        <input type="number" id="couples_count" name="couples_count" min="0" value="0" style="display:none;">
+                </div>
                     <div class="form-group">
                         <div class="counter-row">
                             <span class="counter-label">No. of Singles</span>
@@ -1578,7 +1658,7 @@
                                 <button type="button" class="counter-btn" data-target="singles_count" data-delta="-1">-</button>
                                 <span class="counter-value" data-for="singles_count">0</span>
                                 <button type="button" class="counter-btn" data-target="singles_count" data-delta="1">+</button>
-                            </div>
+                        </div>
                         </div>
                         <input type="number" id="singles_count" name="singles_count" min="0" value="0" style="display:none;">
                     </div>
@@ -1587,7 +1667,7 @@
                         <label for="country">Country</label>
                         <select id="country" name="country"></select>
                     </div>
-
+                    
                     <div id="guestNamesContainer" class="form-group" style="margin-top:10px;">
                         <label>Guest Names</label>
                         <div id="guestNamesInner"></div>
@@ -1595,7 +1675,7 @@
                     <div class="form-group" style="margin-top:10px;">
                         <label for="guest_details">Guest Details (optional)</label>
                         <textarea id="guest_details" name="guest_details" rows="2" placeholder="Notes about guests, preferences, special info..."></textarea>
-                    </div>
+                </div>
                 </div>
                 <div id="controlsStep1" class="form-inline-controls">
                     <button type="button" id="btnStepBack1" class="icon-btn" title="Back" aria-label="Back">
@@ -1899,6 +1979,102 @@
     
     <div id="toast" class="toast"></div>
 
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcutsModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h2>
+                <span class="close-btn" data-modal="shortcutsModal">&times;</span>
+            </div>
+            <div style="display: grid; gap: 20px;">
+                <div class="shortcut-category">
+                    <h3 style="margin: 0 0 12px 0; color: var(--primary-color); font-size: 1rem;"><i class="fas fa-layer-group"></i> Navigation</h3>
+                    <div class="shortcut-item">
+                        <kbd>?</kbd>
+                        <span>Show shortcuts</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>D</kbd>
+                        <span>Go to Dashboard</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>T</kbd>
+                        <span>Go to Trips</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>P</kbd>
+                        <span>Go to Packages</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>H</kbd>
+                        <span>Go to Hotels</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>V</kbd>
+                        <span>Go to Vehicles</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>G</kbd> <kbd>U</kbd>
+                        <span>Go to Guides</span>
+                    </div>
+                </div>
+                <div class="shortcut-category">
+                    <h3 style="margin: 0 0 12px 0; color: var(--primary-color); font-size: 1rem;"><i class="fas fa-plus-circle"></i> Quick Actions</h3>
+                    <div class="shortcut-item">
+                        <kbd>N</kbd>
+                        <span>New Trip/File</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Alt</kbd> + <kbd>C</kbd>
+                        <span>Add Activity (in package modal)</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Esc</kbd>
+                        <span>Close modal/Cancel</span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 2px solid var(--border-color); text-align: center; color: var(--text-light); font-size: 0.85rem;">
+                <i class="fas fa-lightbulb"></i> Tip: Press <kbd style="padding: 4px 8px;">?</kbd> anytime to see this help
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .shortcut-category {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+        .shortcut-item kbd {
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-width: 32px;
+            text-align: center;
+        }
+        .shortcut-item span {
+            font-size: 0.95rem;
+            color: var(--text-color);
+        }
+    </style>
     <style>
       /* Searchable select (activities) */
       .searchable-select { position: relative; width: 100%; margin-top: 6px; }
@@ -2271,6 +2447,70 @@
                     }
                 });
             });
+
+            // Keyboard Shortcuts
+            document.getElementById('shortcutsToggle').addEventListener('click', () => {
+                document.getElementById('shortcutsModal').style.display = 'block';
+            });
+
+            let pendingKey = null;
+            document.addEventListener('keydown', function(e) {
+                // Ignore shortcuts when typing in inputs, textareas, or when Ctrl/Alt is held
+                const target = e.target.tagName.toLowerCase();
+                if (target === 'input' || target === 'textarea' || e.ctrlKey || e.altKey || e.metaKey) {
+                    pendingKey = null;
+                    return;
+                }
+
+                // Handle ? key for shortcuts modal
+                if (e.key === '?' || e.key === 'Shift') {
+                    e.preventDefault();
+                    const modal = document.getElementById('shortcutsModal');
+                    if (modal.style.display === 'none' || !modal.style.display) {
+                        modal.style.display = 'block';
+                    } else {
+                        modal.style.display = 'none';
+                    }
+                    pendingKey = null;
+                    return;
+                }
+
+                // Handle 'G' for "Go to" navigation
+                if (e.key === 'g' || e.key === 'G') {
+                    pendingKey = 'g';
+                    return;
+                }
+
+                // Handle second key after 'G'
+                if (pendingKey === 'g') {
+                    e.preventDefault();
+                    let targetSection = null;
+                    switch(e.key.toLowerCase()) {
+                        case 'd': targetSection = 'dashboard'; break;
+                        case 't': targetSection = 'trips'; break;
+                        case 'p': targetSection = 'packages'; break;
+                        case 'h': targetSection = 'hotels'; break;
+                        case 'v': targetSection = 'vehicles'; break;
+                        case 'u': targetSection = 'guides'; break;
+                    }
+                    if (targetSection) {
+                        const navLink = document.querySelector(`a[data-section="${targetSection}"]`);
+                        if (navLink) navLink.click();
+                    }
+                    pendingKey = null;
+                    return;
+                }
+
+                // Handle 'N' for new trip
+                if (e.key === 'n' || e.key === 'N') {
+                    e.preventDefault();
+                    const btn = document.getElementById('addTripBtn');
+                    if (btn) btn.click();
+                }
+
+                // Clear pending key if no match
+                pendingKey = null;
+            });
             
             // Month inputs default to current
             const nowMonth = new Date().toISOString().slice(0,7);
@@ -2371,17 +2611,24 @@
                     if (result.status === 'success') {
                         hotelsData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderHotels(hotelsData);
-                        // If a new hotel was just added for a package day, append/select it
-                        if (window.__pendingHotelSelectId && window.__pendingHotelName) {
-                          const target = document.getElementById(window.__pendingHotelSelectId);
+                        // If a new hotel was just added, append to ALL package day dropdowns
+                        if (window.__pendingHotelName) {
                           const nameLower = window.__pendingHotelName.trim().toLowerCase();
                           const found = hotelsData.find(h=> String(h.name||'').trim().toLowerCase()===nameLower);
-                          if (target && found) {
-                            // ensure option exists
-                            if (!Array.from(target.options).some(o=> String(o.value)===String(found.id))) {
-                              const opt = document.createElement('option'); opt.value = found.id; opt.textContent = found.name; target.appendChild(opt);
+                          if (found) {
+                            // Update ALL hotel dropdowns on the page
+                            const allHotelDropdowns = document.querySelectorAll('[id^="hotel_day_"], [id^="day_"][id$="_hotel_id"]');
+                            allHotelDropdowns.forEach(dropdown => {
+                              // Add option if it doesn't exist
+                              if (!Array.from(dropdown.options).some(o=> String(o.value)===String(found.id))) {
+                                const opt = document.createElement('option'); opt.value = found.id; opt.textContent = found.name; dropdown.appendChild(opt);
+                              }
+                            });
+                            // Select in the target dropdown if specified
+                            if (window.__pendingHotelSelectId) {
+                              const target = document.getElementById(window.__pendingHotelSelectId);
+                              if (target) target.value = String(found.id);
                             }
-                            target.value = String(found.id);
                           }
                           window.__pendingHotelSelectId = null; window.__pendingHotelName = null;
                         }
@@ -2425,13 +2672,14 @@
                     const result = await response.json();
                     if (result.status === 'success') {
                         activitiesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
-                        // If a new activity was just added for package creation, update dropdowns
-                        if (window.__pendingActivitySelectClass && window.__pendingActivityName) {
-                            const dropdowns = document.querySelectorAll(`.${window.__pendingActivitySelectClass}`);
+                        // If a new activity was just added, append to ALL activity dropdowns
+                        if (window.__pendingActivityName) {
                             const nameLower = window.__pendingActivityName.trim().toLowerCase();
                             const found = activitiesData.find(a => String(a.name||'').trim().toLowerCase() === nameLower);
                             if (found) {
-                                dropdowns.forEach(dropdown => {
+                                // Update ALL activity dropdowns on the page
+                                const allActivityDropdowns = document.querySelectorAll('.activity-dropdown, [name^="activity_"]');
+                                allActivityDropdowns.forEach(dropdown => {
                                     // Add option if it doesn't exist
                                     if (!Array.from(dropdown.options).some(o => String(o.value) === String(found.id))) {
                                         const opt = document.createElement('option');
@@ -2445,12 +2693,18 @@
                                             dropdown.appendChild(opt);
                                         }
                                     }
-                                    dropdown.value = String(found.id);
-                                    // Notify any wrappers (e.g., searchable select) to sync
-                                    try { dropdown.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
                                 });
+                                // Select only in the target dropdown if specified
+                                if (window.__pendingActivitySelectId) {
+                                    const target = document.getElementById(window.__pendingActivitySelectId);
+                                    if (target) {
+                                        target.value = String(found.id);
+                                        try { target.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+                                    }
+                                }
                             }
                             window.__pendingActivitySelectClass = null;
+                            window.__pendingActivitySelectId = null;
                             window.__pendingActivityName = null;
                         }
                     }
@@ -4261,7 +4515,8 @@
                     if (activitySel) {
                       activitySel.addEventListener('change', function(){
                         if (this.value === '__add__') {
-                          // remember target class to update after creation
+                          // remember target ID to set after creation
+                          window.__pendingActivitySelectId = this.id;
                           window.__pendingActivitySelectClass = 'activity-dropdown';
                           window.__pendingActivityName = null;
                           this.value = '';
@@ -4541,6 +4796,7 @@
                         // Open activity modal
                         document.getElementById('activityForm').reset();
                         document.getElementById('activityModalTitle').textContent = 'Add Activity';
+                        window.__pendingActivitySelectId = null; // No specific target for Alt+C
                         window.__pendingActivitySelectClass = 'activity-dropdown';
                         window.__pendingActivityName = null;
                         openModal('activityModal');
@@ -5026,13 +5282,13 @@
                             <div style="display:flex; gap:6px;">
                                 <button type="button" class="btn btn-secondary" data-role="toggle-pool"><i class="fas fa-plus"></i></button>
                                 <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
-                            </div>
-                        </div>
+                                </div>
+                                </div>
                         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
                             <div class="form-group"><label>Date</label><input type="date" data-k="arrival_date" value="${a.arrival_date||''}"></div>
                             <div class="form-group"><label>Time</label><input type="time" data-k="arrival_time" value="${a.arrival_time||''}"></div>
                             <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${a.flight_no||''}"></div>
-                        </div>
+                            </div>
                         <div class=\"form-group\"><label>Assign Guests</label>
                             <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">
 ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="${n}" style="padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;">${n}<button type="button" data-role="unassign" data-name="${n}" style="border:none; background:transparent; color:#6b7280; cursor:pointer;">×</button></span>`).join('') : '<div style="text-align:center; color:#9ca3af;">Click a name on the left to add here</div>'}
@@ -5042,7 +5298,7 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                             <div class="form-group"><label>Drop Hotel</label><select data-k="drop_hotel_id">${getHotelOptionsHTML(a.drop_hotel_id||'')}</select></div>
                             <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(a.vehicle_id||'')}</select></div>
                             <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(a.guide_id||'')}</select></div>
-                        </div>
+                            </div>
                         <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${a.notes||''}</textarea></div>
                         <div style="display:flex; gap:8px; align-items:center;">
                             <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${a.vehicle_informed? 'checked':''}> Vehicle informed</label>
@@ -5120,13 +5376,13 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                             <h5 style="margin:0; color: var(--text-light);">${title}</h5>
                             <div style="display:flex; gap:6px;">
                                 <button type="button" class="btn btn-cancel" data-role="remove">Remove</button>
-                            </div>
-                        </div>
+                                </div>
+                                </div>
                         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:8px;">
                             <div class="form-group"><label>Date</label><input type="date" data-k="departure_date" value="${d.departure_date||''}"></div>
                             <div class="form-group"><label>Time</label><input type="time" data-k="departure_time" value="${d.departure_time||''}"></div>
                             <div class="form-group"><label>Flight</label><input type="text" data-k="flight_no" value="${d.flight_no||''}"></div>
-                        </div>
+                            </div>
                         <div class=\"form-group\"><label>Assign Guests</label>
                             <div data-role=\"drop\" style=\"min-height:64px; border:2px dashed #d1d5db; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:${assignedNames.length? 'flex-start':'center'}; padding:10px; background:#fff;\">\r
                                 ${assignedNames.length ? assignedNames.map(n => `<span class=\"chip\" data-name=\"${n}\" style=\"padding:6px 10px; border:1px solid #ddd; border-radius:16px; background:#eef2ff; display:inline-flex; align-items:center; gap:6px;\">${n}<button type=\"button\" data-role=\"unassign\" data-name=\"${n}\" style=\"border:none; background:transparent; color:#6b7280; cursor:pointer;\">×</button></span>`).join('') : '<div style=\"text-align:center; color:#9ca3af;\">Click a name above to add here</div>'}
@@ -5136,7 +5392,7 @@ ${assignedNames.length ? assignedNames.map(n => `<span class="chip" data-name="$
                             <div class="form-group"><label>From Hotel</label><select data-k="pickup_hotel_id">${getHotelOptionsHTML(d.pickup_hotel_id||'')}</select></div>
                             <div class="form-group"><label>Vehicle</label><select data-k="vehicle_id">${getVehicleOptionsHTML(d.vehicle_id||'')}</select></div>
                             <div class="form-group"><label>Guide</label><select data-k="guide_id">${getGuideOptionsHTML(d.guide_id||'')}</select></div>
-                        </div>
+                            </div>
                         <div class="form-group"><label>Notes</label><textarea rows="3" data-k="notes" placeholder="Instructions, special requests...">${d.notes||''}</textarea></div>
                         <div style="display:flex; gap:8px; align-items:center;">
                             <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" data-k="vehicle_informed" ${d.vehicle_informed? 'checked':''}> Vehicle informed</label>
