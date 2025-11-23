@@ -1093,13 +1093,15 @@ function deleteHotel($conn) {
 // ============= VEHICLE MANAGEMENT =============
 function getVehicles($conn) {
     // Detect optional columns
-    $hasEmail = false; $hasPlate = false;
+    $hasEmail = false; $hasPlate = false; $hasAvailability = false;
     $colCheck = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'email'");
     if ($colCheck && $colCheck->num_rows > 0) { $hasEmail = true; }
     $colCheck2 = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'number_plate'");
     if ($colCheck2 && $colCheck2->num_rows > 0) { $hasPlate = true; }
+    $colCheck3 = $conn->query("SHOW COLUMNS FROM vehicles LIKE 'availability'");
+    if ($colCheck3 && $colCheck3->num_rows > 0) { $hasAvailability = true; }
 
-    $select = "SELECT id, vehicle_name, capacity, availability" . ($hasEmail ? ", email" : "") . ($hasPlate ? ", number_plate" : "") . " FROM vehicles ORDER BY vehicle_name";
+    $select = "SELECT id, vehicle_name, capacity" . ($hasAvailability ? ", availability" : "") . ($hasEmail ? ", email" : "") . ($hasPlate ? ", number_plate" : "") . " FROM vehicles ORDER BY vehicle_name";
 
     $result = $conn->query($select);
     if (!$result) {
@@ -1219,7 +1221,14 @@ function deleteVehicle($conn) {
 
 // ============= GUIDE MANAGEMENT =============
 function getGuides($conn) {
-    $result = $conn->query("SELECT id, name, language, email, availability_status FROM guides ORDER BY name");
+    // Check if email column exists
+    $hasEmail = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM guides LIKE 'email'");
+    if ($colCheck && $colCheck->num_rows > 0) { $hasEmail = true; }
+    
+    $select = "SELECT id, name, language" . ($hasEmail ? ", email" : "") . ", availability_status FROM guides ORDER BY name";
+    
+    $result = $conn->query($select);
     if (!$result) {
         echo json_encode(['status' => 'error', 'message' => 'Database query failed: ' . $conn->error]);
         return;
