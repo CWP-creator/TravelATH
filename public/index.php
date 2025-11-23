@@ -5,169 +5,237 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Agency Management System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #667eea;
-            --primary-hover: #5568d3;
-            --secondary-color: #764ba2;
-            --background-color: #f5f7fa;
-            --sidebar-bg: #ffffff;
-            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-background: #ffffff;
-            --text-color: #2d3748;
-            --text-light: #718096;
-            --border-color: #e2e8f0;
+            /* Professional Blue Palette */
+            --primary-color: #1E40AF; /* Blue 800 */
+            --primary-hover: #1E3A8A; /* Blue 900 */
+            --secondary-color: #3B82F6; /* Blue 500 */
+            --accent-color: #93C5FD; /* Blue 300 */
+            
+            --background-color: #F8FAFC; /* Slate 50 */
+            --sidebar-bg: #0F172A; /* Slate 900 */
+            --sidebar-text: #94A3B8; /* Slate 400 */
+            --sidebar-text-hover: #F8FAFC; /* Slate 50 */
+            --sidebar-active-bg: rgba(59, 130, 246, 0.1); /* Blue tint */
+            --sidebar-active-border: #3B82F6;
+            
+            --header-bg: #FFFFFF;
+            --header-text: #1E293B; /* Slate 800 */
+            
+            --card-background: #FFFFFF;
+            --text-color: #334155; /* Slate 700 */
+            --text-light: #64748B; /* Slate 500 */
+            --border-color: #E2E8F0; /* Slate 200 */
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
-            --card1-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card2-bg: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --card3-bg: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --card4-bg: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            /* Gradients for Cards - Blue/Professional Tones */
+            --card1-bg: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); /* Blue */
+            --card2-bg: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); /* Indigo */
+            --card3-bg: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%); /* Sky */
+            --card4-bg: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); /* Violet */
 
-            --success-color: #48bb78;
-            --error-color: #f56565;
-            --warning-color: #ed8936;
-            --info-color: #4299e1;
+            --success-color: #10B981;
+            --error-color: #EF4444;
+            --warning-color: #F59E0B;
+            --info-color: #3B82F6;
 
-            --row-available-bg: #f0fff4;
-            --row-not-available-bg: #fff5f5;
-            --row-on-trip-bg: #eef2ff;
+            --row-available-bg: #F8FAFC;
+            --row-not-available-bg: #FEF2F2;
+            --row-on-trip-bg: #EFF6FF;
+            
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
+            font-family: 'Inter', sans-serif;
             background-color: var(--background-color);
             color: var(--text-color);
             display: flex;
-            zoom: 0.9;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
+        /* Modern Sidebar Styles */
         .sidebar {
             width: 260px;
             background: var(--sidebar-bg);
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 0;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
-            transition: width 0.3s;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-header {
-            padding: 24px;
-            text-align: center;
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: var(--header-bg);
-            color: white;
-            border-bottom: none;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
-        
+
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #FFFFFF;
+        }
+
+        .sidebar-header .logo i {
+            font-size: 1.75rem;
+            color: var(--secondary-color);
+        }
+
+        .sidebar-header .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
         .sidebar-nav {
-            list-style: none;
-            padding: 20px 0;
-            margin: 0;
-            flex-grow: 1;
+            flex: 1;
+            padding: 16px 0;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
-        .sidebar-nav li a {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 24px;
-            text-decoration: none;
-            color: var(--text-light);
-            font-weight: 500;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            position: relative;
-        }
-        
-        .sidebar-nav li a:hover, .sidebar-nav li.active a {
-            background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, transparent 100%);
-            color: var(--primary-color);
-            border-left-color: var(--primary-color);
+        .sidebar-nav::-webkit-scrollbar {
+            width: 4px;
         }
 
-        .sidebar-nav li a .fa-fw {
-            width: 22px;
-            font-size: 1.1rem;
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
         }
-        
-        /* Collapsible Sidebar Styles */
-        .nav-section {
-            margin: 10px 0;
+
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
         }
-        
-        .section-toggle {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 12px 20px;
-            text-decoration: none;
-            color: var(--text-light);
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-            background: #f8f9fa;
-            transition: all 0.3s ease;
+
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
-        
-        .section-toggle:hover {
-            background-color: #e8f0fe;
-            color: var(--primary-color);
-        }
-        
-        .toggle-arrow {
-            margin-left: auto;
-            transition: transform 0.3s ease;
-            font-size: 0.8rem;
-        }
-        
-        .section-toggle.expanded .toggle-arrow {
-            transform: rotate(180deg);
-        }
-        
-        .nav-submenu {
+
+        .nav-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-            background: #fdfdfd;
         }
-        
-        .nav-submenu.expanded {
-            max-height: 500px;
+
+        .nav-item {
+            margin: 0;
+            padding: 0 12px;
         }
-        
-        .nav-submenu li a {
-            padding: 12px 20px 12px 50px;
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
             font-weight: 500;
-            border-left: 3px solid transparent;
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: var(--secondary-color);
+            transition: height 0.2s ease;
+            border-radius: 0 2px 2px 0;
+        }
+
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--sidebar-text-hover);
+        }
+
+        .nav-item.active .nav-link {
+            background: rgba(59, 130, 246, 0.12);
+            color: #FFFFFF;
+        }
+
+        .nav-item.active .nav-link::before {
+            height: 24px;
+        }
+
+        .nav-link i {
+            width: 20px;
+            font-size: 1.1rem;
+            text-align: center;
+            color: inherit;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-link:hover i {
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        .nav-divider {
+            padding: 16px 28px 8px;
+            margin-top: 16px;
+        }
+
+        .nav-divider:first-child {
+            margin-top: 0;
+        }
+
+        .nav-divider span {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #64748B;
+        }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .logout-link {
+            color: #EF4444 !important;
+        }
+
+        .logout-link:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .logout-link i {
+            color: #EF4444;
         }
         
-        .nav-submenu li a:hover {
-            background-color: #e8f0fe;
-            color: var(--primary-color);
-            border-left-color: var(--primary-color);
-        }
-        
-        .nav-submenu li.active a {
-            background-color: #e8f0fe;
-            color: var(--primary-color);
-            border-left-color: var(--primary-color);
-        }
 
         /* Creation-lite: hide arrival/departure steps in trip modal */
         #tripForm.creation-lite #tripStep2,
@@ -188,24 +256,26 @@
 
         .top-header {
             background: var(--header-bg);
-            color: white;
-            padding: 0 30px;
+            color: var(--header-text);
+            padding: 0 32px;
             height: 80px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: none;
         }
         
         .header-title {
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 1.25rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 12px;
+            color: var(--text-color);
         }
         
         .header-title i {
@@ -233,25 +303,27 @@
 
         .main-content {
             flex-grow: 1;
-            padding: 30px;
+            padding: 40px;
             overflow-y: auto;
+            background-color: var(--background-color);
         }
 
         .stats-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
         }
         
         .stat-card {
             color: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+            padding: 32px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             position: relative;
             overflow: hidden;
+            border: none;
         }
 
         .stat-card::before {
@@ -363,14 +435,16 @@
             border-collapse: collapse;
         }
         th, td {
-            padding: 15px;
+            padding: 16px;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
         th {
-            background-color: #f8f9fa;
+            background-color: #F9FAFB;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             color: var(--text-light);
         }
         
@@ -382,7 +456,7 @@
         }
         
         th.sortable:hover {
-            background-color: #e9ecef;
+            background-color: #F3F4F6;
         }
         
         th.sortable .sort-arrow {
@@ -410,7 +484,7 @@
         }
 
         tr:hover {
-            background-color: #f7fafc;
+            background-color: #F9FAFB;
         }
 
         tr:last-child td { border-bottom: none; }
@@ -1192,60 +1266,224 @@
                 gap: 10px;
             }
         }
+
+        /* Dashboard Revamp Styles */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+        .dashboard-widget {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        .dashboard-widget:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .widget-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .widget-info h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        .widget-count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-color);
+            line-height: 1;
+        }
+        .dashboard-lists-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
+        .dashboard-list-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .list-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f9fafb;
+        }
+        .list-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dashboard-list-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .dashboard-list-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .dashboard-list-item:last-child { border-bottom: none; }
+        .dashboard-list-item:hover { background: #f3f4f6; }
+        .list-item-main { display: flex; flex-direction: column; gap: 4px; }
+        .list-item-title { font-weight: 600; color: var(--text-color); }
+        .list-item-sub { font-size: 0.85rem; color: var(--text-light); }
+        .list-item-date { font-weight: 600; color: var(--primary-color); font-size: 0.9rem; background: #eef2ff; padding: 4px 10px; border-radius: 20px; }
+        
+        @media screen and (max-width: 768px) {
+            .dashboard-lists-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 
 <body>
 
     <aside class="sidebar">
-        <div class="sidebar-header"><span class="full-text">ATH</span></div>
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-plane-departure"></i>
+                <span class="logo-text">ATH Travel</span>
+            </div>
+        </div>
 
-        <ul class="sidebar-nav">
-            <li class="active"><a data-section="dashboard"><i class="fas fa-tachometer-alt fa-fw"></i> <span class="link-text">Dashboard</span></a></li>
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item active">
+                    <a data-section="dashboard" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                
+                <li class="nav-divider">
+                    <span>Management</span>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="trips" class="nav-link">
+                        <i class="fas fa-suitcase-rolling"></i>
+                        <span class="nav-text">Trip Files</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="packages" class="nav-link">
+                        <i class="fas fa-box-open"></i>
+                        <span class="nav-text">Packages</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="hotels" class="nav-link">
+                        <i class="fas fa-hotel"></i>
+                        <span class="nav-text">Hotels</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="vehicles" class="nav-link">
+                        <i class="fas fa-car"></i>
+                        <span class="nav-text">Vehicles</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="guides" class="nav-link">
+                        <i class="fas fa-user-tie"></i>
+                        <span class="nav-text">Guides</span>
+                    </a>
+                </li>
+                
+                <li class="nav-divider">
+                    <span>Features</span>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="evoucher" class="nav-link">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span class="nav-text">E-Voucher</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="paxdetails" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        <span class="nav-text">PAX Details</span>
+                    </a>
+                </li>
+                
+                <li class="nav-divider">
+                    <span>Reports</span>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="insights" class="nav-link">
+                        <i class="fas fa-plane-arrival"></i>
+                        <span class="nav-text">Arrivals & Departures</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="hotelrecords" class="nav-link">
+                        <i class="fas fa-bed"></i>
+                        <span class="nav-text">Hotel Records</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="guiderecords" class="nav-link">
+                        <i class="fas fa-user-check"></i>
+                        <span class="nav-text">Guide Records</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="vehiclerecords" class="nav-link">
+                        <i class="fas fa-truck"></i>
+                        <span class="nav-text">Vehicle Records</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a data-section="dayroster" class="nav-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="nav-text">Duty Roster</span>
+                    </a>
+                </li>
+            </ul>
             
-            <!-- Entry Section -->
-            <li class="nav-section">
-                <a class="section-toggle" data-toggle="entry">
-                    <i class="fas fa-plus-circle fa-fw"></i> 
-                    <span class="link-text">Manage</span>
-                    <i class="fas fa-chevron-down toggle-arrow"></i>
+            <div class="sidebar-footer">
+                <a href="#" onclick="logout(); return false;" class="nav-link logout-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="nav-text">Logout</span>
                 </a>
-                <ul class="nav-submenu" id="entrySubmenu">
-                    <li><a data-section="trips"><i class="fas fa-file-alt fa-fw"></i> <span class="link-text">Trip Files</span></a></li>
-                    <li><a data-section="packages"><i class="fas fa-box-open fa-fw"></i> <span class="link-text">Packages</span></a></li>
-                    <li><a data-section="hotels"><i class="fas fa-hotel fa-fw"></i> <span class="link-text">Hotels</span></a></li>
-                    <li><a data-section="vehicles"><i class="fas fa-car fa-fw"></i> <span class="link-text">Vehicles</span></a></li>
-                    <li><a data-section="guides"><i class="fas fa-user-friends fa-fw"></i> <span class="link-text">Guides</span></a></li>
-                </ul>
-            </li>
-            
-            <!-- PAX Details (standalone) -->
-            <li><a data-section="paxdetails"><i class="fas fa-users fa-fw"></i> <span class="link-text">PAX Details</span></a></li>
-            
-            <!-- Reports Section -->
-            <li class="nav-section">
-                <a class="section-toggle" data-toggle="reports">
-                    <i class="fas fa-chart-bar fa-fw"></i> 
-                    <span class="link-text">Report</span>
-                    <i class="fas fa-chevron-down toggle-arrow"></i>
-                </a>
-                <ul class="nav-submenu" id="reportsSubmenu">
-                    <li><a data-section="insights"><i class="fas fa-plane fa-fw"></i> <span class="link-text">Arrival & Departure</span></a></li>
-                    <li><a data-section="hotelrecords"><i class="fas fa-calendar-check fa-fw"></i> <span class="link-text">Hotel Records</span></a></li>
-                    <li><a data-section="guiderecords"><i class="fas fa-user-check fa-fw"></i> <span class="link-text">Guide Records</span></a></li>
-                    <li><a data-section="vehiclerecords"><i class="fas fa-truck fa-fw"></i> <span class="link-text">Vehicle Records</span></a></li>
-                    <li><a data-section="dayroster"><i class="fas fa-calendar-day fa-fw"></i> <span class="link-text">Duty Roster</span></a></li>
-                </ul>
-            </li>
-        </ul>
-        <ul class="sidebar-nav">
-    <li style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 10px;">
-        <a href="#" onclick="logout(); return false;">
-            <i class="fas fa-sign-out-alt fa-fw"></i> 
-            <span class="link-text">Logout</span>
-        </a>
-    </li>
-</ul>
+            </div>
+        </nav>
     </aside>
 
     <div class="page-wrapper">
@@ -1277,38 +1515,14 @@
 
         <main class="main-content">
             <section id="dashboardSection" class="content-section active">
-                <div class="stats-cards">
-                    <div class="stat-card card-1">
-                        <h3>This Month's Bookings</h3>
-                        <div class="value" id="monthlyBookings">0</div>
-                        <div class="detail"><i class="fas fa-arrow-up"></i> 0% from last month</div>
-                    </div>
-                    <div class="stat-card card-2">
-                        <h3>Total Customers</h3>
-                        <div class="value" id="totalCustomers">0</div>
-                        <div class="detail"><i class="fas fa-arrow-up"></i> 0% growth</div>
-                    </div>
-                    <div class="stat-card card-3">
-                        <h3>Available Vehicles</h3>
-                        <div class="value" id="vehicleCount">0</div>
-                        <div class="detail">Fleet overview</div>
-                    </div>
-                    <div class="stat-card card-4">
-                        <h3>Active Guides</h3>
-                        <div class="value" id="guideCount">0</div>
-                        <div class="detail">Tour guides</div>
-                    </div>
-                </div>
-
-                <div class="trips-container">
+                <!-- Recent Files -->
+                <div class="trips-container" style="margin-bottom: 30px;">
                     <div class="trips-header">
                         <h2>Recent Trip Files</h2>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                          <button id="addTripBtn" class="btn-add"><i class="fas fa-plus"></i> New File</button>
-                        </div>
+                        <a href="#" onclick="window.showSection('trips'); return false;" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">View All</a>
                     </div>
                     <div class="table-container">
-                        <table id="tripsTable">
+                        <table id="recentTripsTable">
                             <thead>
                                 <tr>
                                     <th>FILE ID</th>
@@ -1325,6 +1539,58 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Widgets Grid -->
+                <div class="dashboard-grid">
+                    <!-- Packages Widget -->
+                    <div class="dashboard-widget" onclick="window.showSection('packages')">
+                        <div class="widget-icon" style="background: #e0e7ff; color: #4f46e5;"><i class="fas fa-box"></i></div>
+                        <div class="widget-info">
+                            <h3>Packages</h3>
+                            <div class="widget-count" id="widgetPackageCount">0</div>
+                        </div>
+                    </div>
+                    <!-- Hotels Widget -->
+                    <div class="dashboard-widget" onclick="window.showSection('hotels')">
+                        <div class="widget-icon" style="background: #ecfdf5; color: #10b981;"><i class="fas fa-hotel"></i></div>
+                        <div class="widget-info">
+                            <h3>Hotels</h3>
+                            <div class="widget-count" id="widgetHotelCount">0</div>
+                        </div>
+                    </div>
+                    <!-- Vehicles Widget -->
+                    <div class="dashboard-widget" onclick="window.showSection('vehicles')">
+                        <div class="widget-icon" style="background: #fff7ed; color: #f97316;"><i class="fas fa-car"></i></div>
+                        <div class="widget-info">
+                            <h3>Vehicles</h3>
+                            <div class="widget-count" id="widgetVehicleCount">0</div>
+                        </div>
+                    </div>
+                    <!-- Guides Widget -->
+                    <div class="dashboard-widget" onclick="window.showSection('guides')">
+                        <div class="widget-icon" style="background: #fef2f2; color: #ef4444;"><i class="fas fa-user-tie"></i></div>
+                        <div class="widget-info">
+                            <h3>Guides</h3>
+                            <div class="widget-count" id="widgetGuideCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arrivals / Departures -->
+                <div class="dashboard-lists-container">
+                    <div class="dashboard-list-box">
+                        <div class="list-header">
+                            <h3><i class="fas fa-plane-arrival"></i> Upcoming Arrivals</h3>
+                        </div>
+                        <div id="dashboardArrivalsList" class="dashboard-list-content"></div>
+                    </div>
+                    <div class="dashboard-list-box">
+                        <div class="list-header">
+                            <h3><i class="fas fa-plane-departure"></i> Upcoming Departures</h3>
+                        </div>
+                        <div id="dashboardDeparturesList" class="dashboard-list-content"></div>
+                    </div>
+                </div>
             </section>
 
             <section id="tripsSection" class="content-section">
@@ -1339,6 +1605,8 @@
                             </select>
                             <button id="clearTripsFilter" class="btn-add" style="background-color: var(--text-light);"><i class="fas fa-times"></i> Remove Filters</button>
                         </div>
+                        <!-- Hidden button for core logic, triggered by other buttons or shortcuts -->
+                        <button id="addTripBtn" style="display:none;"></button>
                         <button id="addTripBtn2" class="btn-add"><i class="fas fa-plus"></i> New Trip</button>
                     </div>
                     <div class="table-container">
@@ -1454,6 +1722,52 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- New E-Voucher Section -->
+            <section id="evoucherSection" class="content-section">
+                <div class="trips-container">
+                    <div class="trips-header">
+                        <h2>Create New E-Voucher</h2>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
+                        <div class="section-card">
+                            <h4><i class="fas fa-ticket-alt"></i> Voucher Details</h4>
+                            <div class="form-group">
+                                <label>Voucher Title / Name</label>
+                                <input type="text" placeholder="e.g. Summer Special Discount" class="form-control">
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Voucher Code</label>
+                                    <input type="text" placeholder="AUTO-GENERATED" readonly style="background: #f1f5f9;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Discount Amount / Value</label>
+                                    <input type="number" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Valid From</label>
+                                    <input type="date">
+                                </div>
+                                <div class="form-group">
+                                    <label>Valid Until</label>
+                                    <input type="date">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description / Terms</label>
+                                <textarea rows="4" placeholder="Enter voucher terms and conditions..."></textarea>
+                            </div>
+                            <div class="form-buttons" style="justify-content: flex-start;">
+                                <button class="btn btn-save"><i class="fas fa-check"></i> Create Voucher</button>
+                                <button class="btn btn-cancel"><i class="fas fa-times"></i> Cancel</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -2358,53 +2672,34 @@
                 // Always redirect to login page even if logout fails
                 setTimeout(() => {
                     window.location.href = 'login.html';
-                }, 2000);
+            }, 2000);
             }
         }
     }
 
-            // Collapsible Sidebar Toggle
-            document.querySelectorAll('.section-toggle').forEach(toggle => {
-                toggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.dataset.toggle + 'Submenu';
-                    const submenu = document.getElementById(targetId);
-                    
-                    // Toggle expanded class
-                    this.classList.toggle('expanded');
-                    submenu.classList.toggle('expanded');
-                });
-            });
-            
-            // Navigation
-            document.querySelectorAll('.sidebar-nav a[data-section]').forEach(link => {
+            // Navigation - Simplified for flat structure
+            document.querySelectorAll('.nav-link[data-section]').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const section = this.dataset.section;
                     if (!section) return;
                     
                     // Remove active class from all nav items
-                    document.querySelectorAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
+                    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
                     
-                    // Handle dashboard (direct child)
-                    if (section === 'dashboard') {
-                        this.parentElement.classList.add('active');
-                    } else {
-                        // For submenu items, add active to the submenu li
-                        this.parentElement.classList.add('active');
-                        
-                        // Ensure the parent section is expanded
-                        const submenu = this.closest('.nav-submenu');
-                        if (submenu) {
-                            const sectionToggle = submenu.previousElementSibling;
-                            sectionToggle.classList.add('expanded');
-                            submenu.classList.add('expanded');
-                        }
+                    // Add active class to current item
+                    this.closest('.nav-item').classList.add('active');
+                    
+                    // Hide all sections
+                    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                    
+                    // Show selected section
+                    const targetSection = document.getElementById(section + 'Section');
+                    if (targetSection) {
+                        targetSection.classList.add('active');
                     }
                     
-                    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-                    document.getElementById(section + 'Section').classList.add('active');
-                    
+                    // Trigger data loading for specific sections
                     switch(section) {
                         case 'trips':
                             renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
@@ -2551,6 +2846,8 @@
                         renderTrips(tripsData, document.querySelector('#tripsTable tbody'));
                         renderTrips(tripsData, document.querySelector('#allTripsTable tbody'));
                         updateStats(tripsData);
+                        renderRecentTrips(tripsData);
+                        renderDashboardArrivalsDepartures(tripsData);
                         // Clean up manual order with only existing trip IDs
                         try {
                             const setIds = new Set(tripsData.map(t => String(t.id)));
@@ -2574,6 +2871,7 @@
                     if (result.status === 'success') {
                         packagesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderPackages(packagesData);
+                        renderDashboardWidgets();
                         const select = document.getElementById('trip_package_id');
                         select.innerHTML = '<option value="">Select Package</option>';
                         packagesData.forEach(pkg => {
@@ -2611,6 +2909,7 @@
                     if (result.status === 'success') {
                         hotelsData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderHotels(hotelsData);
+                        renderDashboardWidgets();
                         // If a new hotel was just added, append to ALL package day dropdowns
                         if (window.__pendingHotelName) {
                           const nameLower = window.__pendingHotelName.trim().toLowerCase();
@@ -2645,7 +2944,10 @@
                     if (result.status === 'success') {
                         vehiclesData = [...result.data].sort((a,b)=> String(a.vehicle_name||'').localeCompare(String(b.vehicle_name||'')));
                         renderVehicles(vehiclesData);
+                        renderDashboardWidgets();
                         document.getElementById('vehicleCount').textContent = vehiclesData.length;
+                    } else {
+                        showToast(result.message || 'Error fetching vehicles.', 'error');
                     }
                 } catch (error) {
                     showToast('Error fetching vehicles.', 'error');
@@ -2659,6 +2961,7 @@
                     if (result.status === 'success') {
                         guidesData = [...result.data].sort((a,b)=> String(a.name||'').localeCompare(String(b.name||'')));
                         renderGuides(guidesData);
+                        renderDashboardWidgets();
                         document.getElementById('guideCount').textContent = guidesData.length;
                     }
                 } catch (error) {
@@ -2888,8 +3191,8 @@
                     
                     const tripHeader = document.createElement('div');
                     tripHeader.className = 'hotel-header';
-                    tripHeader.style.background = '#f3e5f5';
-                    tripHeader.style.color = '#6a1b9a';
+                    tripHeader.style.background = 'var(--row-on-trip-bg)';
+                    tripHeader.style.color = 'var(--primary-color)';
                     tripHeader.innerHTML = `
                         <i class="fas fa-users"></i>
                         <strong>File #${trip.id}:</strong> ${trip.file_name || trip.tour_code || 'Unnamed'} | ${trip.package_name}
@@ -2936,7 +3239,7 @@
 
                     const emailButton = document.createElement('button');
                     emailButton.className = 'btn-add';
-                    emailButton.style.background = '#6a1b9a';
+                    emailButton.style.background = 'var(--primary-color)';
                     emailButton.innerHTML = '<i class="fas fa-envelope"></i> Email';
                     emailButton.dataset.tripId = trip.id;
                     emailButton.dataset.action = 'email';
@@ -6228,6 +6531,98 @@ document.getElementById('btnStepNext')?.addEventListener('click', ()=> { const n
               const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
               drMonth.value = ym;
               drMonth.addEventListener('change', fetchDayRoster);
+            }
+
+            // --- Dashboard Revamp Functions ---
+            window.showSection = function(sectionName) {
+                const link = document.querySelector(`a[data-section="${sectionName}"]`);
+                if (link) link.click();
+            };
+
+            function renderRecentTrips(trips) {
+                const tbody = document.querySelector('#recentTripsTable tbody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                
+                // Sort by ID desc (newest first)
+                const recent = [...trips].sort((a,b) => b.id - a.id).slice(0, 5);
+                
+                if (recent.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No recent trips found.</td></tr>';
+                    return;
+                }
+
+                recent.forEach(trip => {
+                    const isCancelled = String(trip.status||'').toLowerCase()==='cancelled';
+                    const row = document.createElement('tr');
+                    const fileIdCell = `#${String(trip.id).padStart(3, '0')}`;
+                    
+                    if (isCancelled) {
+                         row.innerHTML = `<td>${fileIdCell}</td><td>${trip.file_name||trip.customer_name||''}</td><td colspan="5" class="cancelled-message">File Cancelled</td><td></td>`;
+                    } else {
+                        row.innerHTML = `
+                            <td>${fileIdCell}</td>
+                            <td>${trip.file_name||trip.customer_name||''}</td>
+                            <td>${trip.tour_code||''}</td>
+                            <td>${trip.package_name||''}</td>
+                            <td>${trip.start_date||''}</td>
+                            <td>${trip.end_date||''}</td>
+                            <td><span class="status status-${String(trip.status||'').trim().replace(/\s+/g,'-')}">${String(trip.status||'')}</span></td>
+                            <td class="actions">
+                                <a href="#" onclick="window.location.href='Itinerary.php?trip_id=${trip.id}'; return false;" title="View Itinerary"><i class="fas fa-route"></i></a>
+                            </td>
+                        `;
+                    }
+                    tbody.appendChild(row);
+                });
+            }
+
+            function renderDashboardWidgets() {
+                if (document.getElementById('widgetPackageCount')) document.getElementById('widgetPackageCount').textContent = (typeof packagesData !== 'undefined' ? packagesData.length : 0);
+                if (document.getElementById('widgetHotelCount')) document.getElementById('widgetHotelCount').textContent = (typeof hotelsData !== 'undefined' ? hotelsData.length : 0);
+                if (document.getElementById('widgetVehicleCount')) document.getElementById('widgetVehicleCount').textContent = (typeof vehiclesData !== 'undefined' ? vehiclesData.length : 0);
+                if (document.getElementById('widgetGuideCount')) document.getElementById('widgetGuideCount').textContent = (typeof guidesData !== 'undefined' ? guidesData.length : 0);
+            }
+
+            function renderDashboardArrivalsDepartures(trips) {
+                const arrivalList = document.getElementById('dashboardArrivalsList');
+                const departureList = document.getElementById('dashboardDeparturesList');
+                if (!arrivalList || !departureList) return;
+
+                const today = new Date().toISOString().slice(0, 10);
+                
+                // Arrivals: Start Date >= Today, sorted asc
+                const arrivals = trips.filter(t => t.start_date >= today && t.status !== 'Cancelled')
+                                      .sort((a,b) => a.start_date.localeCompare(b.start_date))
+                                      .slice(0, 10);
+                                      
+                // Departures: End Date >= Today, sorted asc
+                const departures = trips.filter(t => t.end_date >= today && t.status !== 'Cancelled')
+                                        .sort((a,b) => a.end_date.localeCompare(b.end_date))
+                                        .slice(0, 10);
+
+                const renderList = (container, items, dateKey) => {
+                    container.innerHTML = '';
+                    if (items.length === 0) {
+                        container.innerHTML = '<div style="padding:20px; text-align:center; color:#9ca3af;">No upcoming records.</div>';
+                        return;
+                    }
+                    items.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'dashboard-list-item';
+                        div.innerHTML = `
+                            <div class="list-item-main">
+                                <div class="list-item-title">#${String(item.id).padStart(3,'0')} • ${item.file_name||item.customer_name}</div>
+                                <div class="list-item-sub">${item.package_name}</div>
+                            </div>
+                            <div class="list-item-date">${item[dateKey]}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                };
+
+                renderList(arrivalList, arrivals, 'start_date');
+                renderList(departureList, departures, 'end_date');
             }
 
             // Initial Data Load

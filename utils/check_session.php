@@ -37,4 +37,3 @@ if (isset($_SESSION['LAST_ACTIVITY']) &&
 
 // Update last activity time
 $_SESSION['LAST_ACTIVITY'] = time();
-?>

@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // Main switch to handle different actions
+ob_clean(); // Clear any whitespace/output from included files (db_connect, etc)
 switch ($action) {
     case 'getTrips':
         getTrips($conn);
@@ -234,7 +235,7 @@ function getPackageRecords($conn){
 function getTrips($conn) {
     $sql = "SELECT t.*, p.name as package_name
             FROM trips t
-            JOIN trip_packages p ON t.trip_package_id = p.id
+            LEFT JOIN trip_packages p ON t.trip_package_id = p.id
             ORDER BY t.start_date DESC";
     $result = $conn->query($sql);
 
